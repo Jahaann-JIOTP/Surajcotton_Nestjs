@@ -5,12 +5,20 @@ import { Privelleges, PrivellegesDocument } from './schema/privelleges.schema';
 import { RolesDocument } from 'src/roles/schema/roles.schema';
 @Injectable()
 export class PrivellegesService {
+  // constructor(
+  //   @InjectModel('Privelleges')
+  //   private readonly privellegesModel: Model<PrivellegesDocument>,
+  //   @InjectModel('Roles')
+  //   private readonly rolesModel: Model<RolesDocument>,
+  // ) {}
   constructor(
-    @InjectModel('Privelleges')
-    private readonly privellegesModel: Model<PrivellegesDocument>,
-    @InjectModel('Roles')
-    private readonly rolesModel: Model<RolesDocument>,
-  ) {}
+  @InjectModel('Privelleges', 'surajcotton')
+  private readonly privellegesModel: Model<PrivellegesDocument>,
+
+  @InjectModel('Roles', 'surajcotton')
+  private readonly rolesModel: Model<RolesDocument>,
+) {}
+
 
   async createPrivelleges(name: string): Promise<Privelleges> {
     const newPrivelleges = new this.privellegesModel({ name });

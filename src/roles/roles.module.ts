@@ -7,19 +7,16 @@ import { UsersModule } from '../users/users.module'; // Import UsersModule
 import { PrivellegesSchema } from 'src/privelleges/schema/privelleges.schema';
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      {
-        name: 'Roles',
-        schema: RolesSchema,
-      },
-      {
-        name: 'Privelleges',
-        schema: PrivellegesSchema,
-      },
-    ]),
-    // Use forwardRef to resolve the circular dependency
-    forwardRef(() => UsersModule),
-  ],
+  MongooseModule.forFeature(
+    [
+      { name: 'Roles', schema: RolesSchema },
+      { name: 'Privelleges', schema: PrivellegesSchema },
+    ],
+    'surajcotton' // ✅ This must match your forRoot connectionName
+  ),
+  forwardRef(() => UsersModule),
+],
+
   controllers: [RolesController],
   providers: [RolesService],
   exports: [MongooseModule, RolesService],

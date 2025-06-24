@@ -15,14 +15,26 @@ import { PrivellegesDocument } from 'src/privelleges/schema/privelleges.schema';
 @Injectable()
 export class RolesService {
   findByName: any;
+  // constructor(
+  //   @InjectModel('Roles')
+  //   private readonly rolesModel: Model<RolesDocument>,
+  //   @InjectModel('Users')
+  //   private readonly usersModel: Model<UsersDocument>,
+  //   @InjectModel('Privelleges')
+  //   private readonly privellegesModel: Model<PrivellegesDocument>,
+  // ) {}
+
   constructor(
-    @InjectModel('Roles')
-    private readonly rolesModel: Model<RolesDocument>,
-    @InjectModel('Users')
-    private readonly usersModel: Model<UsersDocument>,
-    @InjectModel('Privelleges')
-    private readonly privellegesModel: Model<PrivellegesDocument>,
-  ) {}
+  @InjectModel('Roles', 'surajcotton')
+  private readonly rolesModel: Model<RolesDocument>,
+
+  @InjectModel('Users', 'surajcotton')
+  private readonly usersModel: Model<UsersDocument>,
+
+  @InjectModel('Privelleges', 'surajcotton')
+  private readonly privellegesModel: Model<PrivellegesDocument>,
+) {}
+
 
   async createRole(name: string): Promise<Roles> {
     const newRole = new this.rolesModel({ name });

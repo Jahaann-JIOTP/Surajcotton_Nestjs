@@ -19,8 +19,8 @@ export class UsersService {
     return newUser.save();
   }
   constructor(
-    @InjectModel(Users.name) private userModel: Model<UsersDocument>,
-    @InjectModel(Roles.name) private readonly roleModel: Model<RolesDocument>,
+    @InjectModel(Users.name, 'surajcotton') private userModel: Model<UsersDocument>,
+    @InjectModel(Roles.name, 'surajcotton') private readonly roleModel: Model<RolesDocument>,
   ) {}
 
   async addUser(

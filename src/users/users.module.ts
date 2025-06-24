@@ -7,13 +7,15 @@ import { RolesModule } from '../roles/roles.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      {
-        name: 'Users',
-        schema: UsersSchema,
-      },
-    ]),
-    // Use forwardRef to resolve the circular dependency
+     MongooseModule.forFeature(
+      [
+        {
+          name: 'Users',
+          schema: UsersSchema,
+        },
+      ],
+      'surajcotton' // ✅ MUST match the connection name used in forRoot
+    ),
     RolesModule,
   ],
   controllers: [UsersController],

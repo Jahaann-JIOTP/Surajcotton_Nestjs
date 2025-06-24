@@ -6,15 +6,19 @@ import { PrivellegesSchema } from './schema/privelleges.schema';
 import { RolesModule } from 'src/roles/roles.module';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
+ imports: [
+  MongooseModule.forFeature(
+    [
       {
         name: 'Privelleges',
         schema: PrivellegesSchema,
       },
-    ]),
-    RolesModule,
-  ],
+    ],
+    'surajcotton' // ✅ Specify connection name
+  ),
+  RolesModule,
+],
+
   controllers: [PrivellegesController],
   providers: [PrivellegesService],
 })
