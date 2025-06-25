@@ -1,12 +1,10 @@
-import { IsOptional, IsString, IsArray, ArrayNotEmpty } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class AddPrivellegesDto {
-   @IsArray()
-  @ArrayNotEmpty()
-  @IsString({ each: true })
-  names: string[];
+  @IsOptional()
+  @IsString()
+  name?: string | undefined;
 }
-
 
 export class UpdatePrivellegesDto {
   @IsOptional()
