@@ -36,32 +36,81 @@ export class RolesService {
 ) {}
 
 
-  async createRole(name: string): Promise<Roles> {
-    const newRole = new this.rolesModel({ name });
-    return newRole.save();
+async createRole(name: string, privilegeIds: string[]): Promise<Roles> {
+  // Validate privilege IDs
+  for (const id of privilegeIds) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException(`Invalid privilege ID format: ${id}`);
+    }
   }
+
+  // Find valid privileges
+  const privileges = await this.privellegesModel.find({
+    _id: { $in: privilegeIds },
+  });
+
+  if (privileges.length !== privilegeIds.length) {
+    throw new BadRequestException('One or more privileges not found');
+  }
+
+  // Create role with privilege references
+  const newRole = new this.rolesModel({
+    name,
+    privelleges: privileges.map(p => p._id),
+  });
+
+  return newRole.save();
+}
+
 
   async getAllRoles(): Promise<Roles[]> {
     return this.rolesModel.find().exec();
   }
   async getRoleByIdAndUpdate(
-    id: string,
-    name: string,
-  ): Promise<{ message: string }> {
-    const usersWithRole = await this.usersModel.countDocuments({ role: id });
-    if (usersWithRole > 0) {
-      throw new NotFoundException(
-        `Cannot delete role. ${usersWithRole} user(s) are using this role.`,
-      );
-    }
-    const role = await this.rolesModel
-      .findByIdAndUpdate(id, { name }, { new: true })
-      .exec();
-    if (!role) {
-      throw new NotFoundException(`Role with ID ${id} not found`);
-    }
-    return { message: 'Role updated successfully' };
+  id: string,
+  name: string,
+  privilegeIds: string[],
+): Promise<{ message: string }> {
+  // Check if role is used by any users
+  const usersWithRole = await this.usersModel.countDocuments({ role: id });
+  if (usersWithRole > 0) {
+    throw new NotFoundException(
+      `Cannot update role. ${usersWithRole} user(s) are using this role.`,
+    );
   }
+
+  // Validate privilege IDs
+  for (const privilegeId of privilegeIds) {
+    if (!Types.ObjectId.isValid(privilegeId)) {
+      throw new BadRequestException(`Invalid privilege ID format: ${privilegeId}`);
+    }
+  }
+
+  const privileges = await this.privellegesModel.find({
+    _id: { $in: privilegeIds },
+  });
+
+  if (privileges.length !== privilegeIds.length) {
+    throw new NotFoundException('One or more privileges not found');
+  }
+
+  // Update role
+  const updatedRole = await this.rolesModel.findByIdAndUpdate(
+    id,
+    {
+      name,
+      privelleges: privileges.map(p => p._id),
+    },
+    { new: true },
+  );
+
+  if (!updatedRole) {
+    throw new NotFoundException(`Role with ID ${id} not found`);
+  }
+
+  return { message: 'Role updated successfully' };
+}
+
   async getRoleByIdAndDelete(id: string): Promise<{ message: string }> {
     await this.usersModel.updateMany({ role: id }, { $unset: { role: '' } });
     const privelleges = await this.rolesModel.findByIdAndDelete(id).exec();
@@ -71,41 +120,41 @@ export class RolesService {
     return { message: 'Roles deleted successfully' };
   }
 
-  async editRolePrivilegesById(
-    roleId: string,
-    privilegeIds: string[],
-  ): Promise<Roles> {
-    // Validate role ID
-    if (!Types.ObjectId.isValid(roleId)) {
-      throw new BadRequestException('Invalid role ID format');
-    }
+  // async editRolePrivilegesById(
+  //   roleId: string,
+  //   privilegeIds: string[],
+  // ): Promise<Roles> {
+  //   // Validate role ID
+  //   if (!Types.ObjectId.isValid(roleId)) {
+  //     throw new BadRequestException('Invalid role ID format');
+  //   }
 
-    // Validate each privilege ID format
-    for (const id of privilegeIds) {
-      if (!Types.ObjectId.isValid(id)) {
-        throw new BadRequestException(`Invalid privilege ID format: ${id}`);
-      }
-    }
+  //   // Validate each privilege ID format
+  //   for (const id of privilegeIds) {
+  //     if (!Types.ObjectId.isValid(id)) {
+  //       throw new BadRequestException(`Invalid privilege ID format: ${id}`);
+  //     }
+  //   }
 
-    // Find role
-    const role = await this.rolesModel.findById(roleId);
-    if (!role) {
-      throw new NotFoundException('Role not found');
-    }
+  //   // Find role
+  //   const role = await this.rolesModel.findById(roleId);
+  //   if (!role) {
+  //     throw new NotFoundException('Role not found');
+  //   }
 
-    // Find all matching privileges by ID
-    const privileges = await this.privellegesModel.find({
-      _id: { $in: privilegeIds },
-    });
+  //   // Find all matching privileges by ID
+  //   const privileges = await this.privellegesModel.find({
+  //     _id: { $in: privilegeIds },
+  //   });
 
-    if (privileges.length !== privilegeIds.length) {
-      throw new BadRequestException('One or more privileges not found');
-    }
+  //   if (privileges.length !== privilegeIds.length) {
+  //     throw new BadRequestException('One or more privileges not found');
+  //   }
 
-    // Assign privilege ObjectIds to the role
-    role.privelleges = privileges.map((p) => p._id);
-    return role.save();
-  }
+  //   // Assign privilege ObjectIds to the role
+  //   role.privelleges = privileges.map((p) => p._id);
+  //   return role.save();
+  // }
   async removePrivilegeFromRoleById(
     roleId: string,
     privilegeId: string,

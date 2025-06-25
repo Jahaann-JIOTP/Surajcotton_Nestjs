@@ -1,19 +1,18 @@
 import { IsString, IsArray, IsMongoId } from 'class-validator';
 
-export class AddRolesDto {
-  @IsString()
-  name?: string;
+export class CreateRoleDto {
+    @IsString()
+  name: string;
 
   @IsArray()
   @IsMongoId({ each: true })
-  privelleges?: string[];
+  privelleges: string[];
 }
-
 export class UpdateRolesDto {
-  @IsString()
-  name?: string;
+   @IsString()
+  name: string;
 
   @IsArray()
   @IsMongoId({ each: true })
-  privelleges?: string[];
+  privelleges: string[];
 }
