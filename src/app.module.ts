@@ -18,6 +18,7 @@ import { ProductionModule } from './production/production.module';
 import { EnergyCostService } from './energy_cost/energy_cost.service';
 import { EnergyCostController } from './energy_cost/energy_cost.controller';
 import { EnergyCostModule } from './energy_cost/energy_cost.module';
+// import { LogsDataModule } from './logs_data/logs_data.module';
 
 @Module({
   imports: [
@@ -37,6 +38,8 @@ import { EnergyCostModule } from './energy_cost/energy_cost.module';
     ProductionModule,
  
     EnergyCostModule,
+ 
+    // LogsDataModule,
   ],
   controllers: [AppController],
   providers: [AppService],

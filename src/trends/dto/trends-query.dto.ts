@@ -1,20 +1,22 @@
 // src/trends/dto/trends-query.dto.ts
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class TrendsQueryDto {
-  @IsNotEmpty()
   @IsString()
   start_date: string;
 
-  @IsNotEmpty()
   @IsString()
   end_date: string;
 
-  @IsNotEmpty()
   @IsString()
-  meterId: string; // comma-separated
+  area: string;
 
-  @IsNotEmpty()
   @IsString()
-  suffixes: string; // comma-separated
+  selection: string;
+
+  @IsString()
+  meterId: string;
+
+  @IsString()
+  suffixes: string;
 }

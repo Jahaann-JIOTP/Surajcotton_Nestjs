@@ -6,13 +6,13 @@ import { TrendsService } from './trends.service';
 @Controller('trends')
 export class TrendsController {
   constructor(private readonly trendsService: TrendsService) {}
+@Get()
+async getTrends(@Query() query: TrendsQueryDto) {
+  const { start_date, end_date, meterId, suffixes, area, selection } = query;
+  const meterIds = meterId.split(',');
+  const suffixList = suffixes.split(',');
 
-  @Get()
-  async getTrends(@Query() query: TrendsQueryDto) {
-    const { start_date, end_date, meterId, suffixes } = query;
-    const meterIds = meterId.split(',');
-    const suffixList = suffixes.split(',');
+  return this.trendsService.getTrendData(start_date, end_date, meterIds, suffixList, area, selection);
+}
 
-    return this.trendsService.getTrendData(start_date, end_date, meterIds, suffixList);
-  }
 }
