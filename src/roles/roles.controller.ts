@@ -23,7 +23,7 @@ import { CreateRoleDto } from './dto/roles.dto'; // adjust path if needed
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
   //remove these Gaurds for the First Time when adding Role, later add the Gaurds back.
-  // @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Post('addrole')
  @Post()
 async createRole(@Body() dto: CreateRoleDto) {
