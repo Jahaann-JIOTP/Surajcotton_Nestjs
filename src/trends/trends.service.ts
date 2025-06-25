@@ -50,19 +50,24 @@ export class TrendsService {
     return mapping[area]?.[selection] || [];
   }
 
-  async getTrendData(startDate: string, endDate: string, meterIds: string[], suffixes: string[], area: string, selection: string) {
+ async getTrendData(
+  startDate: string,
+  endDate: string,
+  meterIds: string[],
+  suffixes: string[],
+  area: string,
+  selection: string
+) {
   const start = `${startDate}T00:00:00.000+05:00`;
   const end = `${endDate}T23:59:59.999+05:00`;
 
-  const meterMap = this.getMeterPrefixes(area, selection);
+  const allowedMeterIds = this.getMeterPrefixes(area, selection);
   const projection: any = { timestamp: 1 };
 
   meterIds.forEach(meterId => {
-    const prefix = meterMap[meterId];
-    if (prefix) {
+    if (allowedMeterIds.includes(meterId)) {
       suffixes.forEach(suffix => {
-        const key = `${prefix}_${suffix}`;
-        projection[key] = 1;
+        projection[`${meterId}_${suffix}`] = 1;
       });
     }
   });
@@ -72,10 +77,9 @@ export class TrendsService {
   const formatted = rawData.map(doc => {
     const data: any = {};
     meterIds.forEach(meterId => {
-      const prefix = meterMap[meterId];
-      if (prefix) {
+      if (allowedMeterIds.includes(meterId)) {
         suffixes.forEach(suffix => {
-          const key = `${prefix}_${suffix}`;
+          const key = `${meterId}_${suffix}`;
           if (doc[key] !== undefined) {
             data[meterId] = data[meterId] || {};
             data[meterId][suffix] = doc[key];
@@ -93,5 +97,6 @@ export class TrendsService {
   formatted.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   return formatted;
 }
+
 
 }

@@ -22,12 +22,17 @@ export class PrivellegesController {
 
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Post('addprivelleges')
-  async addPrivelleges(@Body() dto: AddPrivellegesDto): Promise<Privelleges> {
-    if (!dto.name) {
-      throw new NotFoundException('Name is required');
-    }
-    return await this.privellegesService.createPrivelleges(dto.name);
-  }
+  // async addPrivelleges(@Body() dto: AddPrivellegesDto): Promise<Privelleges> {
+  //   if (!dto.name) {
+  //     throw new NotFoundException('Name is required');
+  //   }
+  //   return await this.privellegesService.createPrivelleges(dto.name);
+  // }
+
+  @Post()
+async create(@Body() createDto: AddPrivellegesDto) {
+  return this.privellegesService.createPrivelleges(createDto.names);
+}
 
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Get('allprivelleges')

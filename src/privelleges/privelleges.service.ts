@@ -20,10 +20,11 @@ export class PrivellegesService {
 ) {}
 
 
-  async createPrivelleges(name: string): Promise<Privelleges> {
-    const newPrivelleges = new this.privellegesModel({ name });
-    return newPrivelleges.save();
-  }
+async createPrivelleges(names: string[]): Promise<Privelleges[]> {
+  const newPrivelleges = names.map(name => new this.privellegesModel({ name }));
+  return this.privellegesModel.insertMany(newPrivelleges);
+}
+
 
   async getAllPrivelleges(): Promise<Privelleges[]> {
     return this.privellegesModel.find().exec();
