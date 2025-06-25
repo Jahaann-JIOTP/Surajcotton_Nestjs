@@ -12,7 +12,7 @@ export class TrendsService {
     private readonly csNewModel: Model<CSNew>,
   ) {}
 
-  private getMeterPrefixes(area: string, selection: string): string[] {
+  private getMeterPrefixes(area: string, LT_selections: string): string[] {
     const mapping: Record<string, Record<string, string[]>> = {
      'Unit 4': {
       LT_1: [
@@ -39,15 +39,15 @@ export class TrendsService {
         'U21_PLC',
 
       ],
-      LT_2: ['GW01']
+      LT_2: ['U1_GW01', 'U2_GW01', 'U3_GW01', 'U4_GW01', 'U5_GW01', 'U6_GW01', 'U7_GW01', 'U8_GW01', 'U9_GW01', 'U10_GW01', 'U11_GW01', 'U12_GW01', 'U13_GW01', 'U14_GW01', 'U15_GW01', 'U16_GW01', 'U17_GW01', 'U18_GW01', 'U19_GW01', 'U20_GW01', 'U21_GW01', 'U22_GW01', 'U23_GW01']
     },
-    'Unit 5': {
-      LT_1: ['GW02'],
-      LT_2: ['GW03']
-    }
+    // 'Unit 5': {
+    //   LT_1: ['GW02'],
+    //   LT_2: ['GW03']
+    // }
   };
 
-    return mapping[area]?.[selection] || [];
+    return mapping[area]?.[LT_selections] || [];
   }
 
  async getTrendData(
@@ -56,12 +56,12 @@ export class TrendsService {
   meterIds: string[],
   suffixes: string[],
   area: string,
-  selection: string
+  LT_selections: string
 ) {
   const start = `${startDate}T00:00:00.000+05:00`;
   const end = `${endDate}T23:59:59.999+05:00`;
 
-  const allowedMeterIds = this.getMeterPrefixes(area, selection);
+  const allowedMeterIds = this.getMeterPrefixes(area, LT_selections);
   const projection: any = { timestamp: 1 };
 
   meterIds.forEach(meterId => {
@@ -74,28 +74,30 @@ export class TrendsService {
 
   const rawData = await this.csNewModel.find({ timestamp: { $gte: start, $lte: end } }, projection).lean();
 
-  const formatted = rawData.map(doc => {
-    const data: any = {};
-    meterIds.forEach(meterId => {
-      if (allowedMeterIds.includes(meterId)) {
-        suffixes.forEach(suffix => {
-          const key = `${meterId}_${suffix}`;
-          if (doc[key] !== undefined) {
-            data[meterId] = data[meterId] || {};
-            data[meterId][suffix] = doc[key];
-          }
-        });
-      }
-    });
+const formatted = rawData.map(doc => {
+  const flat: any = {
+    timestamp: doc.timestamp,
+  };
 
-    return {
-      timestamp: doc.timestamp,
-      data
-    };
+  meterIds.forEach(meterId => {
+    if (allowedMeterIds.includes(meterId)) {
+      suffixes.forEach(suffix => {
+        const key = `${meterId}_${suffix}`;
+        if (doc[key] !== undefined) {
+          flat[key] = doc[key];
+        } else {
+          flat[key] = 0; // Optional: show 0 if missing
+        }
+      });
+    }
   });
 
-  formatted.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-  return formatted;
+  return flat;
+});
+
+formatted.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+return formatted;
+
 }
 
 

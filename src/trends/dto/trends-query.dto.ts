@@ -5,7 +5,7 @@ export class TrendsBodyDto {
   @IsString() start_date: string;
   @IsString() end_date: string;
   @IsString() area: string;
-  @IsString() selection: string;
+  @IsString() LT_selections: string;
   @IsString() meterId: string; // comma separated
   @IsString() suffixes: string; // comma separated
 }
