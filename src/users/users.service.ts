@@ -94,32 +94,35 @@ export class UsersService {
     return this.userModel.findOne({ email }).exec();
   }
 
-  async updateUser(
-    id: string,
-    updates: Partial<Users>,
-  ): Promise<{ message: string }> {
-    // Validate the role ID if provided
-    if (updates.role) {
-      if (!Types.ObjectId.isValid(updates.role.toString())) {
-        throw new BadRequestException('Invalid role ID format');
-      }
 
-      const roleExists = await this.roleModel.exists({ _id: updates.role });
-      if (!roleExists) {
-        throw new BadRequestException(`Role with ID  does not exist`);
-      }
+
+async updateUser(id: string, updates: Partial<Users>): Promise<{ message: string }> {
+  if (updates.role) {
+    if (!Types.ObjectId.isValid(updates.role.toString())) {
+      throw new BadRequestException('Invalid role ID format');
     }
 
-    const updated = await this.userModel
-      .findByIdAndUpdate(id, updates, { new: true })
-      .exec();
-
-    if (!updated) {
-      throw new NotFoundException('User not found');
+    const roleExists = await this.roleModel.exists({ _id: updates.role });
+    if (!roleExists) {
+      throw new BadRequestException(`Role with ID does not exist`);
     }
-
-    return { message: `User Updated Successfully` };
   }
+
+  // Hash password if it exists in the update
+  if (updates.password) {
+    const salt = await bcrypt.genSalt();
+    updates.password = await bcrypt.hash(updates.password, salt);
+  }
+
+  const updated = await this.userModel.findByIdAndUpdate(id, updates, { new: true }).exec();
+
+  if (!updated) {
+    throw new NotFoundException('User not found');
+  }
+
+  return { message: `User Updated Successfully` };
+}
+
 
   async deleteUser(_id: string): Promise<{ message: string }> {
     const result = await this.userModel.findByIdAndDelete(_id).exec();

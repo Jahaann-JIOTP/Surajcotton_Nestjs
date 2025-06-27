@@ -19,6 +19,9 @@ import { EnergyCostService } from './energy_cost/energy_cost.service';
 import { EnergyCostController } from './energy_cost/energy_cost.controller';
 import { EnergyCostModule } from './energy_cost/energy_cost.module';
 import { LogsDataModule } from './logs_data/logs_data.module';
+import { NodeRedLinkService } from './node_red_link/node_red_link.service';
+import { NodeRedLinkController } from './node_red_link/node_red_link.controller';
+import { NodeRedLinkModule } from './node_red_link/node_red_link.module';
 
 @Module({
   imports: [
@@ -36,6 +39,7 @@ import { LogsDataModule } from './logs_data/logs_data.module';
     ProductionModule,
     EnergyCostModule,
     LogsDataModule,
+    NodeRedLinkModule,
   ],
   controllers: [AppController],
   providers: [AppService],
