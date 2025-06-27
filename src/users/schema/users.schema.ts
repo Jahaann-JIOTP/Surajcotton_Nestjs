@@ -7,7 +7,7 @@ export class Users {
   @Prop({ enum: ['active', 'inactive', 'banned'], default: 'active' })
   userStatus: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Roles' })
+  @Prop({ type: Types.ObjectId, ref: 'Role' })
   role: Types.ObjectId;
 
   @Prop()

@@ -96,19 +96,23 @@ export class UsersService {
 
 
 
-async updateUser(id: string, updates: Partial<Users>): Promise<{ message: string }> {
-  if (updates.role) {
-    if (!Types.ObjectId.isValid(updates.role.toString())) {
+async updateUser(id: string, updates: Partial<Users> & { roleId?: string }): Promise<{ message: string }> {
+  // If roleId is passed, map it to updates.role
+  if (updates.roleId) {
+    if (!Types.ObjectId.isValid(updates.roleId)) {
       throw new BadRequestException('Invalid role ID format');
     }
 
-    const roleExists = await this.roleModel.exists({ _id: updates.role });
+    const roleExists = await this.roleModel.exists({ _id: updates.roleId });
     if (!roleExists) {
       throw new BadRequestException(`Role with ID does not exist`);
     }
+
+    updates.role = new Types.ObjectId(updates.roleId); // assign valid ObjectId
+    delete updates.roleId; // clean up extra field
   }
 
-  // Hash password if it exists in the update
+  // Hash password if present
   if (updates.password) {
     const salt = await bcrypt.genSalt();
     updates.password = await bcrypt.hash(updates.password, salt);
@@ -122,6 +126,8 @@ async updateUser(id: string, updates: Partial<Users>): Promise<{ message: string
 
   return { message: `User Updated Successfully` };
 }
+
+
 
 
   async deleteUser(_id: string): Promise<{ message: string }> {
