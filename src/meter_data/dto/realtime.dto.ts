@@ -4,7 +4,7 @@ import { IsIn, IsNotEmpty, IsString } from 'class-validator';
 export class RealtimeDto {
   @IsNotEmpty()
   @IsString()
-  @IsIn(['Unit 4', 'Unit 5'])
+  @IsIn(['Unit_4', 'Unit_5'])
   area: string;
 
   @IsNotEmpty()
