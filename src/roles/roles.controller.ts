@@ -40,7 +40,7 @@ async createRole(@Body() dto: CreateRoleDto) {
       data: roles,
     };
   }
-//  @UseGuards(JwtAuthGuard, AdminGuard)
+ @UseGuards(JwtAuthGuard, AdminGuard)
 @Put('updaterole/:id')
 async updateRole(
   @Param('id') id: string,

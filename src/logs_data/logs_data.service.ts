@@ -12,7 +12,7 @@ export class LogsDataService {
 
 
   private readonly tagGroups = {
-    voltage: ["Voltage_AB","Voltage_BC","Voltage_CA"],
+    voltage: ["Voltage_AN","Voltage_BN","Voltage_CN", "Voltage_LN_Avg"],
     current: ["Current_A", "Current_B", "Current_C"],
     power_factor: ["PowerFactor_A","PowerFactor_B","PowerFactor_C"],
     active_power: ["ActivePower_Total"],
