@@ -22,6 +22,9 @@ import { LogsDataModule } from './logs_data/logs_data.module';
 import { NodeRedLinkService } from './node_red_link/node_red_link.service';
 import { NodeRedLinkController } from './node_red_link/node_red_link.controller';
 import { NodeRedLinkModule } from './node_red_link/node_red_link.module';
+import { meter_dataService } from './meter_data/meter_data.service';
+import { meter_dataController } from './meter_data/meter_data.controller';
+import { meter_dataModule } from './meter_data/meter_data.module';
 
 @Module({
   imports: [
@@ -40,6 +43,7 @@ import { NodeRedLinkModule } from './node_red_link/node_red_link.module';
     EnergyCostModule,
     LogsDataModule,
     NodeRedLinkModule,
+    meter_dataModule,
   ],
   controllers: [AppController],
   providers: [AppService],

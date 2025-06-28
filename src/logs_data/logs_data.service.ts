@@ -20,7 +20,7 @@ export class LogsDataService {
     reactive_energy: ["ActiveEnergy_Total"],
     apparent_power: ["ApparentPower_Total"],
     Harmonics: ["Harmonics_V1","Harmonics_V2","Harmonics_V3"],
-    active_energy: ["Del_Active_Energy"],
+    active_energy: ["Del_ActiveEnergy"],
   };
 
   async fetchLogs(query: LogsQueryDto) {
