@@ -28,7 +28,7 @@ export class meter_dataService {
         LT_2: [ 'U1_GW03', 'U2_GW03', 'U3_GW03', 'U4_GW03', 'U5_GW03', 'U6_GW03', 'U7_GW03',
         'U8_GW03', 'U9_GW03', 'U10_GW03', 'U11_GW03', 'U12_GW03', 'U13_GW03', 'U14_GW03',
         'U15_GW03', 'U16_GW03', 'U17_GW03', 'U18_GW03', 'U19_GW03', 'U20_GW03', 'U21_GW03',
-        'U22_GW03', 'U23_GW03',],
+        'U22_GW03', 'U23_GW03'],
       },
       
     };
