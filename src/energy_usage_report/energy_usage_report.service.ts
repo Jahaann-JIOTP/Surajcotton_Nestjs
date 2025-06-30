@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { GetEnergyCostDto } from './dto/get-energy-cost.dto';
-import { EnergyCost } from './schemas/energy-cost.schema';
+import { GetEnergyCostDto } from './dto/get-energy-usage_report.dto';
+import { Energyusagereport } from './schemas/energy-usage_report.schema';
+import { DailyProduction } from './schemas/daily-production.schema';
 import * as moment from 'moment-timezone';
 
 @Injectable()
-export class EnergyCostService {
+export class EnergyUsageReportService {
   constructor(
-    @InjectModel(EnergyCost.name, 'surajcotton') private costModel: Model<EnergyCost>,
+    @InjectModel(Energyusagereport.name, 'surajcotton') private costModel: Model<Energyusagereport>,
+    @InjectModel(DailyProduction.name, 'surajcotton') private dailyModel: Model<DailyProduction>,
   ) {}
 
   // 🔹 Mapping function for area to meterIds
@@ -22,7 +24,7 @@ export class EnergyCostService {
         'U11_GW01', 'U12_GW01', 'U13_GW01', 'U14_GW01', 'U15_GW01', 'U16_GW01', 'U17_GW01',
         'U18_GW01', 'U19_GW01', 'U20_GW01', 'U21_GW01', 'U22_GW01', 'U23_GW01'
       ],
-      Unit_5:[
+      Unit_5: [
         'U1_GW02', 'U2_GW02', 'U3_GW02', 'U4_GW02', 'U5_GW02', 'U6_GW02', 'U7_GW02',
         'U8_GW02', 'U9_GW02', 'U10_GW02', 'U11_GW02', 'U12_GW02', 'U13_GW02', 'U14_GW02',
         'U15_GW02', 'U16_GW02', 'U17_GW02', 'U18_GW02', 'U19_GW02', 'U20_GW02', 'U21_GW02',
@@ -38,12 +40,15 @@ export class EnergyCostService {
 
   // 🔹 Main method
   async getConsumptionData(dto: GetEnergyCostDto) {
-    const { start_date, end_date, suffixes } = dto;
+    const { start_date, end_date, suffixes, area } = dto;
     let { meterIds } = dto;
 
-    // If meterIds are not provided but area is, then resolve them
-    if ((!meterIds || meterIds.length === 0) && dto.area) {
-      meterIds = this.getMeterIdsForArea(dto.area);
+    // 🔸 Convert area to unit name like 'Unit_4' → 'U4'
+    const unit = area?.replace('Unit_', 'U');
+
+    // 🔹 Resolve meterIds from area if not provided
+    if ((!meterIds || meterIds.length === 0) && area) {
+      meterIds = this.getMeterIdsForArea(area);
     }
 
     if (!meterIds || meterIds.length === 0 || !suffixes || suffixes.length === 0) {
@@ -55,6 +60,18 @@ export class EnergyCostService {
     const startOfRange = moment.tz(start_date, 'YYYY-MM-DD', 'Asia/Karachi').startOf('day').toISOString(true);
     const endOfRange = moment.tz(end_date, 'YYYY-MM-DD', 'Asia/Karachi').endOf('day').toISOString(true);
 
+    // 🔸 Get production value from daily_production for the unit and start_date
+    let productionValue: number | null = null;
+
+    if (unit) {
+      const productionDoc = await this.dailyModel.findOne({
+        unit,
+        date: start_date,
+      }).select('value').lean();
+
+      productionValue = productionDoc?.value || 0;
+    }
+
     const result: {
       meterId: string;
       suffix: string;
@@ -63,11 +80,12 @@ export class EnergyCostService {
       consumption: number;
       startTimestamp: string;
       endTimestamp: string;
+      production: number;
     }[] = [];
 
     for (let i = 0; i < meterIds.length; i++) {
       const meterId = meterIds[i];
-      const suffix = suffixArray[i] || suffixArray[0]; // Default to first suffix if others not provided
+      const suffix = suffixArray[i] || suffixArray[0]; // Default to first suffix if missing
 
       const key = `${meterId}_${suffix}`;
       const projection = { [key]: 1, timestamp: 1 };
@@ -100,6 +118,7 @@ export class EnergyCostService {
         consumption,
         startTimestamp: firstDoc.timestamp,
         endTimestamp: lastDoc.timestamp,
+        production: productionValue || 0,
       });
     }
 

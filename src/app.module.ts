@@ -25,6 +25,9 @@ import { NodeRedLinkModule } from './node_red_link/node_red_link.module';
 import { meter_dataService } from './meter_data/meter_data.service';
 import { meter_dataController } from './meter_data/meter_data.controller';
 import { meter_dataModule } from './meter_data/meter_data.module';
+import { EnergyUsageReportService } from './energy_usage_report/energy_usage_report.service';
+import { EnergyUsageReportController } from './energy_usage_report/energy_usage_report.controller';
+import { EnergyUsageReportModule } from './energy_usage_report/energy_usage_report.module';
 
 @Module({
   imports: [
@@ -44,6 +47,7 @@ import { meter_dataModule } from './meter_data/meter_data.module';
     LogsDataModule,
     NodeRedLinkModule,
     meter_dataModule,
+    EnergyUsageReportModule,
   ],
   controllers: [AppController],
   providers: [AppService],
