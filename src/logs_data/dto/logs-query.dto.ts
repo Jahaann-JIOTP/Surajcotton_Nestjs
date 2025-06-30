@@ -2,7 +2,7 @@ import { IsArray, IsIn, IsNotEmpty, IsString } from 'class-validator';
 
 export class LogsQueryDto {
   @IsIn(['current', 'voltage', 'active_power',
-     'power_factor', 'reactive_power','reactive_energy', 'apparent_power', 'active_energy', ' Harmonics'])
+     'power_factor', 'reactive_power','reactive_energy', 'apparent_power', 'active_energy', 'Harmonics'])
 
     //  'apparent_energy'
   type: string;
