@@ -45,18 +45,15 @@ export class Unit4LT1Service {
       U20_PLC: 'Diesel + Gas Incoming',
     };
 
-    // All meter fields including TF1 & LT Gen
     const meterFields = [
       'U19_PLC_Del_ActiveEnergy', // TF1
       'U21_PLC_Del_ActiveEnergy', // LT Gen
       ...Object.keys(meterMap).map((m) => `${m}_Del_ActiveEnergy`),
     ];
 
-    // Initialize totals
     const consumptionTotals: Record<string, number> = {};
     meterFields.forEach((field) => (consumptionTotals[field] = 0));
 
-    // 🔁 Loop through each day
     for (const day of allDates) {
       const dayStart = moment(day).startOf('day').toISOString();
       const dayEnd = moment(day).endOf('day').toISOString();
@@ -71,30 +68,30 @@ export class Unit4LT1Service {
       const first = dayData[0];
       const last = dayData[dayData.length - 1];
 
-    for (const field of meterFields) {
-  const startVal = first[field] || 0;
-  const endVal = last[field] || 0;
-  let consumption = endVal - startVal;
+      for (const field of meterFields) {
+        const startVal = first[field] || 0;
+        const endVal = last[field] || 0;
+        let consumption = endVal - startVal;
 
-  const isExponential = Math.abs(consumption) > 1e12 || String(consumption).includes('e');
+        const isExponential =
+          Math.abs(consumption) > 1e12 || String(consumption).includes('e');
 
-  if (!isNaN(consumption) && consumption >= 0 && !isExponential) {
-    consumptionTotals[field] += parseFloat(consumption.toFixed(2));
-  } else {
-    consumptionTotals[field] += 0; // Treat as zero
-  }
-}
-
+        if (!isNaN(consumption) && consumption >= 0 && !isExponential) {
+          consumptionTotals[field] += parseFloat(consumption.toFixed(2));
+        } else {
+          consumptionTotals[field] += 0;
+        }
+      }
     }
 
-    // Final consumption
-    const tf1 = consumptionTotals['U19_PLC_Del_ActiveEnergy'];
-    const ltGen = consumptionTotals['U21_PLC_Del_ActiveEnergy'];
+    const tf1 = parseFloat(consumptionTotals['U19_PLC_Del_ActiveEnergy'].toFixed(2));
+    const ltGen = parseFloat(consumptionTotals['U21_PLC_Del_ActiveEnergy'].toFixed(2));
     const totalLT1 = parseFloat((tf1 + ltGen).toFixed(2));
 
-    // Format output
-    const others = [
-      { to: 'totalLT1', value: totalLT1 },
+    // Final output: flat array for Sankey
+    const sankeyData = [
+      { from: 'tf1', to: 'totalLT1', value: tf1 },
+      { from: 'ltGen', to: 'totalLT1', value: ltGen },
       ...Object.entries(meterMap).map(([meter, label]) => {
         const key = `${meter}_Del_ActiveEnergy`;
         return {
@@ -105,11 +102,6 @@ export class Unit4LT1Service {
       }),
     ];
 
-    return {
-      tf1: parseFloat(tf1.toFixed(2)),
-      ltGen: parseFloat(ltGen.toFixed(2)),
-      totalLT1,
-      others,
-    };
+    return sankeyData;
   }
 }
