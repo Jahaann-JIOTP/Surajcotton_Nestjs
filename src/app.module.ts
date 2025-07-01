@@ -29,6 +29,8 @@ import { EnergyUsageReportService } from './energy_usage_report/energy_usage_rep
 import { EnergyUsageReportController } from './energy_usage_report/energy_usage_report.controller';
 import { EnergyUsageReportModule } from './energy_usage_report/energy_usage_report.module';
 
+import { Unit4Lt1Module } from './unit4_lt1/unit4_lt1.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -48,6 +50,7 @@ import { EnergyUsageReportModule } from './energy_usage_report/energy_usage_repo
     NodeRedLinkModule,
     meter_dataModule,
     EnergyUsageReportModule,
+    Unit4Lt1Module,
   ],
   controllers: [AppController],
   providers: [AppService],

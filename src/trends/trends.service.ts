@@ -91,9 +91,11 @@ const formatted = rawData.map(doc => {
       suffixes.forEach(suffix => {
         const key = `${meterId}_${suffix}`;
         if (doc[key] !== undefined) {
-          flat[key] = doc[key];
+          const value = doc[key];
+          // If value is in scientific notation (e+ or e-), show 0
+          flat[key] = value.toString().includes('e') ? 0 : value;
         } else {
-          flat[key] = 0; // Optional: show 0 if missing
+          flat[key] = 0;
         }
       });
     }
@@ -101,6 +103,10 @@ const formatted = rawData.map(doc => {
 
   return flat;
 });
+
+
+
+  
 
 formatted.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 return formatted;
