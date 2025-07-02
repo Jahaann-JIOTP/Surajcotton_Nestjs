@@ -49,104 +49,169 @@ export class EnergyUsageReportService {
 
     return areaMapping[area] || [];
   }
+  private sanitizeValue(value: number): number {
+  if (!isFinite(value) || isNaN(value)) return 0;
 
-  // 🔹 Main method
-  async getConsumptionData(dto: GetEnergyCostDto) {
-    const { start_date, end_date, suffixes, area } = dto;
-    let { meterIds } = dto;
+  const minThreshold = 1e-6;
+  const maxThreshold = 1e+12;
 
-    // 🔸 Convert area to unit name like 'Unit_4' → 'U4'
-    const unit = area?.replace('Unit_', 'U');
+  if (Math.abs(value) < minThreshold || Math.abs(value) > maxThreshold) {
+    return 0;
+  }
 
-    // 🔹 Resolve meterIds from area if not provided
-    if ((!meterIds || meterIds.length === 0) && area) {
-      meterIds = this.getMeterIdsForArea(area);
-    }
-
-    if (!meterIds || meterIds.length === 0 || !suffixes || suffixes.length === 0) {
-      throw new Error('Missing meterIds or suffixes');
-    }
-
-    const suffixArray = suffixes;
-
-    const startOfRange = moment.tz(start_date, 'YYYY-MM-DD', 'Asia/Karachi').startOf('day').toISOString(true);
-    const endOfRange = moment.tz(end_date, 'YYYY-MM-DD', 'Asia/Karachi').endOf('day').toISOString(true);
-
-    // 🔸 Get production value from daily_production for the unit and start_date
-  let productionValue: number | null = null;
-
-if (area === 'ALL') {
-  // Sum production for Unit_4 and Unit_5
-  const [unit4, unit5] = await Promise.all([
-    this.dailyModel.findOne({ unit: 'U4', date: start_date }).select('value').lean(),
-    this.dailyModel.findOne({ unit: 'U5', date: start_date }).select('value').lean(),
-  ]);
-
-  const prod4 = unit4?.value || 0;
-  const prod5 = unit5?.value || 0;
-
-  productionValue = prod4 + prod5;
-} else if (unit) {
-  // Single unit (Unit_4 → U4, Unit_5 → U5)
-  const productionDoc = await this.dailyModel.findOne({
-    unit,
-    date: start_date,
-  }).select('value').lean();
-
-  productionValue = productionDoc?.value || 0;
+  return value;
 }
 
 
-    const result: {
-      meterId: string;
-      suffix: string;
-      startValue: number;
-      endValue: number;
-      consumption: number;
-      startTimestamp: string;
-      endTimestamp: string;
-      production: number;
-    }[] = [];
+  // 🔹 Main method
+  async getConsumptionData(dto: GetEnergyCostDto) {
+  const { start_date, end_date, suffixes, area } = dto;
+  let { meterIds } = dto;
 
-    for (let i = 0; i < meterIds.length; i++) {
-      const meterId = meterIds[i];
-      const suffix = suffixArray[i] || suffixArray[0]; // Default to first suffix if missing
+  const unit = area?.replace('Unit_', 'U');
 
-      const key = `${meterId}_${suffix}`;
-      const projection = { [key]: 1, timestamp: 1 };
+  // 🔹 Resolve meterIds from area if not provided
+  if ((!meterIds || meterIds.length === 0) && area) {
+    meterIds = this.getMeterIdsForArea(area);
+  }
 
-      const firstDoc = await this.costModel
-        .findOne({ timestamp: { $gte: startOfRange, $lte: endOfRange } })
-        .select(projection)
-        .sort({ timestamp: 1 })
-        .lean();
+  if (!meterIds || meterIds.length === 0 || !suffixes || suffixes.length === 0) {
+    throw new Error('Missing meterIds or suffixes');
+  }
 
-      const lastDoc = await this.costModel
-        .findOne({ timestamp: { $gte: startOfRange, $lte: endOfRange } })
-        .select(projection)
-        .sort({ timestamp: -1 })
-        .lean();
+  const suffixArray = suffixes;
+  const startOfRange = moment.tz(start_date, 'YYYY-MM-DD', 'Asia/Karachi').startOf('day').toISOString(true);
+  const endOfRange = moment.tz(end_date, 'YYYY-MM-DD', 'Asia/Karachi').endOf('day').toISOString(true);
 
-      if (!firstDoc || !lastDoc || firstDoc[key] === undefined || lastDoc[key] === undefined) {
-        continue;
+  // 🔸 Prepare unit-based production only for 'ALL' case
+  let unit4TotalProduction = 0;
+  let unit5TotalProduction = 0;
+
+  if (area === 'ALL') {
+    const [unit4Production, unit5Production] = await Promise.all([
+      this.dailyModel.aggregate([
+        {
+          $match: {
+            unit: 'U4',
+            date: { $gte: start_date, $lte: end_date }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$value' }
+          }
+        }
+      ]),
+      this.dailyModel.aggregate([
+        {
+          $match: {
+            unit: 'U5',
+            date: { $gte: start_date, $lte: end_date }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$value' }
+          }
+        }
+      ])
+    ]);
+
+    unit4TotalProduction = unit4Production[0]?.total || 0;
+    unit5TotalProduction = unit5Production[0]?.total || 0;
+  }
+
+  // 🔸 Default production value if area is NOT 'ALL'
+  let productionValue = 0;
+
+  if (area !== 'ALL' && unit) {
+    const productionAgg = await this.dailyModel.aggregate([
+      {
+        $match: {
+          unit,
+          date: { $gte: start_date, $lte: end_date }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$value' }
+        }
       }
+    ]);
 
-      const startValue = firstDoc[key];
-      const endValue = lastDoc[key];
-      const consumption = endValue - startValue;
+    productionValue = productionAgg[0]?.total || 0;
+  }
 
-      result.push({
-        meterId,
-        suffix,
-        startValue,
-        endValue,
-        consumption,
-        startTimestamp: firstDoc.timestamp,
-        endTimestamp: lastDoc.timestamp,
-        production: productionValue || 0,
-      });
+  const result: {
+    meterId: string;
+    suffix: string;
+    startValue: number;
+    endValue: number;
+    consumption: number;
+    startTimestamp: string;
+    endTimestamp: string;
+    production: number;
+  }[] = [];
+
+  for (let i = 0; i < meterIds.length; i++) {
+    const meterId = meterIds[i];
+    const suffix = suffixArray[i] || suffixArray[0]; // Default to first suffix if not mapped
+
+    const key = `${meterId}_${suffix}`;
+    const projection = { [key]: 1, timestamp: 1 };
+
+    const firstDoc = await this.costModel
+      .findOne({ timestamp: { $gte: startOfRange, $lte: endOfRange } })
+      .select(projection)
+      .sort({ timestamp: 1 })
+      .lean();
+
+    const lastDoc = await this.costModel
+      .findOne({ timestamp: { $gte: startOfRange, $lte: endOfRange } })
+      .select(projection)
+      .sort({ timestamp: -1 })
+      .lean();
+
+    if (!firstDoc || !lastDoc || firstDoc[key] === undefined || lastDoc[key] === undefined) {
+      continue;
     }
 
-    return result;
+   let startValue = this.sanitizeValue(firstDoc[key]);
+let endValue = this.sanitizeValue(lastDoc[key]);
+let consumption = this.sanitizeValue(endValue - startValue);
+
+
+    // 🔸 Correct production logic based on meterId suffix when area is ALL
+    let meterProduction = 0;
+    if (area === 'ALL') {
+      if (meterId.endsWith('PLC') || meterId.endsWith('GW01')) {
+        meterProduction = unit4TotalProduction;
+      } else if (meterId.endsWith('GW02') || meterId.endsWith('GW03')) {
+        meterProduction = unit5TotalProduction;
+      } else {
+        meterProduction = 0;
+      }
+    } else {
+      meterProduction = productionValue;
+    }
+
+  result.push({
+  meterId,
+  suffix,
+  startValue,
+  endValue,
+  consumption,
+  startTimestamp: firstDoc.timestamp,
+  endTimestamp: lastDoc.timestamp,
+  production: meterProduction,
+});
+
   }
+
+  return result;
+}
+
 }

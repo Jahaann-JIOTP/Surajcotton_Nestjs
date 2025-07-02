@@ -58,6 +58,8 @@ export class Unit4LT1Service {
       const dayStart = moment(day).startOf('day').toISOString();
       const dayEnd = moment(day).endOf('day').toISOString();
 
+
+      
       const dayData = await this.unitModel
         .find({ timestamp: { $gte: dayStart, $lte: dayEnd } })
         .sort({ timestamp: 1 })

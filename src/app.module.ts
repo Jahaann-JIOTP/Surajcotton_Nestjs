@@ -31,6 +31,8 @@ import { EnergyUsageReportModule } from './energy_usage_report/energy_usage_repo
 
 import { Unit4Lt1Module } from './unit4_lt1/unit4_lt1.module';
 
+import { ProductionMonthwiseModule } from './production-monthwise/production-monthwise.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -51,6 +53,7 @@ import { Unit4Lt1Module } from './unit4_lt1/unit4_lt1.module';
     meter_dataModule,
     EnergyUsageReportModule,
     Unit4Lt1Module,
+    ProductionMonthwiseModule,
   ],
   controllers: [AppController],
   providers: [AppService],

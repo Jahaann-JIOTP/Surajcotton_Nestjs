@@ -49,6 +49,21 @@ export class EnergyCostService {
     return areaMapping[area] || [];
   }
 
+  private sanitizeValue(value: number): number {
+  if (!isFinite(value) || isNaN(value)) return 0;
+
+  // Define bounds outside which values are considered scientific or invalid
+  const minThreshold = 1e-6;
+  const maxThreshold = 1e+12;
+
+  if (Math.abs(value) < minThreshold || Math.abs(value) > maxThreshold) {
+    return 0;
+  }
+
+  return value;
+}
+
+
   // 🔹 Main method
   async getConsumptionData(dto: GetEnergyCostDto) {
     const { start_date, end_date, suffixes } = dto;
@@ -101,9 +116,15 @@ export class EnergyCostService {
         continue;
       }
 
-      const startValue = firstDoc[key];
-      const endValue = lastDoc[key];
-      const consumption = endValue - startValue;
+            let startValue = firstDoc[key];
+      let endValue = lastDoc[key];
+      let consumption = endValue - startValue;
+
+      // Convert invalid scientific or extreme values to 0
+      startValue = this.sanitizeValue(startValue);
+      endValue = this.sanitizeValue(endValue);
+      consumption = this.sanitizeValue(endValue - startValue);
+
 
       result.push({
         meterId,
