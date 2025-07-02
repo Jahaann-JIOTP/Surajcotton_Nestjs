@@ -60,20 +60,44 @@ export class UsersService {
     return newUser.save();
   }
 
-  async findAll(): Promise<Users[]> {
-    const users = await this.userModel
-      .find()
-      .populate({
-        path: 'role',
-        populate: {
-          path: 'privelleges', // populate inside role
-        },
-      })
-      .exec();
+  // async findAll(): Promise<Users[]> {
+  //   const users = await this.userModel
+  //     .find()
+  //     .populate({
+  //       path: 'role',
+  //       populate: {
+  //         path: 'privelleges', // populate inside role
+  //       },
+  //     })
+  //     .exec();
 
-    if (!users) throw new NotFoundException('User not found');
-    return users;
-  }
+  //   if (!users) throw new NotFoundException('User not found');
+  //   return users;
+  // }
+// users.service.ts
+async findAll(currentUser: any): Promise<Users[]> {
+const userId = currentUser._id || currentUser.sub || currentUser.userId;
+const user = await this.userModel
+  .findById(userId)
+  .populate('role');
+
+if (!user) {
+  throw new Error('User not found');
+}
+
+
+if (!user) {
+  throw new Error('User not found'); // Optional: handle this properly
+}
+
+const roleName = (user.role as any)?.name;
+
+if (roleName === 'super_admin') {
+  return this.userModel.find().populate('role').lean();
+} else {
+  return [];
+}
+}
 
   async findById(id: string): Promise<Users> {
     const user = await this.userModel

@@ -25,17 +25,17 @@ export class AdminGuard implements CanActivate {
       throw new ForbiddenException('No role found in token.');
     }
 
-    // Fetch the role document from the database using the role ID
-    const role = await this.rolesModel.findById(user.role);
+    // ✅ Load role by ID
+    const role = await this.rolesModel.findById(user.role).lean();
     if (!role) {
       throw new ForbiddenException('Invalid role.');
     }
 
-    // Check if it's Admin
-    if (role.name !== 'admin') {
-      throw new ForbiddenException('Access denied. Admins only.');
+    if (role.name !== 'super_admin') {
+      throw new ForbiddenException('Access denied. Super Admins only.');
     }
 
     return true;
   }
 }
+

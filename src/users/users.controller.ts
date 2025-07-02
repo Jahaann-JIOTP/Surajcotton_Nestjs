@@ -50,11 +50,13 @@ export class UsersController {
   }
 
   // Admin or internal routes
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Get('allUsers')
-  findAllUsers() {
-    return this.usersService.findAll();
-  }
+  // users.controller.ts
+@UseGuards(JwtAuthGuard)
+@Get('allUsers')
+async findAll(@Req() req) {
+  return this.usersService.findAll(req.user); // ✅ Pass current user
+}
+
 
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Get('fetch/:id')

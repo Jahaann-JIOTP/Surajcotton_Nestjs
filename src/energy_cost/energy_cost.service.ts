@@ -66,77 +66,73 @@ export class EnergyCostService {
 
   // 🔹 Main method
   async getConsumptionData(dto: GetEnergyCostDto) {
-    const { start_date, end_date, suffixes } = dto;
-    let { meterIds } = dto;
+  const { start_date, end_date, suffixes } = dto;
+  let { meterIds } = dto;
 
-    // If meterIds are not provided but area is, then resolve them
-    if ((!meterIds || meterIds.length === 0) && dto.area) {
-      meterIds = this.getMeterIdsForArea(dto.area);
-    }
-
-    if (!meterIds || meterIds.length === 0 || !suffixes || suffixes.length === 0) {
-      throw new Error('Missing meterIds or suffixes');
-    }
-
-    const suffixArray = suffixes;
-
-    const startOfRange = moment.tz(start_date, 'YYYY-MM-DD', 'Asia/Karachi').startOf('day').toISOString(true);
-    const endOfRange = moment.tz(end_date, 'YYYY-MM-DD', 'Asia/Karachi').endOf('day').toISOString(true);
-
-    const result: {
-      meterId: string;
-      suffix: string;
-      startValue: number;
-      endValue: number;
-      consumption: number;
-      startTimestamp: string;
-      endTimestamp: string;
-    }[] = [];
-
-    for (let i = 0; i < meterIds.length; i++) {
-      const meterId = meterIds[i];
-      const suffix = suffixArray[i] || suffixArray[0]; // Default to first suffix if others not provided
-
-      const key = `${meterId}_${suffix}`;
-      const projection = { [key]: 1, timestamp: 1 };
-
-      const firstDoc = await this.costModel
-        .findOne({ timestamp: { $gte: startOfRange, $lte: endOfRange } })
-        .select(projection)
-        .sort({ timestamp: 1 })
-        .lean();
-
-      const lastDoc = await this.costModel
-        .findOne({ timestamp: { $gte: startOfRange, $lte: endOfRange } })
-        .select(projection)
-        .sort({ timestamp: -1 })
-        .lean();
-
-      if (!firstDoc || !lastDoc || firstDoc[key] === undefined || lastDoc[key] === undefined) {
-        continue;
-      }
-
-            let startValue = firstDoc[key];
-      let endValue = lastDoc[key];
-      let consumption = endValue - startValue;
-
-      // Convert invalid scientific or extreme values to 0
-      startValue = this.sanitizeValue(startValue);
-      endValue = this.sanitizeValue(endValue);
-      consumption = this.sanitizeValue(endValue - startValue);
-
-
-      result.push({
-        meterId,
-        suffix,
-        startValue,
-        endValue,
-        consumption,
-        startTimestamp: firstDoc.timestamp,
-        endTimestamp: lastDoc.timestamp,
-      });
-    }
-
-    return result;
+  // Resolve meterIds if not provided
+  if ((!meterIds || meterIds.length === 0) && dto.area) {
+    meterIds = this.getMeterIdsForArea(dto.area);
   }
+
+  if (!meterIds || meterIds.length === 0 || !suffixes || suffixes.length === 0) {
+    throw new Error('Missing meterIds or suffixes');
+  }
+
+  const startOfRange = moment.tz(start_date, 'YYYY-MM-DD', 'Asia/Karachi').startOf('day').toISOString(true);
+  const endOfRange = moment.tz(end_date, 'YYYY-MM-DD', 'Asia/Karachi').endOf('day').toISOString(true);
+
+  // Run one aggregation to get first and last document in range
+  const pipeline = [
+    {
+      $match: {
+        timestamp: { $gte: startOfRange, $lte: endOfRange },
+      },
+    },
+    {
+      $sort: { timestamp: 1 as const }, // Fix for TypeScript
+    },
+    {
+      $group: {
+        _id: null,
+        first: { $first: '$$ROOT' },
+        last: { $last: '$$ROOT' },
+      },
+    },
+  ];
+
+  const [docs] = await this.costModel.aggregate(pipeline).exec();
+  if (!docs || !docs.first || !docs.last) {
+    return [];
+  }
+
+  const firstDoc = docs.first;
+  const lastDoc = docs.last;
+
+  const result = meterIds.map((meterId, index) => {
+    const suffix = suffixes[index] || suffixes[0];
+    const key = `${meterId}_${suffix}`;
+
+    let startValue = this.sanitizeValue(firstDoc[key]);
+    let endValue = this.sanitizeValue(lastDoc[key]);
+    let consumption = this.sanitizeValue(endValue - startValue);
+
+    // Skip if either value is undefined
+    if (firstDoc[key] === undefined || lastDoc[key] === undefined) {
+      return null;
+    }
+
+    return {
+      meterId,
+      suffix,
+      startValue,
+      endValue,
+      consumption,
+      startTimestamp: firstDoc.timestamp,
+      endTimestamp: lastDoc.timestamp,
+    };
+  }).filter(entry => entry !== null); // Remove nulls
+
+  return result;
+}
+
 }
