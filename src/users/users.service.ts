@@ -17,6 +17,7 @@ export class UsersService {
   async registerUser(email: string, hashedPassword: string): Promise<Users> {
     const newUser = new this.userModel({ email, password: hashedPassword });
     return newUser.save();
+    
   }
   constructor(
     @InjectModel(Users.name, 'surajcotton') private userModel: Model<UsersDocument>,
@@ -24,11 +25,12 @@ export class UsersService {
   ) {}
 
   async addUser(
-    name: string,
-    email: string,
-    password: string,
-    roleId: string, // changed from roleName to roleId
-  ): Promise<Users> {
+  name: string,
+  email: string,
+  password: string,
+  roleId: string,
+ createdBy?: string
+): Promise<Users> {
     // Check if user already exists
     const existingUser = await this.userModel.findOne({ email });
     if (existingUser) {
@@ -55,6 +57,7 @@ export class UsersService {
       email,
       password: hashedPassword,
       role: role._id, // store ObjectId reference
+      createdBy: createdBy ? new Types.ObjectId(createdBy) : null,
     });
 
     return newUser.save();
@@ -76,28 +79,46 @@ export class UsersService {
   // }
 // users.service.ts
 async findAll(currentUser: any): Promise<Users[]> {
-const userId = currentUser._id || currentUser.sub || currentUser.userId;
-const user = await this.userModel
-  .findById(userId)
-  .populate('role');
+  const userId = currentUser._id || currentUser.sub || currentUser.userId;
 
-if (!user) {
-  throw new Error('User not found');
+  const user = await this.userModel.findById(userId).populate('role');
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  const roleName = (user.role as any)?.name;
+
+  if (roleName === 'super_admin') {
+    // ✅ Show ALL users
+    return this.userModel.find().populate('role').lean();
+  } else if (roleName === 'admin') {
+  // ✅ Admin can see only observer/operator + themselves
+  const allowedRoles = await this.roleModel
+    .find({ name: { $in: ['observer', 'operator'] } }, '_id')
+    .lean();
+
+  const allowedRoleIds = allowedRoles.map(r => r._id);
+
+  return this.userModel
+    .find({
+      $or: [
+        { role: { $in: allowedRoleIds } },        // ✅ observer/operator
+        { _id: user._id },                         // ✅ also include own record
+      ],
+    })
+    .populate('role')
+    .lean();
+}
+
+  else {
+    // ❌ Other users see nothing (or just themselves)
+    return [];
+  }
 }
 
 
-if (!user) {
-  throw new Error('User not found'); // Optional: handle this properly
-}
 
-const roleName = (user.role as any)?.name;
 
-if (roleName === 'super_admin') {
-  return this.userModel.find().populate('role').lean();
-} else {
-  return [];
-}
-}
 
   async findById(id: string): Promise<Users> {
     const user = await this.userModel

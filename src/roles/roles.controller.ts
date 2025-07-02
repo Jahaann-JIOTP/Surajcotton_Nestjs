@@ -17,6 +17,8 @@ import { RolesService } from './roles.service';
 import { JwtAuthGuard } from 'src/auth/jwt.authguard';
 import { AdminGuard } from 'src/auth/roles.authguard';
 import { CreateRoleDto } from './dto/roles.dto'; // adjust path if needed
+import { Req } from '@nestjs/common';
+
 
 
 @Controller('roles')
@@ -29,6 +31,8 @@ export class RolesController {
 async createRole(@Body() dto: CreateRoleDto) {
   return this.rolesService.createRole(dto.name, dto.privelleges);
 }
+
+
 
   
   @UseGuards(JwtAuthGuard, AdminGuard)

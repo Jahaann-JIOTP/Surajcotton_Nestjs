@@ -173,6 +173,8 @@ async createRole(name: string, privilegeIds: string[]): Promise<Roles> {
 
     return role.save();
   }
+
+  
   async removeMultiplePrivilegesFromRole(
     roleId: string,
     privilegeIds: string[],

@@ -26,6 +26,13 @@ export class Users {
   updatedAt: Date;
   id: any;
   populate: any;
+
+ @Prop({ type: Types.ObjectId, ref: 'Users' })
+createdBy: Types.ObjectId;
+
+
+
+  _id: Types.ObjectId;
 }
 
 export const UsersSchema = SchemaFactory.createForClass(Users);

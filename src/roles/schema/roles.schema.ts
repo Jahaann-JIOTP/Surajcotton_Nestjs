@@ -9,7 +9,11 @@ export class Roles {
   name: string;
   @Prop({ type: [Types.ObjectId], ref: 'Privelleges' })
   privelleges: Types.ObjectId[];
+
+ 
+
   id: any;
+
 }
 
 export const RolesSchema = SchemaFactory.createForClass(Roles);

@@ -40,7 +40,7 @@ export class AuthService {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const payload = { sub: user._id, email: user.email, role: user.role };
     const token = this.jwtService.sign(payload);
 
     return { user, token };

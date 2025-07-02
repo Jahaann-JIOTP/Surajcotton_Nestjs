@@ -28,18 +28,23 @@ declare module 'express' {
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @UseGuards(JwtAuthGuard)
-  @Post('addUser')
-  async addUser(@Body() body: Partial<any>): Promise<Users> {
-    const { name, email, password, roleId } = body;
+@UseGuards(JwtAuthGuard)
+@Post('addUser')
+async addUser(@Req() req, @Body() body: Partial<any>) {
+  const { name, email, password, roleId } = body;
 
-    // Basic checks (replace with full validation if needed)
-    if (!name || !email || !password || !roleId) {
-      throw new BadRequestException('Missing required fields');
-    }
+  // ✅ Add this line to fix the error
+  const currentUser = req.user;
 
-    return this.usersService.addUser(name, email, password, roleId);
-  }
+  return this.usersService.addUser(
+    name,
+    email,
+    password,
+    roleId,
+    currentUser.sub || currentUser._id
+  );
+}
+
   @UseGuards(JwtAuthGuard)
   @Get('myprofile')
   getMyProfile(@Req() req: Request) {
