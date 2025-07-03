@@ -9,7 +9,7 @@ export class RealtimeDto {
 
   @IsNotEmpty()
   @IsString()
-  @IsIn(['LT_1', 'LT_2'])
+  @IsIn(['LT_1', 'LT_2', 'LT_3', 'LT_4'])
   LT_selections: string;
 
   @IsNotEmpty()
