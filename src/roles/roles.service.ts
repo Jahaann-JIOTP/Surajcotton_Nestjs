@@ -63,9 +63,28 @@ async createRole(name: string, privilegeIds: string[]): Promise<Roles> {
 }
 
 
-  async getAllRoles(): Promise<Roles[]> {
-    return this.rolesModel.find().exec();
+async getAllRoles(currentUser: any): Promise<Roles[]> {
+  const userId = currentUser._id || currentUser.sub || currentUser.userId;
+
+  const user = await this.usersModel.findById(userId).populate('role');
+  if (!user) {
+    throw new Error('User not found');
   }
+
+  const roleName = (user.role as any)?.name;
+
+  if (roleName === 'super_admin') {
+    return this.rolesModel.find().exec();
+  } else if (roleName === 'admin') {
+    return this.rolesModel.find({
+      name: { $in: ['observer', 'operator', 'admin'] },
+    }).exec();
+  } else {
+    return [];
+  }
+}
+
+
   async getRoleByIdAndUpdate(
   id: string,
   name: string,

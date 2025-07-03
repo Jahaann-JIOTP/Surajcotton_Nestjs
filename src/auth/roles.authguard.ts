@@ -31,9 +31,10 @@ export class AdminGuard implements CanActivate {
       throw new ForbiddenException('Invalid role.');
     }
 
-    if (role.name !== 'super_admin') {
-      throw new ForbiddenException('Access denied. Super Admins only.');
-    }
+    if (!['super_admin', 'admin'].includes(role.name)) {
+  throw new ForbiddenException('Access denied. Only admin or super_admin allowed.');
+}
+
 
     return true;
   }

@@ -3,6 +3,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Privelleges, PrivellegesDocument } from './schema/privelleges.schema';
 import { RolesDocument } from 'src/roles/schema/roles.schema';
+import { Users, UsersDocument } from 'src/users/schema/users.schema';
+
 @Injectable()
 export class PrivellegesService {
   // constructor(
@@ -11,9 +13,12 @@ export class PrivellegesService {
   //   @InjectModel('Roles')
   //   private readonly rolesModel: Model<RolesDocument>,
   // ) {}
-  constructor(
+constructor(
   @InjectModel('Privelleges', 'surajcotton')
   private readonly privellegesModel: Model<PrivellegesDocument>,
+
+  @InjectModel('Users', 'surajcotton')
+  private readonly usersModel: Model<UsersDocument>,
 
   @InjectModel('Roles', 'surajcotton')
   private readonly rolesModel: Model<RolesDocument>,
@@ -25,9 +30,44 @@ export class PrivellegesService {
     return newPrivelleges.save();
   }
 
-  async getAllPrivelleges(): Promise<Privelleges[]> {
+  async getAllPrivelleges(currentUser: any): Promise<Privelleges[]> {
+  const userId = currentUser._id || currentUser.sub || currentUser.userId;
+
+  const user = await this.usersModel.findById(userId).populate('role');
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  const role = user.role as any;
+
+  if (!role?.name) {
+    throw new Error('User role not found');
+  }
+
+  if (role.name === 'super_admin') {
+    // ✅ Super admin can access all privileges
     return this.privellegesModel.find().exec();
   }
+
+  // ✅ Admin only sees privileges linked to allowed roles (like observer, operator)
+  const allowedRoles = await this.rolesModel.find({
+    name: { $in: ['observer', 'operator', role.name] }, // also include their own
+  }).populate('privelleges');
+
+  // Extract and flatten privileges
+  const allPrivileges = allowedRoles.flatMap(role => role.privelleges);
+
+  // Remove duplicates using Set
+  const unique = new Map();
+  allPrivileges.forEach((priv: any) => {
+    if (priv && priv._id) {
+      unique.set(priv._id.toString(), priv);
+    }
+  });
+
+  return Array.from(unique.values());
+}
+
 
   async getPrivellegesByIdAndUpdate(
     id: string,

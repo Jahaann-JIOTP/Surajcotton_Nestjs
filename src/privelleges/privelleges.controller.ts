@@ -15,6 +15,8 @@ import { AddPrivellegesDto } from './dto/privelleges.dto';
 import { UpdatePrivellegesDto } from './dto/privelleges.dto'; // Import update DTO
 import { JwtAuthGuard } from 'src/auth/jwt.authguard';
 import { AdminGuard } from 'src/auth/roles.authguard';
+import { Req } from '@nestjs/common';
+
 
 @Controller('privelleges')
 export class PrivellegesController {
@@ -30,10 +32,11 @@ export class PrivellegesController {
   }
 
   @UseGuards(JwtAuthGuard, AdminGuard)
-  @Get('allprivelleges')
-  async getAllPrivelleges(): Promise<Privelleges[]> {
-    return this.privellegesService.getAllPrivelleges();
-  }
+@Get('allprivelleges')
+async getAllPrivelleges(@Req() req): Promise<Privelleges[]> {
+  return this.privellegesService.getAllPrivelleges(req.user);
+}
+
 
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Put('updateprivelleges/:id')

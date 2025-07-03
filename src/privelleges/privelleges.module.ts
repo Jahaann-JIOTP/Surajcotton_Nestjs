@@ -1,23 +1,24 @@
 import { Module } from '@nestjs/common';
-import { PrivellegesController } from './privelleges.controller';
+// import { PrivellegesController } from './privelleges.controller';
 import { PrivellegesService } from './privelleges.service';
 import { MongooseModule } from '@nestjs/mongoose';
-import { PrivellegesSchema } from './schema/privelleges.schema';
-import { RolesModule } from 'src/roles/roles.module';
+// import { PrivellegesService } from './privelleges.service';
+import { Privelleges, PrivellegesSchema } from './schema/privelleges.schema';
+import { Users, UsersSchema } from 'src/users/schema/users.schema';
+import { Roles, RolesSchema } from 'src/roles/schema/roles.schema';
+import { PrivellegesController } from './privelleges.controller';
 
 @Module({
  imports: [
-  MongooseModule.forFeature(
-    [
-      {
-        name: 'Privelleges',
-        schema: PrivellegesSchema,
-      },
-    ],
-    'surajcotton' // ✅ Specify connection name
-  ),
-  RolesModule,
-],
+    MongooseModule.forFeature(
+      [
+        { name: Privelleges.name, schema: PrivellegesSchema },
+        { name: Users.name, schema: UsersSchema },
+        { name: Roles.name, schema: RolesSchema },
+      ],
+      'surajcotton', // << make sure this matches your DB connection name
+    ),
+  ],
 
   controllers: [PrivellegesController],
   providers: [PrivellegesService],

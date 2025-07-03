@@ -35,15 +35,16 @@ async createRole(@Body() dto: CreateRoleDto) {
 
 
   
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  @Get('allrole')
-  async getAllRoles() {
-    const roles = await this.rolesService.getAllRoles();
-    return {
-      message: 'All roles retrieved successfully',
-      data: roles,
-    };
-  }
+ @UseGuards(JwtAuthGuard, AdminGuard)
+@Get('allrole')
+async getAllRoles(@Req() req) {
+  const roles = await this.rolesService.getAllRoles(req.user); // Pass current user
+  return {
+    message: 'Roles fetched successfully',
+    data: roles,
+  };
+}
+
  @UseGuards(JwtAuthGuard, AdminGuard)
 @Put('updaterole/:id')
 async updateRole(
