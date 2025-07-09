@@ -32,6 +32,15 @@ import { EnergyUsageReportModule } from './energy_usage_report/energy_usage_repo
 import { Unit4Lt1Module } from './unit4_lt1/unit4_lt1.module';
 
 import { ProductionMonthwiseModule } from './production-monthwise/production-monthwise.module';
+import { ConsumptionEnergyService } from './consumption_energy/consumption_energy.service';
+import { ConsumptionEnergyModule } from './consumption_energy/consumption_energy.module';
+// import { GenerationEnergyService } from './generation_energy/generation_energy.service';
+// import { GenerationEnergyController } from './generation_energy/generation_energy.controller';
+import { GenerationEnergyModule } from './generation_energy/generation_energy.module';
+import { EnergyService } from './energy/energy.service';
+import { EnergyController } from './energy/energy.controller';
+import { EnergyModule } from './energy/energy.module';
+
 
 @Module({
   imports: [
@@ -54,6 +63,10 @@ import { ProductionMonthwiseModule } from './production-monthwise/production-mon
     EnergyUsageReportModule,
     Unit4Lt1Module,
     ProductionMonthwiseModule,
+    ConsumptionEnergyModule,
+    GenerationEnergyModule,
+    EnergyModule,
+ 
   ],
   controllers: [AppController],
   providers: [AppService],
