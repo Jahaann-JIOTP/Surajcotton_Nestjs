@@ -1,11 +1,12 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class ToggleMeterDto {
-  @IsNotEmpty()
-  @IsString()
-  meterId: string;
-
-  @IsNotEmpty()
   @IsString()
   area: string;
+
+  @IsString()
+  email: string;
+
+  @IsString()
+  username: string;
 }

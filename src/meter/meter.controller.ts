@@ -1,23 +1,27 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, UseGuards } from '@nestjs/common';
 import { MeterService } from './meter.service';
 import { ToggleMeterDto } from './dto/toggle-meter.dto';
-// import { JwtAuthGuard } from 'src/auth/jwt.authguard';
-// import { AdminGuard } from 'src/auth/roles.authguard';        // ✅ uncommented and used
+// import { JwtAuthGuard } from '../auth/jwt.authguard';
+// import { RolesGuard } from '../auth/roles.authguard';
+// import { Roles } from '../auth/roles.decorator';
 
 @Controller('meter')
 export class MeterController {
   constructor(private readonly meterService: MeterService) {}
 
-  // 🔐 Only admin and super_admin can toggle
   @Post('toggle')
-  //  @UseGuards(JwtAuthGuard, AdminGuard)
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles('admin', 'super_admin')
   async toggle(@Body() dto: ToggleMeterDto) {
     return await this.meterService.toggleMeter(dto);
   }
 
-  // 🟢 Open to all (or protect it if needed)
-  @Get('status/:meterId')
-  async getStatus(@Param('meterId') meterId: string) {
-    return await this.meterService.getMeterStatus(meterId);
-  }
+  
+
+  // ✅ GET latest config
+@Get('config/latest')
+async getLatestConfig() {
+  return await this.meterService.getLatestConfig();
+}
+
 }
