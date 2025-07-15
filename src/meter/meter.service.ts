@@ -6,13 +6,18 @@ import { MeterHistory, MeterHistoryDocument } from './schemas/meter-history.sche
 import { MeterConfiguration, MeterConfigurationDocument } from './schemas/meter-configuration.schema';
 // import { Roles, RolesDocument } from '../roles/schema/roles.schema';
 import { ToggleMeterDto } from './dto/toggle-meter.dto';
+import { Roles, RolesDocument } from '../roles/schema/roles.schema'; // adjust the path if needed
+
 
 @Injectable()
 export class MeterService {
   constructor(
     @InjectModel(MeterToggle.name, 'surajcotton') private readonly toggleModel: Model<MeterToggleDocument>,
     @InjectModel(MeterHistory.name, 'surajcotton') private readonly historyModel: Model<MeterHistoryDocument>,
-      @InjectModel(MeterConfiguration.name, 'surajcotton') private readonly configModel: Model<MeterConfigurationDocument> // ✅ Correct declaration
+      @InjectModel(MeterConfiguration.name, 'surajcotton') private readonly configModel: Model<MeterConfigurationDocument>,
+   @InjectModel(Roles.name, 'surajcotton')
+private readonly rolesModel: Model<RolesDocument>
+
   ) {}
 
     // @InjectModel(Roles.name, 'surajcotton')private readonly Model: Model<RolesDocument>
