@@ -20,57 +20,18 @@ export class MeterService {
 
 
 async toggleMeter(dto: ToggleMeterDto) {
-  const { area, email, username } = dto;
+  const { meterId, area, email, username } = dto;
   const now = new Date();
-
-  // ✅ Same meters for both areas
-  const meterIds = ["U1_PLC", "U2_PLC", "U3_PLC", "U4_PLC", "U5_PLC", "U6_PLC"];
 
   if (!['unit4', 'unit5'].includes(area)) {
     return { message: `Invalid area: ${area}` };
   }
 
-  const results: { meterId: string; message: string }[] = [];
+  const current = await this.toggleModel.findOne({ meterId });
 
-  for (const meterId of meterIds) {
-    const current = await this.toggleModel.findOne({ meterId });
+  if (!current) {
+    await this.toggleModel.create({ meterId, area, startDate: now });
 
-    if (!current) {
-      // First-time initialization
-      await this.toggleModel.create({ meterId, area, startDate: now });
-
-      await this.configModel.create({
-        meterId,
-        area,
-        email,
-        username,
-        assignedAt: now,
-      });
-
-      results.push({ meterId, message: 'Initialized and activated.' });
-      continue;
-    }
-
-    if (current.area === area) {
-      // Already in this area, no action
-      results.push({ meterId, message: 'Already active in this area.' });
-      continue;
-    }
-
-    // Save history before switching
-    await this.historyModel.create({
-      meterId,
-      area: current.area,
-      startDate: current.startDate,
-      endDate: now,
-    });
-
-    // Update toggle to new area
-    current.area = area;
-    current.startDate = now;
-    await current.save();
-
-    // Log config entry
     await this.configModel.create({
       meterId,
       area,
@@ -79,11 +40,36 @@ async toggleMeter(dto: ToggleMeterDto) {
       assignedAt: now,
     });
 
-    results.push({ meterId, message: 'Toggled successfully.' });
+    return { meterId, area, message: 'Initialized and activated.' };
   }
 
-  return { message: 'Toggling complete.', results };
+  if (current.area === area) {
+    return { meterId, area, message: 'Already active in this area.' };
+  }
+
+  await this.historyModel.create({
+    meterId,
+    area: current.area,
+    startDate: current.startDate,
+    endDate: now,
+  });
+
+  current.area = area;
+  current.startDate = now;
+  await current.save();
+
+  await this.configModel.create({
+    meterId,
+    area,
+    email,
+    username,
+    assignedAt: now,
+  });
+
+  return { meterId, area, message: 'Toggled successfully.' };
 }
+
+
 
 
 
@@ -91,22 +77,61 @@ async toggleMeter(dto: ToggleMeterDto) {
   
 
 async getLatestConfig() {
-    try {
-      const latest = await this.configModel
-        .findOne()
-        .sort({ createdAt: -1 })
-        .lean();
+  try {
+    const latestConfigs = await this.configModel.aggregate([
+      // Sort newest to oldest
+      { $sort: { assignedAt: -1 } },
 
-      if (!latest) {
-        return { message: 'No configuration found.' };
+      // Group by meterId (so we only keep latest per meter)
+      {
+        $group: {
+          _id: '$meterId',
+          meterId: { $first: '$meterId' },
+          area: { $first: '$area' },
+          email: { $first: '$email' },
+          username: { $first: '$username' },
+          assignedAt: { $first: '$assignedAt' }
+        }
+      },
+
+      // ✅ Join with meter_toggle to check if still active
+      {
+        $lookup: {
+          from: 'meter_toggle', // collection name in MongoDB
+          localField: 'meterId',
+          foreignField: 'meterId',
+          as: 'toggleInfo'
+        }
+      },
+
+      // Filter out those that have no toggle (i.e. are inactive)
+      { $match: { toggleInfo: { $ne: [] } } },
+
+      // Cleanup final output
+      {
+        $project: {
+          _id: 0,
+          meterId: 1,
+          area: 1,
+          email: 1,
+          username: 1,
+          assignedAt: 1
+        }
       }
+    ]);
 
-      return latest;
-    } catch (err) {
-      console.error('❌ Error fetching latest config:', err.message);
-      return { message: 'Something went wrong' };
+    if (!latestConfigs || latestConfigs.length === 0) {
+      return { message: 'No active meter configurations found.' };
     }
+
+    return latestConfigs;
+  } catch (err) {
+    console.error('❌ Error fetching latest config:', err.message);
+    return { message: 'Something went wrong' };
   }
+}
+
+
 
 
 }
