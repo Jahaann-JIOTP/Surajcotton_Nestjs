@@ -65,74 +65,90 @@ export class EnergyCostService {
 
 
   // 🔹 Main method
-  async getConsumptionData(dto: GetEnergyCostDto) {
+ async getConsumptionData(dto: GetEnergyCostDto) {
   const { start_date, end_date, suffixes } = dto;
   let { meterIds } = dto;
 
-  // Resolve meterIds if not provided
   if ((!meterIds || meterIds.length === 0) && dto.area) {
     meterIds = this.getMeterIdsForArea(dto.area);
   }
 
-  if (!meterIds || meterIds.length === 0 || !suffixes || suffixes.length === 0) {
+  if (!meterIds?.length || !suffixes?.length) {
     throw new Error('Missing meterIds or suffixes');
   }
 
-  const startOfRange = moment.tz(start_date, 'YYYY-MM-DD', 'Asia/Karachi').startOf('day').toISOString(true);
-  const endOfRange = moment.tz(end_date, 'YYYY-MM-DD', 'Asia/Karachi').endOf('day').toISOString(true);
+  const start = moment.tz(start_date, 'Asia/Karachi').startOf('day');
+  const end = moment.tz(end_date, 'Asia/Karachi').endOf('day');
 
-  // Run one aggregation to get first and last document in range
-  const pipeline = [
-    {
-      $match: {
-        timestamp: { $gte: startOfRange, $lte: endOfRange },
-      },
-    },
-    {
-      $sort: { timestamp: 1 as const }, // Fix for TypeScript
-    },
-    {
-      $group: {
-        _id: null,
-        first: { $first: '$$ROOT' },
-        last: { $last: '$$ROOT' },
-      },
-    },
-  ];
+  const results: {
+    date: string;
+    meterId: string;
+    suffix: string;
+    startValue: number;
+    endValue: number;
+    consumption: number;
+    startTimestamp: string;
+    endTimestamp: string;
+  }[] = [];
 
-  const [docs] = await this.costModel.aggregate(pipeline).exec();
-  if (!docs || !docs.first || !docs.last) {
-    return [];
-  }
+  let current = start.clone();
 
-  const firstDoc = docs.first;
-  const lastDoc = docs.last;
+  while (current.isSameOrBefore(end, 'day')) {
+    const dayStart = current.clone().startOf('day').toISOString(true);
+    const dayEnd = current.clone().endOf('day').toISOString(true);
 
-  const result = meterIds.map((meterId, index) => {
-    const suffix = suffixes[index] || suffixes[0];
-    const key = `${meterId}_${suffix}`;
+    for (let i = 0; i < meterIds.length; i++) {
+      const meterId = meterIds[i];
+      const suffix = suffixes[i] || suffixes[0];
+      const key = `${meterId}_${suffix}`;
 
-    let startValue = this.sanitizeValue(firstDoc[key]);
-    let endValue = this.sanitizeValue(lastDoc[key]);
-    let consumption = this.sanitizeValue(endValue - startValue);
+      const pipeline: any[] = [
+        {
+          $match: {
+            timestamp: { $gte: dayStart, $lte: dayEnd },
+            [key]: { $exists: true },
+          },
+        },
+        { $sort: { timestamp: 1 as 1 } },
+        {
+          $group: {
+            _id: null,
+            first: { $first: '$$ROOT' },
+            last: { $last: '$$ROOT' },
+          },
+        },
+      ];
 
-    // Skip if either value is undefined
-    if (firstDoc[key] === undefined || lastDoc[key] === undefined) {
-      return null;
+      const [dailyData] = await this.costModel.aggregate(pipeline).exec();
+
+      if (dailyData?.first && dailyData?.last) {
+        const startValRaw = dailyData.first[key];
+        const endValRaw = dailyData.last[key];
+
+        if (startValRaw === undefined || endValRaw === undefined) continue;
+
+        const startValue = this.sanitizeValue(startValRaw);
+        const endValue = this.sanitizeValue(endValRaw);
+        const consumption = this.sanitizeValue(endValue - startValue);
+
+        results.push({
+          date: current.format('YYYY-MM-DD'),
+          meterId,
+          suffix,
+          startValue,
+          endValue,
+          consumption,
+          startTimestamp: dailyData.first.timestamp,
+          endTimestamp: dailyData.last.timestamp,
+        });
+      }
     }
 
-    return {
-      meterId,
-      suffix,
-      startValue,
-      endValue,
-      consumption,
-      startTimestamp: firstDoc.timestamp,
-      endTimestamp: lastDoc.timestamp,
-    };
-  }).filter(entry => entry !== null); // Remove nulls
+    current.add(1, 'day');
+  }
 
-  return result;
+  return results;
 }
+
 
 }

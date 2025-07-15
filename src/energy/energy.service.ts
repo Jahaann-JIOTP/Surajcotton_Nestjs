@@ -24,6 +24,9 @@ export class EnergyService {
 
     const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy'];
     const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
+     const HTGenerationKeys = ['U20_GW03_Del_ActiveEnergy','U21_GW03_Del_ActiveEnergy','U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy',
+      ];
+
     const WapdaImportKeys = ['U23_GW01_Del_ActiveEnergy'];
     const U4_ConsumptionKeys = ['U1_PLC_Del_ActiveEnergy', 'U2_PLC_Del_ActiveEnergy', 'U3_PLC_Del_ActiveEnergy', 'U4_PLC_Del_ActiveEnergy',
         'U5_PLC_Del_ActiveEnergy', 'U6_PLC_Del_ActiveEnergy', 'U7_PLC_Del_ActiveEnergy', 'U8_PLC_Del_ActiveEnergy', 'U9_PLC_Del_ActiveEnergy',
@@ -31,7 +34,7 @@ export class EnergyService {
         'U15_PLC_Del_ActiveEnergy', 'U16_PLC_Del_ActiveEnergy', 'U17_PLC_Del_ActiveEnergy', 'U18_PLC_Del_ActiveEnergy', 'U20_PLC_Del_ActiveEnergy',
         'U1_GW01_Del_ActiveEnergy', 'U2_GW01_Del_ActiveEnergy', 'U3_GW01_Del_ActiveEnergy', 'U4_GW01_Del_ActiveEnergy', 'U5_GW01_Del_ActiveEnergy',
         'U6_GW01_Del_ActiveEnergy', 'U8_GW01_Del_ActiveEnergy', 'U9_GW01_Del_ActiveEnergy', 'U10_GW01_Del_ActiveEnergy','U11_GW01_Del_ActiveEnergy',
-        'U12_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy','U14_GW01_Del_ActiveEnergy', 'U15_GW01_Del_ActiveEnergy', 'U16_GW01_Del_ActiveEnergy',
+        'U12_GW01_Del_ActiveEnergy','U14_GW01_Del_ActiveEnergy', 'U15_GW01_Del_ActiveEnergy', 'U16_GW01_Del_ActiveEnergy',
         'U18_GW01_Del_ActiveEnergy', 'U19_GW01_Del_ActiveEnergy', 'U20_GW01_Del_ActiveEnergy', 'U21_GW01_Del_ActiveEnergy', 'U22_GW01_Del_ActiveEnergy'];
     const U5_ConsumptionKeys=["U1_GW02_Del_ActiveEnergy", "U2_GW02_Del_ActiveEnergy", "U3_GW02_Del_ActiveEnergy", "U4_GW02_Del_ActiveEnergy", "U5_GW02_Del_ActiveEnergy",
         "U7_GW02_Del_ActiveEnergy", "U8_GW02_Del_ActiveEnergy", "U9_GW02_Del_ActiveEnergy","U10_GW02_Del_ActiveEnergy", "U11_GW02_Del_ActiveEnergy", "U12_GW02_Del_ActiveEnergy",
@@ -40,8 +43,8 @@ export class EnergyService {
         "U23_GW02_Del_ActiveEnergy", "U1_GW03_Del_ActiveEnergy", "U2_GW03_Del_ActiveEnergy", "U3_GW03_Del_ActiveEnergy", "U4_GW03_Del_ActiveEnergy",
          "U5_GW03_Del_ActiveEnergy", "U6_GW03_Del_ActiveEnergy", "U7_GW03_Del_ActiveEnergy", "U8_GW03_Del_ActiveEnergy", "U9_GW03_Del_ActiveEnergy",
          "U10_GW03_Del_ActiveEnergy", "U11_GW03_Del_ActiveEnergy", "U12_GW03_Del_ActiveEnergy", "U13_GW03_Del_ActiveEnergy", "U14_GW03_Del_ActiveEnergy",
-         "U15_GW03_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U18_GW03_Del_ActiveEnergy", "U19_GW03_Del_ActiveEnergy", "U20_GW03_Del_ActiveEnergy",
-         "U21_GW03_Del_ActiveEnergy", "U22_GW03_Del_ActiveEnergy", "U23_GW03_Del_ActiveEnergy"
+         "U15_GW03_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U18_GW03_Del_ActiveEnergy", "U19_GW03_Del_ActiveEnergy",
+        "U22_GW03_Del_ActiveEnergy", "U23_GW03_Del_ActiveEnergy"
     ]
 
    
@@ -98,6 +101,8 @@ export class EnergyService {
     let WapdaImport = sumGroup(WapdaImportKeys);
     let U4_Consumption = sumGroup(U4_ConsumptionKeys);
     let U5_Consumption = sumGroup(U5_ConsumptionKeys);
+    let HT_Generation = sumGroup(HTGenerationKeys);
+
    
     // let totalConsumption = solar + Wapda;
 
@@ -105,7 +110,7 @@ export class EnergyService {
     // let Compressor2 = consumption[Compressor2Key] || 0;
     // let Compressor3 = consumption[Compressor3Key] || 0;
 
-    let totalGeneration = LTGeneration + SolarGeneration + WapdaImport;
+    let totalGeneration = LTGeneration + SolarGeneration + WapdaImport+ HT_Generation;
     let totalenergyinput = U4_Consumption + U5_Consumption;
 
 
@@ -121,6 +126,7 @@ export class EnergyService {
    Total_Generation: totalGeneration.toFixed(2),
     U4_Consumption: U4_Consumption.toFixed(2),
     U5_Consumption: U5_Consumption.toFixed(2),
+    HT_Generation:  HT_Generation.toFixed(2),
     total_energy_input: totalenergyinput.toFixed(2),
   
 

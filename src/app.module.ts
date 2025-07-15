@@ -40,6 +40,14 @@ import { GenerationEnergyModule } from './generation_energy/generation_energy.mo
 import { EnergyService } from './energy/energy.service';
 import { EnergyController } from './energy/energy.controller';
 import { EnergyModule } from './energy/energy.module';
+// import { EnergySpindleService } from './energy_spindle/energy_spindle.service';
+// import { EnergySpindleController } from './energy_spindle/energy_spindle.controller';
+import { EnergySpindleModule } from './energy_spindle/energy_spindle.module';
+
+import { PieChartModule } from './piechart/piechart.module';
+// import { MeterService } from './meter/meter.service';
+// import { MeterController } from './meter/meter.controller';
+import { MeterModule } from './meter/meter.module';
 
 
 @Module({
@@ -66,10 +74,13 @@ import { EnergyModule } from './energy/energy.module';
     ConsumptionEnergyModule,
     GenerationEnergyModule,
     EnergyModule,
+    EnergySpindleModule,
+   PieChartModule,
+    MeterModule,
  
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService ],
   
 })
 export class AppModule {}

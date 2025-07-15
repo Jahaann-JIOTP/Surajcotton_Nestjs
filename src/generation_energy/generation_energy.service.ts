@@ -41,12 +41,13 @@ private async calculateConsumption(range: { start: string; end: string }) {
    const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
    const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
    const Wapda1Keys = ["U23_GW01_Del_ActiveEnergy"];
-   
+   const HTGenerationKeys = ['U20_GW03_Del_ActiveEnergy','U21_GW03_Del_ActiveEnergy','U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy',
+      ];
   
   
 
 
-  const allMeterKeys = [...DieselICKeys, ...WapdaICKeys, ...Solar1Keys, ...Solar2Keys, ...Wapda1Keys];
+  const allMeterKeys = [...DieselICKeys, ...WapdaICKeys, ...Solar1Keys, ...Solar2Keys, ...HTGenerationKeys];
 
   // ✅ Dynamically build meterSuffixMap from meter keys
   const meterSuffixMap: Record<string, string> = {};
@@ -125,10 +126,12 @@ private async calculateConsumption(range: { start: string; end: string }) {
   const Solar1 = sumByMeterGroup(Solar1Keys);
   const Solar2 = sumByMeterGroup(Solar2Keys);
   const Wapda1 = sumByMeterGroup(Wapda1Keys);
+  const HTGeneration = sumByMeterGroup(HTGenerationKeys);
+
   
 
   // ✅ Final totals
- const totalConsumption = DieselIC+ WapdaIC + Solar1 + Solar2 + Wapda1 
+ const totalConsumption = DieselIC+ WapdaIC + Solar1 + Solar2 + Wapda1 +HTGeneration
 
 
 // const total= totalConsumption + totalConsumption1
@@ -185,11 +188,14 @@ const DieselICKeys = ["U19_PLC_Del_ActiveEnergy"];
    const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
    const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
    const Wapda1Keys = ["U23_GW01_Del_ActiveEnergy"];
+    const HTGenerationKeys = ['U20_GW03_Del_ActiveEnergy','U21_GW03_Del_ActiveEnergy','U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy',
+      ];
 
   const allKeys = [
-    // ...DieselICKeys,
+    ...DieselICKeys,
      ...WapdaICKeys,
-    //  ...Solar1Keys, ...Solar2Keys, ...Wapda1Keys
+     ...Solar1Keys, ...Solar2Keys, ...Wapda1Keys, 
+    ...HTGenerationKeys
     ];
 
 
@@ -255,11 +261,13 @@ allKeys.forEach(key => {
   const Solar1 = sum(Solar1Keys);
   const Solar2 = sum(Solar2Keys);
   const Wapda1 = sum(Wapda1Keys);
+  const HTGeneration = sum(HTGenerationKeys);
+
   
 
   // ✅ Final totals
  const totalConsumption = 
- DieselIC+ WapdaIC + Solar1 + Solar2 + Wapda1 
+ DieselIC+ WapdaIC + Solar1 + Solar2 + Wapda1 +HTGeneration
 
 const total= totalConsumption
   // Logs
@@ -272,6 +280,7 @@ const total= totalConsumption
   // return +totalConsumption1.toFixed(2);
   return +total.toFixed(2);
 }
+
 
 
 
@@ -314,7 +323,10 @@ async getTodayGeneration(): Promise<HourlyData[]> {
     "U21_PLC_Del_ActiveEnergy",
     "U6_GW02_Del_ActiveEnergy",
     "U17_GW03_Del_ActiveEnergy",
-    "U23_GW01_Del_ActiveEnergy"
+    "U23_GW01_Del_ActiveEnergy",
+    "U20_GW03_Del_ActiveEnergy",
+    "U21_GW03_Del_ActiveEnergy",
+    "U7_GW01_Del_ActiveEnergy"
     
 
   ];
