@@ -69,6 +69,19 @@ async toggleMeter(dto: ToggleMeterDto) {
   return { meterId, area, message: 'Toggled successfully.' };
 }
 
+async getAllToggleData() {
+  try {
+    const data = await this.toggleModel.find().lean(); // use lean() for plain JS objects
+    if (!data || data.length === 0) {
+      return { message: 'No toggle data found.' };
+    }
+    return data;
+  } catch (error) {
+    console.error('❌ Error fetching toggle data:', error.message);
+    return { message: 'Something went wrong' };
+  }
+}
+
 
 
 
@@ -79,10 +92,9 @@ async toggleMeter(dto: ToggleMeterDto) {
 async getLatestConfig() {
   try {
     const latestConfigs = await this.configModel.aggregate([
-      // Sort newest to oldest
-      { $sort: { assignedAt: -1 } },
-
-      // Group by meterId (so we only keep latest per meter)
+      {
+        $sort: { assignedAt: -1 } // Or use createdAt if that's what you prefer
+      },
       {
         $group: {
           _id: '$meterId',
@@ -90,24 +102,9 @@ async getLatestConfig() {
           area: { $first: '$area' },
           email: { $first: '$email' },
           username: { $first: '$username' },
-          assignedAt: { $first: '$assignedAt' }
+          assignedAt: { $first: '$assignedAt' },
         }
       },
-
-      // ✅ Join with meter_toggle to check if still active
-      {
-        $lookup: {
-          from: 'meter_toggle', // collection name in MongoDB
-          localField: 'meterId',
-          foreignField: 'meterId',
-          as: 'toggleInfo'
-        }
-      },
-
-      // Filter out those that have no toggle (i.e. are inactive)
-      { $match: { toggleInfo: { $ne: [] } } },
-
-      // Cleanup final output
       {
         $project: {
           _id: 0,
@@ -121,7 +118,7 @@ async getLatestConfig() {
     ]);
 
     if (!latestConfigs || latestConfigs.length === 0) {
-      return { message: 'No active meter configurations found.' };
+      return { message: 'No configurations found.' };
     }
 
     return latestConfigs;
@@ -130,7 +127,6 @@ async getLatestConfig() {
     return { message: 'Something went wrong' };
   }
 }
-
 
 
 

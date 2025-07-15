@@ -16,6 +16,11 @@ export class MeterController {
   async toggle(@Body() dto: ToggleMeterDto) {
     return await this.meterService.toggleMeter(dto);
   }
+  @Get('toggles')
+async getAllToggles() {
+  return await this.meterService.getAllToggleData();
+}
+
 
   
 
