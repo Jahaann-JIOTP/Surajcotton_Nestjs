@@ -1,9 +1,11 @@
 import { Controller, Get, Param, Post, Body, UseGuards } from '@nestjs/common';
 import { MeterService } from './meter.service';
 import { ToggleMeterDto } from './dto/toggle-meter.dto';
-// import { JwtAuthGuard } from '../auth/jwt.authguard';
-// import { RolesGuard } from '../auth/roles.authguard';
+import { JwtAuthGuard } from '../auth/jwt.authguard';
+import { AdminGuard } from 'src/auth/roles.authguard';
 // import { Roles} from '../roles/schema/roles.schema'
+import { Roles, RolesDocument } from 'src/roles/schema/roles.schema';
+
 // import { Roles } from '../auth/roles.decorator';
 
 @Controller('meter')
@@ -11,8 +13,7 @@ export class MeterController {
   constructor(private readonly meterService: MeterService) {}
 
   @Post('toggle')
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('admin', 'super_admin')
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async toggle(@Body() dto: ToggleMeterDto) {
     return await this.meterService.toggleMeter(dto);
   }
@@ -20,10 +21,6 @@ export class MeterController {
 async getAllToggles() {
   return await this.meterService.getAllToggleData();
 }
-
-
-  
-
   // ✅ GET latest config
 @Get('config/latest')
 async getLatestConfig() {
