@@ -3,7 +3,7 @@ import { Document } from 'mongoose';
 
 export type MeterConfigurationDocument = MeterConfiguration & Document;
 
-@Schema({ timestamps: true, collection: 'meter_config'})
+@Schema({ timestamps: true})
 export class MeterConfiguration {
   @Prop({ required: true })
   meterId: string;
