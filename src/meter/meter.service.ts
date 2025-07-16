@@ -76,49 +76,24 @@ export class MeterService {
     }
   }
 
-  async getLatestConfig() {
-    try {
-      const latestConfigs = await this.configModel.aggregate([
-        { $sort: { assignedAt: -1 } },
-        {
-          $group: {
-            _id: '$meterId',
-            meterId: { $first: '$meterId' },
-            area: { $first: '$area' },
-            email: { $first: '$email' },
-            username: { $first: '$username' },
-            assignedAt: { $first: '$assignedAt' },
-          }
-        },
-        {
-          $lookup: {
-            from: 'meter_toggle',
-            localField: 'meterId',
-            foreignField: 'meterId',
-            as: 'toggleInfo'
-          }
-        },
-        { $match: { toggleInfo: { $ne: [] } } },
-        {
-          $project: {
-            _id: 0,
-            meterId: 1,
-            area: 1,
-            email: 1,
-            username: 1,
-            assignedAt: 1
-          }
-        }
-      ]);
+async getLatestConfig() {
+  try {
+    const configs = await this.configModel
+      .find()
+      .sort({ assignedAt: -1 }) // optional: latest on top
+      .lean();
 
-      if (!latestConfigs.length) {
-        return { message: 'No active meter configurations found.' };
-      }
-
-      return latestConfigs;
-    } catch (err) {
-      console.error('❌ Error fetching config:', err.message);
-      return { message: 'Something went wrong' };
+    if (!configs.length) {
+      return { message: 'No configurations found.' };
     }
+
+    return configs;
+  } catch (err) {
+    console.error('❌ Error fetching config:', err.message);
+    return { message: 'Something went wrong' };
   }
+}
+
+
+
 }
