@@ -310,7 +310,7 @@ async getWeeklyGeneration() {
     });
   }
 
-  return result;
+  return result;                                  
 }
 
 

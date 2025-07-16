@@ -44,7 +44,7 @@ export class EnergyService {
          "U5_GW03_Del_ActiveEnergy", "U6_GW03_Del_ActiveEnergy", "U7_GW03_Del_ActiveEnergy", "U8_GW03_Del_ActiveEnergy", "U9_GW03_Del_ActiveEnergy",
          "U10_GW03_Del_ActiveEnergy", "U11_GW03_Del_ActiveEnergy", "U12_GW03_Del_ActiveEnergy", "U13_GW03_Del_ActiveEnergy", "U14_GW03_Del_ActiveEnergy",
          "U15_GW03_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U18_GW03_Del_ActiveEnergy", "U19_GW03_Del_ActiveEnergy",
-        "U22_GW03_Del_ActiveEnergy", "U23_GW03_Del_ActiveEnergy"
+        "U22_GW03_Del_ActiveEnergy"
     ]
 
    

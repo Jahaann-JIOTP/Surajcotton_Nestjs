@@ -48,6 +48,8 @@ import { PieChartModule } from './piechart/piechart.module';
 // import { MeterService } from './meter/meter.service';
 // import { MeterController } from './meter/meter.controller';
 import { MeterModule } from './meter/meter.module';
+// import { PowerComparisonController } from './power_comparison/power_comparison.controller';
+import { PowerComparisonModule } from './power_comparison/power_comparison.module';
 
 
 @Module({
@@ -77,6 +79,7 @@ import { MeterModule } from './meter/meter.module';
     EnergySpindleModule,
    PieChartModule,
     MeterModule,
+    PowerComparisonModule,
  
   ],
   controllers: [AppController],
