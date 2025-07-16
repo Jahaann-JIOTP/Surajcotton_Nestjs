@@ -80,7 +80,7 @@ async getLatestConfig() {
   try {
     const configs = await this.configModel
       .find()
-      .sort({ assignedAt: -1 }) // optional: latest on top
+      // .sort({ assignedAt: -1 }) // optional: latest on top
       .lean();
 
     if (!configs.length) {
