@@ -25,7 +25,7 @@ async getPowerAverages(startDate: string, endDate: string) {
   // HT tags
   const htTags = ["U20_GW03_Del_ActiveEnergy","U21_GW03_Del_ActiveEnergy","U23_GW01_Del_ActiveEnergy","U7_GW01_Del_ActiveEnergy"];
   const ltTags = ["U19_PLC_Del_ActiveEnergy","U21_PLC_Del_ActiveEnergy"];
-  const wapdaTags = ["U23_GW01_Del_ActiveEnergy"];
+  const wapdaTags = ["U22_GW01_Del_ActiveEnergy"];
   const solarTags = ["U6_GW02_Del_ActiveEnergy", "U17_GW03_Del_ActiveEnergy"];
   const unit4Tags = [   'U1_PLC_Del_ActiveEnergy', 'U2_PLC_Del_ActiveEnergy', 'U3_PLC_Del_ActiveEnergy', 'U4_PLC_Del_ActiveEnergy',
       'U5_PLC_Del_ActiveEnergy', 'U6_PLC_Del_ActiveEnergy', 'U7_PLC_Del_ActiveEnergy', 'U8_PLC_Del_ActiveEnergy', 'U9_PLC_Del_ActiveEnergy',
@@ -197,7 +197,7 @@ async getDailyPowerAverages(start: string, end: string) {
   const meterGroups = {
     HT: ["U20_GW03", "U21_GW03", "U23_GW01", "U7_GW01"],
     LT: ["U19_PLC", "U21_PLC"],
-    wapda: ["U23_GW01"],
+    wapda: ["U22_GW01"],
     solar: ["U6_GW02", "U17_GW03"],
     unit4: [
       'U1_PLC', 'U2_PLC', 'U3_PLC', 'U4_PLC','U5_PLC', 'U6_PLC', 'U7_PLC', 'U8_PLC', 'U9_PLC','U10_PLC',
@@ -319,7 +319,7 @@ async getMonthlyAverages(startDate: string, endDate: string) {
   const meterGroups: Record<EnergyGroupKey, string[]> = {
     HT: ['U20_GW03_Del_ActiveEnergy', 'U21_GW03_Del_ActiveEnergy', 'U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'],
     LT: ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy'],
-    wapda: ["U23_GW01_Del_ActiveEnergy"],
+    wapda: ["U22_GW01_Del_ActiveEnergy"],
     solar: ["U6_GW02_Del_ActiveEnergy", "U17_GW03_Del_ActiveEnergy"],
     unit4: [
       'U1_PLC_Del_ActiveEnergy', 'U2_PLC_Del_ActiveEnergy', 'U3_PLC_Del_ActiveEnergy', 'U4_PLC_Del_ActiveEnergy',

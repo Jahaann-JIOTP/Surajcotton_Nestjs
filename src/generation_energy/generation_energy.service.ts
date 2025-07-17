@@ -40,7 +40,7 @@ private async calculateConsumption(range: { start: string; end: string }) {
   const WapdaICKeys = ["U21_PLC_Del_ActiveEnergy"];
    const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
    const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
-   const Wapda1Keys = ["U23_GW01_Del_ActiveEnergy"];
+   const Wapda1Keys = ["U22_GW01_Del_ActiveEnergy"];
    const HTGenerationKeys = ['U20_GW03_Del_ActiveEnergy','U21_GW03_Del_ActiveEnergy','U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy',
       ];
   
@@ -187,7 +187,7 @@ const DieselICKeys = ["U19_PLC_Del_ActiveEnergy"];
   const WapdaICKeys = ["U21_PLC_Del_ActiveEnergy"];
    const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
    const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
-   const Wapda1Keys = ["U23_GW01_Del_ActiveEnergy"];
+   const Wapda1Keys = ["U22_GW01_Del_ActiveEnergy"];
     const HTGenerationKeys = ['U20_GW03_Del_ActiveEnergy','U21_GW03_Del_ActiveEnergy','U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy',
       ];
 

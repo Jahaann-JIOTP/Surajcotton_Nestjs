@@ -50,6 +50,9 @@ import { PieChartModule } from './piechart/piechart.module';
 import { MeterModule } from './meter/meter.module';
 // import { PowerComparisonController } from './power_comparison/power_comparison.controller';
 import { PowerComparisonModule } from './power_comparison/power_comparison.module';
+// import { HeatMapService } from './heat_map/heat_map.service';
+// import { HeatMapController } from './heat_map/heat_map.controller';
+import { HeatMapModule } from './heat_map/heat_map.module';
 
 
 @Module({
@@ -80,6 +83,7 @@ import { PowerComparisonModule } from './power_comparison/power_comparison.modul
    PieChartModule,
     MeterModule,
     PowerComparisonModule,
+    HeatMapModule,
  
   ],
   controllers: [AppController],
