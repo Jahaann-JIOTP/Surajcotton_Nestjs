@@ -1,19 +1,31 @@
+// import { Controller, Get, Query } from '@nestjs/common';
+// import { HeatMapService } from './heat_map.service';
+// import { HeatMapDto } from './dto/heat_map.dto';
+
+// @Controller('heat-map')
+// export class HeatMapController {
+//   constructor(private readonly heatMapService: HeatMapService) {}
+
+//   @Get('hourly')
+//   async getHourlyConsumption(@Query() dto: HeatMapDto) {
+//     return this.heatMapService.getHourlyConsumption(dto.start_date, dto.end_date);
+//   }
+// }
+
 import { Controller, Get, Query } from '@nestjs/common';
-import { HeatMapService } from './heat_map.service';
-import { HourlyConsumption } from './dto/hourly-consumption.interface';
+import {  HeatMapService } from './heat_map.service';
 
-
-@Controller('heat-map')
+@Controller()
 export class HeatMapController {
-  constructor(private readonly heatMapService: HeatMapService) {}
-@Get('hourly-consumption')
-async getHourlyConsumption(
-  @Query('startDate') startDate: string,
-  @Query('endDate') endDate: string,
-  @Query('tag') tag: string,
-): Promise<HourlyConsumption[]> {
-  return this.heatMapService.getHourlyConsumption(startDate, endDate, tag);
+  constructor(private readonly  HeatMapService:  HeatMapService) {}
+
+  @Get('heat-map')
+  async getConVsPro(
+    @Query('start_date') startDate: string,
+    @Query('end_date') endDate: string,
+    @Query('label') label: string
+  ) {
+    return this. HeatMapService.getPowerData(startDate, endDate, label);
+  }
 }
 
-
-}

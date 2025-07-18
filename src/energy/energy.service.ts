@@ -28,6 +28,8 @@ export class EnergyService {
       ];
 
     const WapdaImportKeys = ['U22_GW01_Del_ActiveEnergy'];
+    const WapdaExportKeys = ['U22_GW01_ActiveEnergy_Exp_kWh'];
+
     const Trafo1IncomingKeys = ['U21_PLC_Del_ActiveEnergy'];
     const Trafo2IncomingKeys = ['U13_GW01_Del_ActiveEnergy'];
     const Trafo3IncomingKeys = ['U13_GW02_Del_ActiveEnergy'];
@@ -112,6 +114,7 @@ export class EnergyService {
     let LTGeneration = sumGroup(LTGenerationKeys);
     let SolarGeneration = sumGroup(SolarGenerationKeys);
     let WapdaImport = sumGroup(WapdaImportKeys);
+    let WapdaExport= sumGroup( WapdaExportKeys);
     let Trafo1Incoming = sumGroup(Trafo1IncomingKeys);
     let Trafo2Incoming = sumGroup(Trafo2IncomingKeys);
     let Trafo3Incoming = sumGroup(Trafo3IncomingKeys);
@@ -149,6 +152,7 @@ export class EnergyService {
     LTGeneration: LTGeneration.toFixed(2),
     SolarGeneration: SolarGeneration.toFixed(2),
     Wapda1: WapdaImport.toFixed(2),
+    Wapdaexport: WapdaExport.toFixed(2),
     Trafo1Incoming:Trafo1Incoming.toFixed(2),
     Trafo2Incoming: Trafo2Incoming.toFixed(2),
     Trafo3Incoming: Trafo3Incoming.toFixed(2),

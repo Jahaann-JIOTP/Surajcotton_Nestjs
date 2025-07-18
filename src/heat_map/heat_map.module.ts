@@ -1,4 +1,3 @@
-// src/heat_map/heat_map.module.ts
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { HeatMapService } from './heat_map.service';
@@ -16,3 +15,5 @@ import { HeatMapSchema } from './schemas/heat_map.schema';
   providers: [HeatMapService]
 })
 export class HeatMapModule {}
+
+
