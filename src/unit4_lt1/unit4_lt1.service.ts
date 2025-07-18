@@ -12,17 +12,9 @@ export class Unit4LT1Service {
   ) {}
 
   async getSankeyData(startDate: string, endDate: string) {
-    const start = moment(startDate).startOf('day');
-    const end = moment(endDate).endOf('day');
+    const start = moment(startDate).startOf('day').toISOString();
+    const end = moment(endDate).endOf('day').toISOString();
 
-    const allDates: string[] = [];
-    const current = moment(start);
-    while (current <= end) {
-      allDates.push(current.format('YYYY-MM-DD'));
-      current.add(1, 'day');
-    }
-
-    // Meter labels (excluding TF1 and LT Gen)
     const meterMap: Record<string, string> = {
       U1_PLC: 'Transport',
       U2_PLC: 'Unit 05 Aux',
@@ -51,46 +43,70 @@ export class Unit4LT1Service {
       ...Object.keys(meterMap).map((m) => `${m}_Del_ActiveEnergy`),
     ];
 
+    // Step 1: Projection for aggregation
+    const projection: any = {};
+    meterFields.forEach(field => {
+      projection[`first_${field}`] = { $first: `$${field}` };
+      projection[`last_${field}`] = { $last: `$${field}` };
+    });
+
+    // Step 2: Aggregation pipeline
+    const pipeline = [
+      {
+        $match: {
+          timestamp: {
+            $gte: start,
+            $lte: end,
+          },
+        },
+      },
+      {
+        $addFields: {
+          dateOnly: {
+            $dateToString: {
+              format: '%Y-%m-%d',
+              date: { $toDate: '$timestamp' },
+            },
+          },
+        },
+      },
+      {
+        $sort: { timestamp: 1 } as const, // ✅ Type-safe sort
+      },
+      {
+        $group: {
+          _id: '$dateOnly',
+          ...projection,
+        },
+      },
+    ];
+
+    const results = await this.unitModel.aggregate(pipeline).exec();
+
+    // Step 3: Calculate total consumption
     const consumptionTotals: Record<string, number> = {};
-    meterFields.forEach((field) => (consumptionTotals[field] = 0));
+    meterFields.forEach(field => consumptionTotals[field] = 0);
 
-    for (const day of allDates) {
-      const dayStart = moment(day).startOf('day').toISOString();
-      const dayEnd = moment(day).endOf('day').toISOString();
-
-
-      
-      const dayData = await this.unitModel
-        .find({ timestamp: { $gte: dayStart, $lte: dayEnd } })
-        .sort({ timestamp: 1 })
-        .lean();
-
-      if (!dayData || dayData.length === 0) continue;
-
-      const first = dayData[0];
-      const last = dayData[dayData.length - 1];
-
+    for (const entry of results) {
       for (const field of meterFields) {
-        const startVal = first[field] || 0;
-        const endVal = last[field] || 0;
-        let consumption = endVal - startVal;
+        const first = entry[`first_${field}`] || 0;
+        const last = entry[`last_${field}`] || 0;
+        let consumption = last - first;
 
         const isExponential =
           Math.abs(consumption) > 1e12 || String(consumption).includes('e');
 
         if (!isNaN(consumption) && consumption >= 0 && !isExponential) {
           consumptionTotals[field] += parseFloat(consumption.toFixed(2));
-        } else {
-          consumptionTotals[field] += 0;
         }
       }
     }
 
-    const tf1 = parseFloat(consumptionTotals['U21_PLC_Del_ActiveEnergy'].toFixed(2));
-    const ltGen = parseFloat(consumptionTotals['U19_PLC_Del_ActiveEnergy'].toFixed(2));
-    const totalLT1 = parseFloat((tf1 + ltGen).toFixed(2));
+    // Step 4: Create Sankey format
+    const tf1 = +consumptionTotals['U21_PLC_Del_ActiveEnergy'].toFixed(2);
+    const ltGen = +consumptionTotals['U19_PLC_Del_ActiveEnergy'].toFixed(2);
+    const totalLT1 = +(tf1 + ltGen).toFixed(2);
 
-    // Final output: flat array for Sankey
     const sankeyData = [
       { from: 'tf1', to: 'totalLT1', value: tf1 },
       { from: 'ltGen', to: 'totalLT1', value: ltGen },
@@ -99,7 +115,7 @@ export class Unit4LT1Service {
         return {
           from: 'totalLT1',
           to: label,
-          value: parseFloat((consumptionTotals[key] || 0).toFixed(2)),
+          value: +(consumptionTotals[key] || 0).toFixed(2),
         };
       }),
     ];
