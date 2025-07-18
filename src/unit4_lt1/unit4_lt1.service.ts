@@ -46,8 +46,8 @@ export class Unit4LT1Service {
     };
 
     const meterFields = [
-      'U19_PLC_Del_ActiveEnergy', // TF1
-      'U21_PLC_Del_ActiveEnergy', // LT Gen
+      'U21_PLC_Del_ActiveEnergy', // TF1
+      'U19_PLC_Del_ActiveEnergy', // LT Gen
       ...Object.keys(meterMap).map((m) => `${m}_Del_ActiveEnergy`),
     ];
 
@@ -86,8 +86,8 @@ export class Unit4LT1Service {
       }
     }
 
-    const tf1 = parseFloat(consumptionTotals['U19_PLC_Del_ActiveEnergy'].toFixed(2));
-    const ltGen = parseFloat(consumptionTotals['U21_PLC_Del_ActiveEnergy'].toFixed(2));
+    const tf1 = parseFloat(consumptionTotals['U21_PLC_Del_ActiveEnergy'].toFixed(2));
+    const ltGen = parseFloat(consumptionTotals['U19_PLC_Del_ActiveEnergy'].toFixed(2));
     const totalLT1 = parseFloat((tf1 + ltGen).toFixed(2));
 
     // Final output: flat array for Sankey
