@@ -29,20 +29,18 @@ export class EnergyService {
 
     const WapdaImportKeys = ['U22_GW01_Del_ActiveEnergy'];
     const WapdaExportKeys = ['U22_GW01_ActiveEnergy_Exp_kWh'];
-
     const Trafo1IncomingKeys = ['U21_PLC_Del_ActiveEnergy'];
     const Trafo2IncomingKeys = ['U13_GW01_Del_ActiveEnergy'];
     const Trafo3IncomingKeys = ['U13_GW02_Del_ActiveEnergy'];
     const Trafo4IncomingKeys = ['U16_GW03_Del_ActiveEnergy'];
+    const Trafo1outgoingKeys = ['U23_GW01_Del_ActiveEnergy'];
+    const Trafo2outgoingKeys = ['U22_GW01_Del_ActiveEnergy'];
+    const Trafo3outgoingKeys = ['U20_GW03_Del_ActiveEnergy'];
+    const Trafo4outgoingKeys = ['U19_GW03_Del_ActiveEnergy'];
     const DieselGensetKeys = ['U19_PLC_Del_ActiveEnergy'];
     const GasGensetKeys = ['U11_GW01_Del_ActiveEnergy'];
     const Solar1Keys = ['U6_GW02_Del_ActiveEnergy'];
     const Solar2Keys = ['U17_GW03_Del_ActiveEnergy'];
-
-
-
-
-
     const U4_ConsumptionKeys = ['U1_PLC_Del_ActiveEnergy', 'U2_PLC_Del_ActiveEnergy', 'U3_PLC_Del_ActiveEnergy', 'U4_PLC_Del_ActiveEnergy',
         'U5_PLC_Del_ActiveEnergy', 'U6_PLC_Del_ActiveEnergy', 'U7_PLC_Del_ActiveEnergy', 'U8_PLC_Del_ActiveEnergy', 'U9_PLC_Del_ActiveEnergy',
         'U10_PLC_Del_ActiveEnergy', 'U11_PLC_Del_ActiveEnergy', 'U12_PLC_Del_ActiveEnergy', 'U13_PLC_Del_ActiveEnergy', 'U14_PLC_Del_ActiveEnergy',
@@ -59,57 +57,66 @@ export class EnergyService {
          "U5_GW03_Del_ActiveEnergy", "U6_GW03_Del_ActiveEnergy", "U7_GW03_Del_ActiveEnergy", "U8_GW03_Del_ActiveEnergy", "U9_GW03_Del_ActiveEnergy",
          "U10_GW03_Del_ActiveEnergy", "U11_GW03_Del_ActiveEnergy", "U12_GW03_Del_ActiveEnergy", "U13_GW03_Del_ActiveEnergy", "U14_GW03_Del_ActiveEnergy",
          "U15_GW03_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U18_GW03_Del_ActiveEnergy", "U19_GW03_Del_ActiveEnergy",
-        "U22_GW03_Del_ActiveEnergy"
-    ]
+        "U22_GW03_Del_ActiveEnergy"]
+const matchStage = {
+  timestamp: {
+    $gte: `${start}T00:00:00.000+05:00`,
+    $lte: `${end}T23:59:59.999+05:00`,
+  },
+};
 
-   
+const projection: { [key: string]: number } = { timestamp: 1 };
 
-    const matchStage = {
-      timestamp: {
-        $gte: `${start}T00:00:00.000+05:00`,
-        $lte: `${end}T23:59:59.999+05:00`,
-      },
-    };
+for (const id of meterIds) {
+  for (const suffix of suffixes) {
+    projection[`${id}_${suffix}`] = 1;
+  }
+}
 
-    const projection: { [key: string]: number } = { timestamp: 1 };
+const result = await this.energyModel.aggregate([
+  { $match: matchStage },
+  { $project: projection },
+  { $sort: { timestamp: 1 } },
+]);
 
-    for (const id of meterIds) {
-        for (const suffix of suffixes) {
-          projection[`${id}_${suffix}`] = 1;
-        }
+const firstValues: Record<string, number> = {};
+const lastValues: Record<string, number> = {};
+
+for (const doc of result) {
+  meterIds.forEach(id => {
+    suffixes.forEach(suffix => {
+      const key = `${id}_${suffix}`;
+      if (doc[key] !== undefined) {
+        if (!(key in firstValues)) firstValues[key] = doc[key];
+        lastValues[key] = doc[key];
       }
-      
-    
-
-    const result = await this.energyModel.aggregate([
-      { $match: matchStage },
-      { $project: projection },
-      { $sort: { timestamp: 1 } },
-    ]);
-
-    const firstValues = {};
-    const lastValues = {};
-
-    for (const doc of result) {
-        meterIds.forEach(id => {
-          suffixes.forEach(suffix => {
-            const key = `${id}_${suffix}`;
-            if (doc[key] !== undefined) {
-              if (!firstValues[key]) firstValues[key] = doc[key];
-              lastValues[key] = doc[key];
-            }
-          });
-        });
-      }
-      
-
-    const consumption = {};
-    Object.keys(firstValues).forEach(key => {
-      consumption[key] = lastValues[key] - firstValues[key];
     });
+  });
+}
 
-    const sumGroup = (keys: string[]) =>
-      keys.reduce((sum, key) => sum + (consumption[key] || 0), 0);
+// Final consumption calculation with scientific value filtering
+const consumption: Record<string, number> = {};
+
+Object.keys(firstValues).forEach(key => {
+  let diff = lastValues[key] - firstValues[key];
+
+  // If value is extremely large, small, or in scientific notation — consider it as 0
+  if (
+    diff.toString().includes('e+') ||
+    diff.toString().includes('e-') ||
+    Math.abs(diff) > 1e+10 ||
+    Math.abs(diff) < 1e-5
+  ) {
+    diff = 0;
+  }
+
+  consumption[key] = diff;
+});
+
+// Utility function to group sums
+const sumGroup = (keys: string[]) =>
+  keys.reduce((sum, key) => sum + (consumption[key] || 0), 0);
+
 
     let LTGeneration = sumGroup(LTGenerationKeys);
     let SolarGeneration = sumGroup(SolarGenerationKeys);
@@ -119,6 +126,10 @@ export class EnergyService {
     let Trafo2Incoming = sumGroup(Trafo2IncomingKeys);
     let Trafo3Incoming = sumGroup(Trafo3IncomingKeys);
     let Trafo4Incoming = sumGroup(Trafo4IncomingKeys);
+    let Trafo1outgoing = sumGroup(Trafo1outgoingKeys);
+    let Trafo2outgoing = sumGroup(Trafo2outgoingKeys);
+    let Trafo3outgoing = sumGroup(Trafo3outgoingKeys);
+    let Trafo4outgoing = sumGroup(Trafo4outgoingKeys);
     let DieselGenset = sumGroup(DieselGensetKeys);
     let GasGenset = sumGroup(GasGensetKeys);
     let Solar1 = sumGroup(Solar1Keys);
@@ -126,19 +137,13 @@ export class EnergyService {
     let U4_Consumption = sumGroup(U4_ConsumptionKeys);
     let U5_Consumption = sumGroup(U5_ConsumptionKeys);
     let HT_Generation = sumGroup(HTGenerationKeys);
-
-   
-    // let totalConsumption = solar + Wapda;
-
-    // let Compressor1 = consumption[Compressor1Key] || 0;
-    // let Compressor2 = consumption[Compressor2Key] || 0;
-    // let Compressor3 = consumption[Compressor3Key] || 0;
-
     let totalGeneration = LTGeneration + SolarGeneration + WapdaImport+ HT_Generation;
     let totalenergyinput = U4_Consumption + U5_Consumption;
-    // let Trafo3losses = Trafo3Incoming - Trafo3outgoing;
-    // let Trafo4losses = Trafo4Incoming - Trafo4outgoing;
-    // let TrasformerLosses = Trafo3losses + Trafo4losses;
+    let Trafo1losses = Trafo1Incoming - Trafo1outgoing;
+    let Trafo2losses = Trafo2Incoming - Trafo2outgoing;
+    let Trafo3losses = Trafo3Incoming - Trafo3outgoing;
+    let Trafo4losses = Trafo4Incoming - Trafo4outgoing;
+    let TrasformerLosses = Trafo1losses + Trafo2losses+ Trafo3losses + Trafo4losses;
     let unaccoutable_energy= totalenergyinput-totalGeneration;
 
 
@@ -157,9 +162,15 @@ export class EnergyService {
     Trafo2Incoming: Trafo2Incoming.toFixed(2),
     Trafo3Incoming: Trafo3Incoming.toFixed(2),
     Trafo4Incoming: Trafo4Incoming.toFixed(2),
-    // Trafo3losses: Trafo3losses.toFixed(2),
-    // Trafo4losses: Trafo4losses.toFixed(2),
-    // TrasformerLosses: TrasformerLosses.toFixed(2),
+    Trafo1outgoing: Trafo1outgoing.toFixed(2),
+    Trafo2outgoing: Trafo2outgoing.toFixed(2),
+    Trafo3outgoing: Trafo3outgoing.toFixed(2),
+    Trafo4outgoing: Trafo4outgoing.toFixed(2),
+    Trafo1losses: Trafo1losses.toFixed(2),
+    Trafo2losses: Trafo2losses.toFixed(2),
+    Trafo3losses: Trafo3losses.toFixed(2),
+    Trafo4losses: Trafo4losses.toFixed(2),
+    TrasformerLosses: TrasformerLosses.toFixed(2),
     Solar1: Solar1.toFixed(2),
     Solar2: Solar2.toFixed(2),
     Total_Generation: totalGeneration.toFixed(2),

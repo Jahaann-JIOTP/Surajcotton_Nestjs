@@ -53,6 +53,17 @@ import { PowerComparisonModule } from './power_comparison/power_comparison.modul
 // import { HeatMapService } from './heat_map/heat_map.service';
 // import { HeatMapController } from './heat_map/heat_map.controller';
 import { HeatMapModule } from './heat_map/heat_map.module';
+// import { Unit4Lt2Service } from './unit4_lt2/unit4_lt2.service';
+// import { Unit4Lt2Controller } from './unit4_lt2/unit4_lt2.controller';
+import { Unit4Lt2Module } from './unit4_lt2/unit4_lt2.module';
+// import { Unit5Lt3Service } from './unit5_lt3/unit5_lt3.service';
+// import { Unit5Lt3Controller } from './unit5_lt3/unit5_lt3.controller';
+import { Unit5Lt3Module } from './unit5_lt3/unit5_lt3.module';
+// import { Unit5Lt4Service } from './unit5_lt4/unit5_lt4.service';
+import { Unit5Lt4Module } from './unit5_lt4/unit5_lt4.module';
+// import { PowerSummaryReportService } from './power_summary_report/power_summary_report.service';
+// import { PowerSummaryReportController } from './power_summary_report/power_summary_report.controller';
+import { PowerSummaryReportModule } from './power_summary_report/power_summary_report.module';
 
 
 @Module({
@@ -84,10 +95,14 @@ import { HeatMapModule } from './heat_map/heat_map.module';
     MeterModule,
     PowerComparisonModule,
     HeatMapModule,
+    Unit4Lt2Module,
+    Unit5Lt3Module,
+    Unit5Lt4Module,
+    PowerSummaryReportModule,
  
   ],
   controllers: [AppController],
-  providers: [AppService ],
+  providers: [AppService],
   
 })
 export class AppModule {}
