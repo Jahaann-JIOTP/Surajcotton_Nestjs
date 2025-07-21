@@ -5,12 +5,16 @@ import { GetEnergyCostDto } from './dto/get-power_summary-report.dto';
 import { EnergyCost } from './schemas/power_summary-report.schema';
 import * as moment from 'moment-timezone';
 
+
 @Injectable()
 export class PowerSummaryReportService {
   constructor(
     @InjectModel(EnergyCost.name, 'surajcotton') private costModel: Model<EnergyCost>,
+    
+    
   ) {}
-
+  // did not add these tags in consumption these tags add in generation 
+// ['U6_GW02', 'U17_GW03','U21_PLC', 'U13_GW01', 'U13_GW02', 'U16_GW03','U23_GW01', 'U20_GW03', 'U19_GW03', 'U22_GW01'],
   // 🔹 Mapping function for area to meterIds
   private getMeterIdsForArea(area: string): string[] {
     const areaMapping: Record<string, string[]> = {
@@ -20,7 +24,7 @@ export class PowerSummaryReportService {
         'U17_PLC', 'U18_PLC', 'U19_PLC', 'U20_PLC', 'U21_PLC', 'U1_GW01', 'U2_GW01', 'U3_GW01',
         'U4_GW01', 'U5_GW01', 'U6_GW01', 'U7_GW01', 'U8_GW01', 'U9_GW01', 'U10_GW01',
         'U11_GW01', 'U12_GW01', 'U13_GW01', 'U14_GW01', 'U15_GW01', 'U16_GW01', 'U17_GW01',
-        'U18_GW01', 'U19_GW01', 'U20_GW01', 'U21_GW01', 'U22_GW01', 'U23_GW01'
+        'U18_GW01', 'U19_GW01', 'U20_GW01', 'U21_GW01', 'U23_GW01'
       ],
       Unit_5:[
         'U1_GW02', 'U2_GW02', 'U3_GW02', 'U4_GW02', 'U5_GW02', 'U6_GW02', 'U7_GW02',
@@ -33,17 +37,17 @@ export class PowerSummaryReportService {
       ],
        ALL:['U1_PLC', 'U2_PLC', 'U3_PLC', 'U4_PLC', 'U5_PLC', 'U6_PLC', 'U7_PLC', 'U8_PLC',
         'U9_PLC', 'U10_PLC', 'U11_PLC', 'U12_PLC', 'U13_PLC', 'U14_PLC', 'U15_PLC', 'U16_PLC',
-        'U17_PLC', 'U18_PLC', 'U19_PLC', 'U20_PLC', 'U21_PLC', 'U1_GW01', 'U2_GW01', 'U3_GW01',
+        'U17_PLC', 'U18_PLC', 'U19_PLC', 'U20_PLC', 'U1_GW01', 'U2_GW01', 'U3_GW01',
         'U4_GW01', 'U5_GW01', 'U6_GW01', 'U7_GW01', 'U8_GW01', 'U9_GW01', 'U10_GW01',
-        'U11_GW01', 'U12_GW01', 'U13_GW01', 'U14_GW01', 'U15_GW01', 'U16_GW01', 'U17_GW01',
-        'U18_GW01', 'U19_GW01', 'U20_GW01', 'U21_GW01', 'U22_GW01', 'U23_GW01',
-        'U1_GW02', 'U2_GW02', 'U3_GW02', 'U4_GW02', 'U5_GW02', 'U6_GW02', 'U7_GW02',
+        'U11_GW01', 'U12_GW01', 'U14_GW01', 'U15_GW01', 'U16_GW01', 'U17_GW01',
+        'U18_GW01', 'U19_GW01', 'U20_GW01', 'U21_GW01',
+        'U1_GW02', 'U2_GW02', 'U3_GW02', 'U4_GW02', 'U5_GW02',  'U7_GW02',
         'U8_GW02', 'U9_GW02', 'U10_GW02', 'U11_GW02', 'U12_GW02', 'U13_GW02', 'U14_GW02',
         'U15_GW02', 'U16_GW02', 'U17_GW02', 'U18_GW02', 'U19_GW02', 'U20_GW02', 'U21_GW02',
         'U22_GW02', 'U23_GW02', 'U1_GW03', 'U2_GW03', 'U3_GW03', 'U4_GW03', 'U5_GW03', 'U6_GW03', 'U7_GW03',
         'U8_GW03', 'U9_GW03', 'U10_GW03', 'U11_GW03', 'U12_GW03', 'U13_GW03', 'U14_GW03',
-        'U15_GW03', 'U16_GW03', 'U17_GW03', 'U18_GW03', 'U19_GW03', 'U20_GW03', 'U21_GW03',
-        'U22_GW03', 'U23_GW03']
+        'U15_GW03', 'U17_GW03', 'U18_GW03', 'U21_GW03',
+         'U23_GW03']
     };
 
     return areaMapping[area] || [];
@@ -126,9 +130,10 @@ async getConsumptionData(dto: GetEnergyCostDto) {
     out: ['U23_GW01_Del_ActiveEnergy', 'U22_GW01_Del_ActiveEnergy', 'U20_GW03_Del_ActiveEnergy', 'U19_GW03_Del_ActiveEnergy'],
   };
 
-  const mergedResult = {
+  const mergedResult: any = {
     area,
-    totalConsumption: 0,
+    unit4_consumption: 0,
+    unit5_consumption: 0,
     wapda1: 0,
     wapdaexport: 0,
     solar1: 0,
@@ -190,13 +195,15 @@ async getConsumptionData(dto: GetEnergyCostDto) {
         trafo3Loss = getValue(trafoTags.in[2]) - getValue(trafoTags.out[2]);
         trafo4Loss = getValue(trafoTags.in[3]) - getValue(trafoTags.out[3]);
       }
+   
 
-      const transformerLosses = this.sanitizeValue(
-        trafo1Loss + trafo2Loss + trafo3Loss + trafo4Loss,
-      );
+
+      const transformerLosses = this.sanitizeValue(trafo1Loss + trafo2Loss + trafo3Loss + trafo4Loss);
       const totalGeneration = this.sanitizeValue(solar1 + solar2);
 
-      mergedResult.totalConsumption += this.round2(dailyTotal);
+      if (unitArea === 'Unit_4') mergedResult.unit4_consumption += this.round2(dailyTotal);
+      if (unitArea === 'Unit_5') mergedResult.unit5_consumption += this.round2(dailyTotal);
+
       mergedResult.wapda1 += this.round2(wapda1);
       mergedResult.wapdaexport += this.round2(wapdaexport);
       mergedResult.solar1 += this.round2(solar1);
@@ -212,29 +219,67 @@ async getConsumptionData(dto: GetEnergyCostDto) {
     current.add(1, 'day');
   }
 
-  // Final round to ensure result is precise
+  // Round all numeric values
   for (const key of Object.keys(mergedResult)) {
     if (typeof mergedResult[key] === 'number') {
       mergedResult[key] = this.round2(mergedResult[key]);
     }
   }
 
-  return [mergedResult];
+  // 🔍 Filter fields based on selection
+  let fieldsToKeep: string[] = [];
+
+if (area === 'Unit_4') {
+  fieldsToKeep = ['area', 'unit4_consumption', 'total_consumption', 'wapda1', 'wapdaexport', 'total_generation', 'unaccountable_energy'];
+} else if (area === 'Unit_5') {
+  fieldsToKeep = [
+    'area', 'unit5_consumption', 'total_consumption',
+    'solar1', 'solar2',
+    'trafo1Loss', 'trafo2Loss', 'trafo3Loss', 'trafo4Loss', 'transformerLosses',
+    'total_generation', 'unaccountable_energy'
+  ];
+} else if (area === 'ALL') {
+  fieldsToKeep = [
+    'area', 'unit4_consumption', 'unit5_consumption', 'total_consumption',
+    'wapda1', 'wapdaexport', 'solar1', 'solar2', 
+    'trafo1Loss', 'trafo2Loss', 'trafo3Loss', 'trafo4Loss', 'transformerLosses',
+    'total_generation', 'unaccountable_energy'
+  ];
 }
 
+        // 👇 Add this block before finalResult
+      if (area === 'Unit_4') {
+        mergedResult.total_consumption = mergedResult.unit4_consumption;
+      } else if (area === 'Unit_5') {
+        mergedResult.total_consumption = mergedResult.unit5_consumption;
+      } else if (area === 'ALL') {
+        mergedResult.total_consumption = this.round2(
+          mergedResult.unit4_consumption + mergedResult.unit5_consumption
+        );
+      }
+      // 👇 Compute total_generation based on area selection
+        if (area === 'Unit_4') {
+          mergedResult.total_generation = this.round2(mergedResult.wapda1);
+        } else if (area === 'Unit_5') {
+          mergedResult.total_generation = this.round2(mergedResult.solar1 + mergedResult.solar2);
+        } else if (area === 'ALL') {
+          mergedResult.total_generation = this.round2(
+            mergedResult.wapda1 + mergedResult.solar1 + mergedResult.solar2
+          );
+        }
+
+        // 👇 Compute unaccountable_energy
+        mergedResult.unaccountable_energy = this.round2(
+          mergedResult.total_consumption - mergedResult.total_generation
+        );
 
 
 
+  const finalResult = Object.fromEntries(
+    Object.entries(mergedResult).filter(([key]) => fieldsToKeep.includes(key))
+  );
 
-
-
-
-
-
-
-
-
-
-
+  return [finalResult];
+}
 
 }

@@ -7,12 +7,15 @@ import * as moment from 'moment-timezone';
 import { DailyProduction, DailyProductionDocument } from './schemas/daily_production.schema';
 import { GetSpindleDto } from './dto/get-spindle.dto';
 
+
 @Injectable()
 export class EnergySpindleService {
   constructor(
     @InjectModel(DailyProduction.name, 'surajcotton') // DB: surajcotton
     private readonly dailyProductionModel: Model<DailyProductionDocument>,
   ) {}
+  
+  
 
   async getProductionByDate(dto: GetSpindleDto) {
   const { start_date, end_date, unit } = dto;

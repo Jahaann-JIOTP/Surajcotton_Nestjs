@@ -25,10 +25,10 @@ async getPowerAverages(startDate: string, endDate: string) {
   const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi").endOf('day').utc().toDate();
 
   // HT tags
-  const Trafo1Tags = ["U21_PLC_Del_ActiveEnergy"];
-  const Trafo2Tags = ["U13_GW01_Del_ActiveEnergy"];
-  const Trafo3Tags = ["U13_GW02_Del_ActiveEnergy"];
-  const Trafo4Tags = ["U16_GW03_Del_ActiveEnergy"];
+  const Trafo1Tags = ["U21_PLC_ActivePower_Total"];
+  const Trafo2Tags = ["U13_GW01_ActivePower_Total"];
+  const Trafo3Tags = ["U13_GW02_ActivePower_Total"];
+  const Trafo4Tags = ["U16_GW03_ActivePower_Total"];
 
 
 
