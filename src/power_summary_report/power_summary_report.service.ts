@@ -64,20 +64,18 @@ export class PowerSummaryReportService {
 }
 
 
-  // 🔹 Main method
+private round2(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
 async getConsumptionData(dto: GetEnergyCostDto) {
   const { start_date, end_date, suffixes } = dto;
-  let { meterIds, area } = dto;
+  const area = dto.area ?? '';
 
-  if ((!meterIds || meterIds.length === 0) && area) {
-    meterIds = this.getMeterIdsForArea(area);
-  }
+  const isAll = area === 'ALL';
+  const areasToProcess = isAll ? ['Unit_4', 'Unit_5'] : [area];
 
-  if (!meterIds?.length || !suffixes?.length) {
-    throw new Error('Missing meterIds or suffixes');
-  }
-
-  const additionalTags: Record<string, string[]> = {
+  const additionalTags = {
     Unit_4: ['U22_GW01'],
     Unit_5: [
       'U6_GW02', 'U17_GW03',
@@ -86,11 +84,14 @@ async getConsumptionData(dto: GetEnergyCostDto) {
     ],
   };
 
-  const extraIds: string[] = area && additionalTags[area] ? additionalTags[area] : [];
-  const allMeterIds = [...new Set([...meterIds, ...extraIds])];
-
   const start = moment.tz(start_date, 'Asia/Karachi').startOf('day');
   const end = moment.tz(end_date, 'Asia/Karachi').endOf('day');
+
+  const allMeterIds = new Set<string>();
+  for (const areaKey of areasToProcess) {
+    this.getMeterIdsForArea(areaKey).forEach(id => allMeterIds.add(id));
+    (additionalTags[areaKey] || []).forEach(id => allMeterIds.add(id));
+  }
 
   const projectionFields: Record<string, number> = { timestamp: 1 };
   for (const meterId of allMeterIds) {
@@ -100,27 +101,19 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   }
 
   const allData = await this.costModel.aggregate([
-    {
-      $match: {
-        timestamp: {
-          $gte: start.toISOString(true),
-          $lte: end.toISOString(true),
-        },
-      },
-    },
+    { $match: { timestamp: { $gte: start.toISOString(true), $lte: end.toISOString(true) } } },
     { $project: projectionFields },
     { $sort: { timestamp: 1 } },
   ]).exec();
 
   const groupedData: Record<string, { first?: number; last?: number }> = {};
-
   for (const doc of allData) {
     const date = moment.tz(doc.timestamp, 'Asia/Karachi').format('YYYY-MM-DD');
     for (const key of Object.keys(doc)) {
       if (key === 'timestamp') continue;
       const uniqueKey = `${date}_${key}`;
       const val = this.sanitizeValue(doc[key]);
-      if (!(uniqueKey in groupedData)) {
+      if (!groupedData[uniqueKey]) {
         groupedData[uniqueKey] = { first: val, last: val };
       } else {
         groupedData[uniqueKey].last = val;
@@ -128,125 +121,110 @@ async getConsumptionData(dto: GetEnergyCostDto) {
     }
   }
 
-  // Transformer mappings for Unit_5
-  const Trafo1Incoming = 'U21_PLC_Del_ActiveEnergy';
-  const Trafo2Incoming = 'U13_GW01_Del_ActiveEnergy';
-  const Trafo3Incoming = 'U13_GW02_Del_ActiveEnergy';
-  const Trafo4Incoming = 'U16_GW03_Del_ActiveEnergy';
-  const Trafo1Outgoing = 'U23_GW01_Del_ActiveEnergy';
-  const Trafo2Outgoing = 'U22_GW01_Del_ActiveEnergy';
-  const Trafo3Outgoing = 'U20_GW03_Del_ActiveEnergy';
-  const Trafo4Outgoing = 'U19_GW03_Del_ActiveEnergy';
+  const trafoTags = {
+    in: ['U21_PLC_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy'],
+    out: ['U23_GW01_Del_ActiveEnergy', 'U22_GW01_Del_ActiveEnergy', 'U20_GW03_Del_ActiveEnergy', 'U19_GW03_Del_ActiveEnergy'],
+  };
 
-  const results: {
-    date: string;
-    totalConsumption: number;
-    area?: string;
-    solar1?: number;
-    solar2?: number;
-    transformerLosses?: number;
-    trafo1Loss?: number;
-    trafo2Loss?: number;
-    trafo3Loss?: number;
-    trafo4Loss?: number;
-    totalGeneration?: number;
-    wapda1?: number;
-    wapdaexport?: number;
-  }[] = [];
+  const mergedResult = {
+    area,
+    totalConsumption: 0,
+    wapda1: 0,
+    wapdaexport: 0,
+    solar1: 0,
+    solar2: 0,
+    totalGeneration: 0,
+    trafo1Loss: 0,
+    trafo2Loss: 0,
+    trafo3Loss: 0,
+    trafo4Loss: 0,
+    transformerLosses: 0,
+  };
 
   let current = start.clone();
-
   while (current.isSameOrBefore(end, 'day')) {
     const dateStr = current.format('YYYY-MM-DD');
-    let dailyTotal = 0;
-    let solar1 = 0;
-    let solar2 = 0;
-    let trafo1Loss = 0;
-    let trafo2Loss = 0;
-    let trafo3Loss = 0;
-    let trafo4Loss = 0;
-    let wapda1 = 0;
-    let wapdaexport = 0;
 
-    const getValue = (tag: string) => {
-      const key = `${dateStr}_${tag}`;
-      const pair = groupedData[key];
-      if (pair && pair.first !== undefined && pair.last !== undefined) {
-        return this.sanitizeValue(pair.last - pair.first);
-      }
-      return 0;
-    };
+    for (const unitArea of areasToProcess) {
+      const meterIds = this.getMeterIdsForArea(unitArea);
+      const extraIds = additionalTags[unitArea] || [];
+      const allIds = [...new Set([...meterIds, ...extraIds])];
 
-    for (const meterId of allMeterIds) {
-      for (const suffix of suffixes) {
-        const key = `${dateStr}_${meterId}_${suffix}`;
+      let dailyTotal = 0;
+      let solar1 = 0, solar2 = 0;
+      let wapda1 = 0, wapdaexport = 0;
+      let trafo1Loss = 0, trafo2Loss = 0, trafo3Loss = 0, trafo4Loss = 0;
+
+      const getValue = (tag: string) => {
+        const key = `${dateStr}_${tag}`;
         const pair = groupedData[key];
+        return pair?.first !== undefined && pair?.last !== undefined
+          ? this.sanitizeValue(pair.last - pair.first)
+          : 0;
+      };
 
-        if (pair && pair.first !== undefined && pair.last !== undefined) {
-          const consumption = this.sanitizeValue(pair.last - pair.first);
+      for (const meterId of allIds) {
+        for (const suffix of suffixes) {
+          const key = `${dateStr}_${meterId}_${suffix}`;
+          const pair = groupedData[key];
+          if (pair && pair.first !== undefined && pair.last !== undefined) {
+            const consumption = this.sanitizeValue(pair.last - pair.first);
+            dailyTotal += consumption;
 
-          // Total consumption always accumulates
-          dailyTotal += consumption;
-
-          if (area === 'Unit_4' && meterId === 'U22_GW01') {
-            if (suffix === 'ActiveEnergy_Exp_kWh') {
-              wapdaexport += consumption;
-            } else {
-              wapda1 += consumption;
+            if (unitArea === 'Unit_4' && meterId === 'U22_GW01') {
+              if (suffix === 'ActiveEnergy_Exp_kWh') wapdaexport += consumption;
+              else wapda1 += consumption;
             }
-          }
 
-          if (area === 'Unit_5') {
-            if (meterId === 'U6_GW02') solar1 += consumption;
-            if (meterId === 'U17_GW03') solar2 += consumption;
+            if (unitArea === 'Unit_5') {
+              if (meterId === 'U6_GW02') solar1 += consumption;
+              if (meterId === 'U17_GW03') solar2 += consumption;
+            }
           }
         }
       }
+
+      if (unitArea === 'Unit_5') {
+        trafo1Loss = getValue(trafoTags.in[0]) - getValue(trafoTags.out[0]);
+        trafo2Loss = getValue(trafoTags.in[1]) - getValue(trafoTags.out[1]);
+        trafo3Loss = getValue(trafoTags.in[2]) - getValue(trafoTags.out[2]);
+        trafo4Loss = getValue(trafoTags.in[3]) - getValue(trafoTags.out[3]);
+      }
+
+      const transformerLosses = this.sanitizeValue(
+        trafo1Loss + trafo2Loss + trafo3Loss + trafo4Loss,
+      );
+      const totalGeneration = this.sanitizeValue(solar1 + solar2);
+
+      mergedResult.totalConsumption += this.round2(dailyTotal);
+      mergedResult.wapda1 += this.round2(wapda1);
+      mergedResult.wapdaexport += this.round2(wapdaexport);
+      mergedResult.solar1 += this.round2(solar1);
+      mergedResult.solar2 += this.round2(solar2);
+      mergedResult.totalGeneration += this.round2(totalGeneration);
+      mergedResult.trafo1Loss += this.round2(trafo1Loss);
+      mergedResult.trafo2Loss += this.round2(trafo2Loss);
+      mergedResult.trafo3Loss += this.round2(trafo3Loss);
+      mergedResult.trafo4Loss += this.round2(trafo4Loss);
+      mergedResult.transformerLosses += this.round2(transformerLosses);
     }
 
-    // Transformer losses only for Unit_5
-    if (area === 'Unit_5') {
-      trafo1Loss = getValue(Trafo1Incoming) - getValue(Trafo1Outgoing);
-      trafo2Loss = getValue(Trafo2Incoming) - getValue(Trafo2Outgoing);
-      trafo3Loss = getValue(Trafo3Incoming) - getValue(Trafo3Outgoing);
-      trafo4Loss = getValue(Trafo4Incoming) - getValue(Trafo4Outgoing);
-    }
-
-    const transformerLosses = this.sanitizeValue(
-      trafo1Loss + trafo2Loss + trafo3Loss + trafo4Loss,
-    );
-    const totalGeneration = this.sanitizeValue(solar1 + solar2);
-
-    const entry: any = {
-      date: dateStr,
-      area: area || 'N/A',
-      totalConsumption: Number(dailyTotal.toFixed(2)),
-    };
-
-    if (area === 'Unit_4') {
-      entry.wapda1 = Number(wapda1.toFixed(2));
-      entry.wapdaexport = Number(wapdaexport.toFixed(2));
-    }
-
-    if (area === 'Unit_5') {
-      entry.solar1 = Number(solar1.toFixed(2));
-      entry.solar2 = Number(solar2.toFixed(2));
-      entry.totalGeneration = Number(totalGeneration.toFixed(2));
-      entry.trafo1Loss = Number(trafo1Loss.toFixed(2));
-      entry.trafo2Loss = Number(trafo2Loss.toFixed(2));
-      entry.trafo3Loss = Number(trafo3Loss.toFixed(2));
-      entry.trafo4Loss = Number(trafo4Loss.toFixed(2));
-      entry.transformerLosses = Number(transformerLosses.toFixed(2));
-    }
-  
-
-
-    results.push(entry);
     current.add(1, 'day');
   }
 
-  return results;
+  // Final round to ensure result is precise
+  for (const key of Object.keys(mergedResult)) {
+    if (typeof mergedResult[key] === 'number') {
+      mergedResult[key] = this.round2(mergedResult[key]);
+    }
+  }
+
+  return [mergedResult];
 }
+
+
+
+
 
 
 

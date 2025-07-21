@@ -41,6 +41,8 @@ export class EnergyService {
     const GasGensetKeys = ['U11_GW01_Del_ActiveEnergy'];
     const Solar1Keys = ['U6_GW02_Del_ActiveEnergy'];
     const Solar2Keys = ['U17_GW03_Del_ActiveEnergy'];
+    const Aux_consumptionKeys = ['0'];
+
     const U4_ConsumptionKeys = ['U1_PLC_Del_ActiveEnergy', 'U2_PLC_Del_ActiveEnergy', 'U3_PLC_Del_ActiveEnergy', 'U4_PLC_Del_ActiveEnergy',
         'U5_PLC_Del_ActiveEnergy', 'U6_PLC_Del_ActiveEnergy', 'U7_PLC_Del_ActiveEnergy', 'U8_PLC_Del_ActiveEnergy', 'U9_PLC_Del_ActiveEnergy',
         'U10_PLC_Del_ActiveEnergy', 'U11_PLC_Del_ActiveEnergy', 'U12_PLC_Del_ActiveEnergy', 'U13_PLC_Del_ActiveEnergy', 'U14_PLC_Del_ActiveEnergy',
@@ -134,11 +136,13 @@ const sumGroup = (keys: string[]) =>
     let GasGenset = sumGroup(GasGensetKeys);
     let Solar1 = sumGroup(Solar1Keys);
     let Solar2 = sumGroup(Solar2Keys);
+    let Aux_consumption= sumGroup(Aux_consumptionKeys);
     let U4_Consumption = sumGroup(U4_ConsumptionKeys);
     let U5_Consumption = sumGroup(U5_ConsumptionKeys);
     let HT_Generation = sumGroup(HTGenerationKeys);
     let totalGeneration = LTGeneration + SolarGeneration + WapdaImport+ HT_Generation;
     let totalenergyinput = U4_Consumption + U5_Consumption;
+    let totalenergyoutput = U4_Consumption + U5_Consumption;
     let Trafo1losses = Trafo1Incoming - Trafo1outgoing;
     let Trafo2losses = Trafo2Incoming - Trafo2outgoing;
     let Trafo3losses = Trafo3Incoming - Trafo3outgoing;
@@ -173,11 +177,13 @@ const sumGroup = (keys: string[]) =>
     TrasformerLosses: TrasformerLosses.toFixed(2),
     Solar1: Solar1.toFixed(2),
     Solar2: Solar2.toFixed(2),
+    Aux_consumption: Aux_consumption.toFixed(2),
     Total_Generation: totalGeneration.toFixed(2),
     U4_Consumption: U4_Consumption.toFixed(2),
     U5_Consumption: U5_Consumption.toFixed(2),
     HT_Generation:  HT_Generation.toFixed(2),
     total_energy_input: totalenergyinput.toFixed(2),
+    totalenergyoutput : totalenergyoutput.toFixed(2),
     unaccoutable_energy: unaccoutable_energy.toFixed(2),
     DieselGenset: DieselGenset.toFixed(2),
     GasGenset: GasGenset.toFixed(2),
