@@ -17,21 +17,21 @@ export class EnergySpindleService {
   
   
 
-  async getProductionByDate(dto: GetSpindleDto) {
+async getProductionByDate(dto: GetSpindleDto) {
   const { start_date, end_date, unit } = dto;
 
   const start = moment(start_date, 'YYYY-MM-DD');
   const end = moment(end_date, 'YYYY-MM-DD');
-
-  // Check if it's a single day or a date range
   const isSingleDay = start.isSame(end, 'day');
 
+  const unitsToQuery = unit === 'ALL' ? ['U4', 'U5'] : [unit];
+
   if (isSingleDay) {
-    // Return daily breakdown (even if it's just 1)
+    // Return daily breakdown
     const result = await this.dailyProductionModel.aggregate([
       {
         $match: {
-          unit,
+          unit: { $in: unitsToQuery },
           date: start_date,
         },
       },
@@ -49,11 +49,11 @@ export class EnergySpindleService {
       totalProduction: item.totalProduction,
     }));
   } else {
-    // Return total sum across all selected dates
+    // Return total production sum across range
     const result = await this.dailyProductionModel.aggregate([
       {
         $match: {
-          unit,
+          unit: { $in: unitsToQuery },
           date: { $gte: start_date, $lte: end_date },
         },
       },
@@ -75,5 +75,6 @@ export class EnergySpindleService {
     ];
   }
 }
+
 
 }

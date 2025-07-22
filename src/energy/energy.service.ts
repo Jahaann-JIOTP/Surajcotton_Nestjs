@@ -19,7 +19,7 @@ export class EnergyService {
         "U15_GW02", "U16_GW02", "U17_GW02", "U18_GW02", "U19_GW02", "U20_GW02", "U21_GW02", "U22_GW02", "U23_GW02", "U1_GW03", "U2_GW03", "U3_GW03",
         "U4_GW03", "U5_GW03", "U6_GW03", "U18_GW03", "U19_GW03", "U20_GW03", "U21_GW03", "U22_GW03", "U23_GW03"
     ];
-    const suffixes: string[] = ['Del_ActiveEnergy'];
+    const suffixes: string[] = ['Del_ActiveEnergy', 'ActivePower_Total'];
 
 
     const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy'];
@@ -30,9 +30,13 @@ export class EnergyService {
     const WapdaImportKeys = ['U22_GW01_Del_ActiveEnergy'];
     const WapdaExportKeys = ['U22_GW01_ActiveEnergy_Exp_kWh'];
     const Trafo1IncomingKeys = ['U21_PLC_Del_ActiveEnergy'];
+    const Trafo1activepowertotalKeys = ['U21_PLC_ActivePower_Total'];
     const Trafo2IncomingKeys = ['U13_GW01_Del_ActiveEnergy'];
+    const Trafo2activepowertotalKeys = ['U13_GW01_ActivePower_Total'];
     const Trafo3IncomingKeys = ['U13_GW02_Del_ActiveEnergy'];
+    const Trafo3activepowertotalKeys = ['U13_GW02_ActivePower_Total'];
     const Trafo4IncomingKeys = ['U16_GW03_Del_ActiveEnergy'];
+    const Trafo4activepowertotalKeys = ['U16_GW03_ActivePower_Total'];
     const Trafo1outgoingKeys = ['U23_GW01_Del_ActiveEnergy'];
     const Trafo2outgoingKeys = ['U22_GW01_Del_ActiveEnergy'];
     const Trafo3outgoingKeys = ['U20_GW03_Del_ActiveEnergy'];
@@ -132,6 +136,10 @@ const sumGroup = (keys: string[]) =>
     let Trafo2outgoing = sumGroup(Trafo2outgoingKeys);
     let Trafo3outgoing = sumGroup(Trafo3outgoingKeys);
     let Trafo4outgoing = sumGroup(Trafo4outgoingKeys);
+    let Trafo1activepowertotal = sumGroup(Trafo1activepowertotalKeys);
+    let Trafo2activepowertotal = sumGroup(Trafo2activepowertotalKeys);
+    let Trafo3activepowertotal = sumGroup(Trafo3activepowertotalKeys);
+    let Trafo4activepowertotal = sumGroup(Trafo4activepowertotalKeys);
     let DieselGenset = sumGroup(DieselGensetKeys);
     let GasGenset = sumGroup(GasGensetKeys);
     let Solar1 = sumGroup(Solar1Keys);
@@ -170,6 +178,10 @@ const sumGroup = (keys: string[]) =>
     Trafo2outgoing: Trafo2outgoing.toFixed(2),
     Trafo3outgoing: Trafo3outgoing.toFixed(2),
     Trafo4outgoing: Trafo4outgoing.toFixed(2),
+    Trafo1activepowertotal: Trafo1activepowertotal.toFixed(2),
+    Trafo2activepowertotal: Trafo2activepowertotal.toFixed(2),
+    Trafo3activepowertotal: Trafo3activepowertotal.toFixed(2),
+    Trafo4activepowertotal: Trafo4activepowertotal.toFixed(2),
     Trafo1losses: Trafo1losses.toFixed(2),
     Trafo2losses: Trafo2losses.toFixed(2),
     Trafo3losses: Trafo3losses.toFixed(2),

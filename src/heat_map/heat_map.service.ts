@@ -21,8 +21,8 @@ export class HeatMapService  {
 async getPowerAverages(startDate: string, endDate: string) {
   const collection = this.conModel.collection;
 
-  const startDateTime = moment.tz(startDate, "YYYY-MM-DD", "Asia/Karachi").startOf('day').utc().toDate();
-  const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi").endOf('day').utc().toDate();
+  const startDateTime = moment.tz(startDate, "YYYY-MM-DD", "Asia/Karachi").startOf('day').toDate();
+  const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi").endOf('day').toDate();
 
   const Trafo1Tags = ["U21_PLC_ActivePower_Total"];
   const Trafo2Tags = ["U13_GW01_ActivePower_Total"];
@@ -34,56 +34,65 @@ async getPowerAverages(startDate: string, endDate: string) {
   const pipeline = [
     {
       $addFields: {
-        date: { $toDate: "$timestamp" }
+        timestampDate: { $toDate: "$timestamp" }
       }
     },
     {
       $match: {
-        date: { $gte: startDateTime, $lte: endDateTime }
+        timestampDate: {
+          $gte: startDateTime,
+          $lte: endDateTime,
+        }
       }
     },
     {
       $addFields: {
-        hourStart: {
+        hourBin: {
           $dateTrunc: {
-            date: "$date",
+            date: "$timestampDate",
             unit: "hour",
             timezone: "Asia/Karachi"
           }
         }
       }
     },
-    { $sort: { date: 1 } },
     {
       $group: {
-        _id: "$hourStart",
+        _id: "$hourBin",
         ...Object.fromEntries(
-          allTags.map(tag => [`last_${tag}`, { $last: { $ifNull: [`$${tag}`, 0] } }])
+          allTags.map(tag => [
+            `avg_${tag}`,
+            { $avg: { $ifNull: [`$${tag}`, 0] } },
+          ])
         )
       }
     },
-    { $sort: { _id: 1 } }
+    {
+      $sort: { _id: 1 }
+    }
   ];
 
-  const data = await collection.aggregate(pipeline).toArray();
+  const rawData = await collection.aggregate(pipeline).toArray();
 
-  return data.map(entry => {
-    const formattedDate = moment(entry._id).tz("Asia/Karachi").format("YYYY-MM-DD HH:mm");
+  return rawData.map(entry => {
+    const date = moment(entry._id).tz("Asia/Karachi").format("YYYY-MM-DD HH:mm");
 
-    const Trafo1Total = Trafo1Tags.reduce((sum, tag) => sum + +(entry[`last_${tag}`] || 0), 0);
-    const Trafo2Total = Trafo2Tags.reduce((sum, tag) => sum + +(entry[`last_${tag}`] || 0), 0);
-    const Trafo3Total = Trafo3Tags.reduce((sum, tag) => sum + +(entry[`last_${tag}`] || 0), 0);
-    const Trafo4Total = Trafo4Tags.reduce((sum, tag) => sum + +(entry[`last_${tag}`] || 0), 0);
+    const Trafo1 = Trafo1Tags.reduce((sum, tag) => sum + +(entry[`avg_${tag}`] || 0), 0);
+    const Trafo2 = Trafo2Tags.reduce((sum, tag) => sum + +(entry[`avg_${tag}`] || 0), 0);
+    const Trafo3 = Trafo3Tags.reduce((sum, tag) => sum + +(entry[`avg_${tag}`] || 0), 0);
+    const Trafo4 = Trafo4Tags.reduce((sum, tag) => sum + +(entry[`avg_${tag}`] || 0), 0);
 
     return {
-      date: formattedDate,
-      Trafo1: +Trafo1Total.toFixed(2),
-      Trafo2: +Trafo2Total.toFixed(2),
-      Trafo3: +Trafo3Total.toFixed(2),
-      Trafo4: +Trafo4Total.toFixed(2),
+      date,
+      Trafo1: +Trafo1.toFixed(2),
+      Trafo2: +Trafo2.toFixed(2),
+      Trafo3: +Trafo3.toFixed(2),
+      Trafo4: +Trafo4.toFixed(2),
     };
   });
 }
+
+
 
 
   
