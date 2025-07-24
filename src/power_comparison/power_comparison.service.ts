@@ -100,7 +100,7 @@ async getPowerAverages(startDate: string, endDate: string) {
         const first = entry[`first_${tag}`] || 0;
         const last = entry[`last_${tag}`] || 0;
         const diff = last - first;
-        htTotal += Math.abs(diff) > 1e25 ? 0 : +diff;
+        htTotal += Math.abs(diff)  ? 0 : +diff;
         }
 
         let ltTotal = 0;
@@ -108,28 +108,28 @@ async getPowerAverages(startDate: string, endDate: string) {
         const first = entry[`first_${tag}`] || 0;
         const last = entry[`last_${tag}`] || 0;
         const diff = last - first;
-        ltTotal += Math.abs(diff) > 1e25 ? 0 : +diff;
+        ltTotal += Math.abs(diff)  ? 0 : +diff;
         }
           let wapdaTotal = 0;
         for (const tag of wapdaTags) {
         const first = entry[`first_${tag}`] || 0;
         const last = entry[`last_${tag}`] || 0;
         const diff = last - first;
-        wapdaTotal += Math.abs(diff) > 1e25 ? 0 : +diff;
+        wapdaTotal += Math.abs(diff)  ? 0 : +diff;
         }
            let solarTotal = 0;
         for (const tag of solarTags) {
         const first = entry[`first_${tag}`] || 0;
         const last = entry[`last_${tag}`] || 0;
         const diff = last - first;
-        solarTotal += Math.abs(diff) > 1e25 ? 0 : +diff;
+        solarTotal += Math.abs(diff)  ? 0 : +diff;
         }
          let unit4Total = 0;
         for (const tag of unit4Tags) {
         const first = entry[`first_${tag}`] || 0;
         const last = entry[`last_${tag}`] || 0;
         const diff = last - first;
-        unit4Total += Math.abs(diff) > 1e25 ? 0 : +diff;
+        unit4Total += Math.abs(diff)  ? 0 : +diff;
         }
 
           let unit5Total = 0;
@@ -137,7 +137,7 @@ async getPowerAverages(startDate: string, endDate: string) {
         const first = entry[`first_${tag}`] || 0;
         const last = entry[`last_${tag}`] || 0;
         const diff = last - first;
-        unit5Total += Math.abs(diff) > 1e25 ? 0 : +diff;
+        unit5Total += Math.abs(diff)? 0 : +diff;
         }
 
 
@@ -258,12 +258,20 @@ async getDailyPowerAverages(start: string, end: string) {
     const [firstDoc, ...rest] = groupedByDate[date];
     const lastDoc = groupedByDate[date][groupedByDate[date].length - 1];
 
-    const consumption: Record<string, number> = {};
-    for (const key of allKeys) {
-      const first = firstDoc[key] ?? 0;
-      const last = lastDoc[key] ?? 0;
-      consumption[key] = last - first;
-    }
+const isInvalid = (val: number) => Math.abs(val) < 1e-5 || Math.abs(val) > 1e8;
+
+const consumption: Record<string, number> = {};
+for (const key of allKeys) {
+  let first = firstDoc[key] ?? 0;
+  let last = lastDoc[key] ?? 0;
+
+  if (isInvalid(first)) first = 0;
+  if (isInvalid(last)) last = 0;
+
+  const diff = last - first;
+  consumption[key] = isInvalid(diff) ? 0 : diff;
+}
+
 
     const sum = (keys: string[]) => keys.reduce((sum, key) => sum + (consumption[key] || 0), 0);
 
