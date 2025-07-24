@@ -160,13 +160,6 @@ async getPowerAverages(startDate: string, endDate: string) {
 }
 
 
-
-
-
-
-
-
-
   async getPowerData(startDate: string, endDate: string, label: string) {
     if (label === 'hourly') {
       return this.getPowerAverages(startDate, endDate);
