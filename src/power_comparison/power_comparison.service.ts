@@ -99,46 +99,57 @@ async getPowerAverages(startDate: string, endDate: string) {
         for (const tag of htTags) {
         const first = entry[`first_${tag}`] || 0;
         const last = entry[`last_${tag}`] || 0;
-        const diff = last - first;
-        htTotal += Math.abs(diff)  ? 0 : +diff;
+        let diff = last - first;
+        if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) {
+          diff = 0;
+        }
         }
 
         let ltTotal = 0;
         for (const tag of ltTags) {
         const first = entry[`first_${tag}`] || 0;
         const last = entry[`last_${tag}`] || 0;
-        const diff = last - first;
-        ltTotal += Math.abs(diff)  ? 0 : +diff;
+        let diff = last - first;
+        if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) {
+        diff = 0;
+        }
         }
           let wapdaTotal = 0;
         for (const tag of wapdaTags) {
         const first = entry[`first_${tag}`] || 0;
         const last = entry[`last_${tag}`] || 0;
-        const diff = last - first;
-        wapdaTotal += Math.abs(diff)  ? 0 : +diff;
+        let diff = last - first;
+        if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) {
+        diff = 0;
+        }
         }
            let solarTotal = 0;
         for (const tag of solarTags) {
         const first = entry[`first_${tag}`] || 0;
         const last = entry[`last_${tag}`] || 0;
-        const diff = last - first;
-        solarTotal += Math.abs(diff)  ? 0 : +diff;
+         let diff = last - first;
+          if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) {
+            diff = 0;
+        }
         }
          let unit4Total = 0;
         for (const tag of unit4Tags) {
         const first = entry[`first_${tag}`] || 0;
         const last = entry[`last_${tag}`] || 0;
-        const diff = last - first;
-        unit4Total += Math.abs(diff)  ? 0 : +diff;
+        let diff = last - first;
+          if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) {
+            diff = 0;
+        }
         }
 
           let unit5Total = 0;
         for (const tag of unit5Tags) {
         const first = entry[`first_${tag}`] || 0;
         const last = entry[`last_${tag}`] || 0;
-        const diff = last - first;
-        unit5Total += Math.abs(diff)? 0 : +diff;
-        }
+         let diff = last - first;
+          if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) {
+            diff = 0;
+        }}
 
 
     return {
