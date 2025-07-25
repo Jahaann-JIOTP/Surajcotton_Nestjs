@@ -21,7 +21,7 @@ export class EnergyService {
     const suffixes: string[] = ['Del_ActiveEnergy', 'ActivePower_Total'];
     const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
     const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
-    const HTGenerationKeys = ['0'];
+    const HTGenerationKeys = ['0']; //is may sum show karvana ha nilgata or jms ka jab us k tags ayain gay
 
     const WapdaImportKeys = ['U13_GW02_ActiveEnergy_Imp_kWh', 'U16_GW03_ActiveEnergy_Imp_kWh'];
     const WapdaExportKeys = ['U13_GW02_ActiveEnergy_Exp_kWh', 'U16_GW03_ActiveEnergy_Exp_kWh'];
