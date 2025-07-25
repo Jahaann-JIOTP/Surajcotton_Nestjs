@@ -12,9 +12,6 @@ export class EnergyUsageReportService {
     @InjectModel(Energyusagereport.name, 'surajcotton') private costModel: Model<Energyusagereport>,
     @InjectModel(DailyProduction.name, 'surajcotton') private dailyModel: Model<DailyProduction>,
   ) {}
-
-
-
   private sanitizeValue(value: number): number {
     if (!isFinite(value) || isNaN(value)) return 0;
     const minThreshold = 1e-6;
@@ -162,13 +159,6 @@ async getConsumptionData(dto: GetEnergyCostDto) {
 
 
 
-
-
-
-
-
-
-
   const [docs] = await this.costModel.aggregate([
     {
       $match: {
@@ -247,20 +237,7 @@ async getConsumptionData(dto: GetEnergyCostDto) {
           unit_5Lightning_consumption: 0,
           unit_4AuxUnit5_consumption: 0,
           unit_5AuxUnit5_consumption: 0,
-
-          
-
-
-
-
-
-
-
-
-
-          
-
-          
+ 
         },
       ];
     } else {
@@ -292,16 +269,6 @@ async getConsumptionData(dto: GetEnergyCostDto) {
           [`${area.toLowerCase()}HFO2ndSource_consumption`]: 0,
           [`${area.toLowerCase()}Lightning_consumption`]: 0,
           [`${area.toLowerCase()}AuxUnit5_consumption`]: 0,
-
-
-
-
-
-
-
-
-
-
         },
       ];
     }
@@ -353,7 +320,7 @@ async getConsumptionData(dto: GetEnergyCostDto) {
       const consumption = this.sanitizeValue(endVal - startVal);
       RTransportSystemMap[key] += consumption;
     }
-
+ 
       for (const meterId of RingMapping[key] || []) {
       const meterKey = `${meterId}_${suffix}`;
       const startVal = this.sanitizeValue(firstDoc[meterKey]);
@@ -488,9 +455,6 @@ async getConsumptionData(dto: GetEnergyCostDto) {
       AuxUnit5Map[key] += consumption;
     }
 
-
-
-   
   }
 
   if (area === 'ALL') {
@@ -547,19 +511,6 @@ async getConsumptionData(dto: GetEnergyCostDto) {
         unit_5Lightning_consumption: +LightningMap.Unit_5.toFixed(2),
         unit_4AuxUnit5_consumption: +AuxUnit5Map.Unit_4.toFixed(2), 
         unit_5AuxUnit5_consumption: +AuxUnit5Map.Unit_5.toFixed(2), 
-
-
-
-
-
-
-
-        
-
-
-
-
-
       },
     ];
   } else {
@@ -593,18 +544,6 @@ async getConsumptionData(dto: GetEnergyCostDto) {
         [`${area.toLowerCase()}HFO2ndSource_consumption`]: +HFO2ndSourceMap[area].toFixed(2),
         [`${area.toLowerCase()}Lightning_consumption`]: +LightningMap[area].toFixed(2),
         [`${area.toLowerCase()}AuxUnit5_consumption`]: +AuxUnit5Map[area].toFixed(2),
-
-
-
-
-
-
-        
-
-
-
-
-
       },
     ];
   }

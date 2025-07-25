@@ -253,6 +253,8 @@ if (area === 'Unit_4') {
       } else if (area === 'Unit_5') {
         mergedResult.total_consumption = mergedResult.unit5_consumption;
       } else if (area === 'ALL') {
+
+
         mergedResult.total_consumption = this.round2(
           mergedResult.unit4_consumption + mergedResult.unit5_consumption
         );
@@ -271,8 +273,7 @@ if (area === 'Unit_4') {
         // 👇 Compute unaccountable_energy
         mergedResult.unaccountable_energy = this.round2(
           mergedResult.total_consumption - mergedResult.total_generation
-        );
-
+        ); 
 
 
   const finalResult = Object.fromEntries(
