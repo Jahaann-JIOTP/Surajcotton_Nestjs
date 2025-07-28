@@ -141,7 +141,7 @@ async getPowerAverages(startDate: string, endDate: string) {
       total_consumption: +totalConsumption.toFixed(2),
       total_generation: +totalGeneration.toFixed(2),
       unaccountable_energy: +(totalConsumption - totalGeneration).toFixed(2),
-      efficiency: +((totalGeneration / totalConsumption) * 100 || 0).toFixed(2),
+      efficiency: +((totalConsumption / totalGeneration) * 100 || 0).toFixed(2),
     };
   });
 }
@@ -268,7 +268,7 @@ for (const key of allKeys) {
     const totalConsumption = unit4 + unit5;
     const totalgeneration = ht + lt + wapda + solar;
     const unaccountable_energy = totalConsumption - totalgeneration;
-    const Efficiency = (totalgeneration / totalConsumption) * 100;
+    const Efficiency = (totalConsumption / totalgeneration) * 100;
 
     dailyResults.push({
       date,
@@ -299,20 +299,16 @@ async getMonthlyAverages(startDate: string, endDate: string) {
   const startISO = new Date(startDate + 'T00:00:00.000Z');
   const endISO = new Date(endDate + 'T23:59:59.999Z');
 
-  // Define valid meter groups
+  type EnergyGroupKey = 'HT' | 'LT' | 'wapda' | 'solar' | 'unit4' | 'unit5';
+
   const meterGroups: Record<EnergyGroupKey, string[]> = {
-    HT: ['U21_PLC_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy','U13_GW02_Del_ActiveEnergy'],
+    HT: ['U21_PLC_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy'],
     LT: ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'],
     wapda: ['U13_GW02_ActiveEnergy_Imp_kWh', 'U16_GW03_ActiveEnergy_Imp_kWh'],
-    solar: ["U6_GW02_Del_ActiveEnergy", "U17_GW03_Del_ActiveEnergy"],
-    unit4: [
-     'U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy'
-    ],
-    unit5:["U6_GW02_Del_ActiveEnergy","U13_GW02_Del_ActiveEnergy","U16_GW03_Del_ActiveEnergy", "U17_GW03_Del_ActiveEnergy"]
+    solar: ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'],
+    unit4: ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy'],
+    unit5: ['U6_GW02_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'],
   };
-
-  
-  type EnergyGroupKey = 'HT' | 'LT' | 'wapda' | 'solar' | 'unit4' | 'unit5';
 
   const results: Record<string, any> = {};
 
@@ -401,7 +397,8 @@ async getMonthlyAverages(startDate: string, endDate: string) {
           unit5: 0,
           total_consumption: 0,
           total_generation: 0,
-          unaccoutable_energy: 0
+          unaccoutable_energy: 0,
+          efficiency: '0.00'
         };
       }
 
@@ -414,10 +411,16 @@ async getMonthlyAverages(startDate: string, endDate: string) {
     month.total_consumption = Math.round((month.unit4 + month.unit5) * 100) / 100;
     month.total_generation = Math.round((month.HT + month.LT + month.wapda + month.solar) * 100) / 100;
     month.unaccoutable_energy = Math.round((month.total_consumption - month.total_generation) * 100) / 100;
+    month.efficiency = (
+      month.total_generation > 0
+        ? ((month.total_consumption / month.total_generation) * 100)
+        : 0
+    ).toFixed(2);
   }
 
   return Object.values(results).sort((a, b) => a.date.localeCompare(b.date));
 }
+
 
 
 
