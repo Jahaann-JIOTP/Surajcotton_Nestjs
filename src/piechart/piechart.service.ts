@@ -40,14 +40,11 @@ export class PieChartService {
         arr.length > 1 ? arr[arr.length - 1] - arr[0] : 0;
 
       // Define tag groups
-      const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy'];
+      const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
       const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
-      const WapdaImportKeys = ['U22_GW01_Del_ActiveEnergy'];
+      const WapdaImportKeys = ['U13_GW02_ActiveEnergy_Imp_kWh', 'U16_GW03_ActiveEnergy_Imp_kWh'];
       const HTGenerationKeys = [
-        'U20_GW03_Del_ActiveEnergy',
-        'U21_GW03_Del_ActiveEnergy',
-        'U23_GW01_Del_ActiveEnergy',
-        'U7_GW01_Del_ActiveEnergy',
+       'U21_PLC_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy','U13_GW02_Del_ActiveEnergy'
       ];
 
       // Utility to build and filter consumption arrays

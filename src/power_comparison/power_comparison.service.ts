@@ -22,38 +22,15 @@ async getPowerAverages(startDate: string, endDate: string) {
   const startDateTime = moment.tz(startDate, "YYYY-MM-DD", "Asia/Karachi").startOf('day').utc().toDate();
   const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi").endOf('day').utc().toDate();
 
-  // HT tags
-  const htTags = ["U20_GW03_Del_ActiveEnergy","U21_GW03_Del_ActiveEnergy","U23_GW01_Del_ActiveEnergy","U7_GW01_Del_ActiveEnergy"];
-  const ltTags = ["U19_PLC_Del_ActiveEnergy","U21_PLC_Del_ActiveEnergy"];
-  const wapdaTags = ["U22_GW01_Del_ActiveEnergy"];
-  const solarTags = ["U6_GW02_Del_ActiveEnergy", "U17_GW03_Del_ActiveEnergy"];
-//   const unit4Tags = ['U1_PLC_Del_ActiveEnergy', 'U2_PLC_Del_ActiveEnergy', 'U3_PLC_Del_ActiveEnergy', 'U4_PLC_Del_ActiveEnergy',
-//       'U5_PLC_Del_ActiveEnergy', 'U6_PLC_Del_ActiveEnergy', 'U7_PLC_Del_ActiveEnergy', 'U8_PLC_Del_ActiveEnergy', 'U9_PLC_Del_ActiveEnergy',
-//       'U10_PLC_Del_ActiveEnergy', 'U11_PLC_Del_ActiveEnergy', 'U12_PLC_Del_ActiveEnergy', 'U13_PLC_Del_ActiveEnergy', 'U14_PLC_Del_ActiveEnergy',
-//       'U15_PLC_Del_ActiveEnergy', 'U16_PLC_Del_ActiveEnergy', 'U17_PLC_Del_ActiveEnergy', 'U18_PLC_Del_ActiveEnergy', 'U20_PLC_Del_ActiveEnergy',
-//       'U1_GW01_Del_ActiveEnergy', 'U2_GW01_Del_ActiveEnergy', 'U3_GW01_Del_ActiveEnergy', 'U4_GW01_Del_ActiveEnergy', 'U5_GW01_Del_ActiveEnergy',
-//       'U6_GW01_Del_ActiveEnergy', 'U8_GW01_Del_ActiveEnergy', 'U9_GW01_Del_ActiveEnergy', 'U10_GW01_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy',
-//       'U12_GW01_Del_ActiveEnergy', 'U14_GW01_Del_ActiveEnergy', 'U15_GW01_Del_ActiveEnergy', 'U16_GW01_Del_ActiveEnergy',
-//       'U18_GW01_Del_ActiveEnergy', 'U19_GW01_Del_ActiveEnergy', 'U20_GW01_Del_ActiveEnergy', 'U21_GW01_Del_ActiveEnergy', 'U22_GW01_Del_ActiveEnergy'];
-//  const unit5Tags =["U1_GW02_Del_ActiveEnergy", "U2_GW02_Del_ActiveEnergy", "U3_GW02_Del_ActiveEnergy", "U4_GW02_Del_ActiveEnergy", "U5_GW02_Del_ActiveEnergy",
-//         "U7_GW02_Del_ActiveEnergy", "U8_GW02_Del_ActiveEnergy", "U9_GW02_Del_ActiveEnergy","U10_GW02_Del_ActiveEnergy", "U11_GW02_Del_ActiveEnergy", "U12_GW02_Del_ActiveEnergy",
-//         "U13_GW02_Del_ActiveEnergy", "U14_GW02_Del_ActiveEnergy", "U15_GW02_Del_ActiveEnergy", "U16_GW02_Del_ActiveEnergy", "U17_GW02_Del_ActiveEnergy",
-//         "U18_GW02_Del_ActiveEnergy","U19_GW02_Del_ActiveEnergy", "U20_GW02_Del_ActiveEnergy", "U21_GW02_Del_ActiveEnergy", "U22_GW02_Del_ActiveEnergy",
-//         "U23_GW02_Del_ActiveEnergy", "U1_GW03_Del_ActiveEnergy", "U2_GW03_Del_ActiveEnergy", "U3_GW03_Del_ActiveEnergy", "U4_GW03_Del_ActiveEnergy",
-//          "U5_GW03_Del_ActiveEnergy", "U6_GW03_Del_ActiveEnergy", "U7_GW03_Del_ActiveEnergy", "U8_GW03_Del_ActiveEnergy", "U9_GW03_Del_ActiveEnergy",
-//          "U10_GW03_Del_ActiveEnergy", "U11_GW03_Del_ActiveEnergy", "U12_GW03_Del_ActiveEnergy", "U13_GW03_Del_ActiveEnergy", "U14_GW03_Del_ActiveEnergy",
-//          "U15_GW03_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U18_GW03_Del_ActiveEnergy", "U19_GW03_Del_ActiveEnergy",
-//         "U22_GW03_Del_ActiveEnergy"];
+  // Define tags
+  const htTags = ['U21_PLC_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy'];
+  const ltTags = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
+  const wapdaTags = ['U13_GW02_ActiveEnergy_Imp_kWh', 'U16_GW03_ActiveEnergy_Imp_kWh'];
+  const solarTags = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
+  const unit4Tags = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy'];
+  const unit5Tags = ['U6_GW02_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
 
-  const unit4Tags = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy'];
- const unit5Tags =["U6_GW02_Del_ActiveEnergy","U13_GW02_Del_ActiveEnergy","U16_GW03_Del_ActiveEnergy", "U17_GW03_Del_ActiveEnergy"];
-  
-
-
-
-  
-
-  // Step 1: Create aggregation pipeline
+  // Aggregation pipeline
   const pipeline = [
     {
       $addFields: {
@@ -78,100 +55,97 @@ async getPowerAverages(startDate: string, endDate: string) {
     },
     { $sort: { date: 1 } },
     {
-        $group: {
+      $group: {
         _id: "$hourStart",
         ...Object.fromEntries(
-            [...htTags, ...ltTags, ...wapdaTags, ...solarTags, ...unit4Tags, ...unit5Tags].flatMap(tag => [
+          [...htTags, ...ltTags, ...wapdaTags, ...solarTags, ...unit4Tags, ...unit5Tags].flatMap(tag => [
             [`first_${tag}`, { $first: { $ifNull: [`$${tag}`, 0] } }],
             [`last_${tag}`, { $last: { $ifNull: [`$${tag}`, 0] } }],
-            ])
+          ])
         )
-        }
+      }
     },
     { $sort: { _id: 1 } }
   ];
 
-  // Step 2: Run aggregation
   const data = await collection.aggregate(pipeline).toArray();
 
-  // Step 3: Format results
   return data.map(entry => {
     const formattedDate = moment(entry._id).tz("Asia/Karachi").format("YYYY-MM-DD HH:mm");
 
-        let htTotal = 0;
-        for (const tag of htTags) {
-        const first = entry[`first_${tag}`] || 0;
-        const last = entry[`last_${tag}`] || 0;
-        let diff = last - first;
-        if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) {
-          diff = 0;
-        }
-        }
+    let htTotal = 0;
+    for (const tag of htTags) {
+      const first = entry[`first_${tag}`] || 0;
+      const last = entry[`last_${tag}`] || 0;
+      let diff = last - first;
+      if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+      htTotal += diff;
+    }
 
-        let ltTotal = 0;
-        for (const tag of ltTags) {
-        const first = entry[`first_${tag}`] || 0;
-        const last = entry[`last_${tag}`] || 0;
-        let diff = last - first;
-        if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) {
-        diff = 0;
-        }
-        }
-          let wapdaTotal = 0;
-        for (const tag of wapdaTags) {
-        const first = entry[`first_${tag}`] || 0;
-        const last = entry[`last_${tag}`] || 0;
-        let diff = last - first;
-        if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) {
-        diff = 0;
-        }
-        }
-           let solarTotal = 0;
-        for (const tag of solarTags) {
-        const first = entry[`first_${tag}`] || 0;
-        const last = entry[`last_${tag}`] || 0;
-         let diff = last - first;
-          if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) {
-            diff = 0;
-        }
-        }
-         let unit4Total = 0;
-        for (const tag of unit4Tags) {
-        const first = entry[`first_${tag}`] || 0;
-        const last = entry[`last_${tag}`] || 0;
-        let diff = last - first;
-          if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) {
-            diff = 0;
-        }
-        }
+    let ltTotal = 0;
+    for (const tag of ltTags) {
+      const first = entry[`first_${tag}`] || 0;
+      const last = entry[`last_${tag}`] || 0;
+      let diff = last - first;
+      if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+      ltTotal += diff;
+    }
 
-          let unit5Total = 0;
-        for (const tag of unit5Tags) {
-        const first = entry[`first_${tag}`] || 0;
-        const last = entry[`last_${tag}`] || 0;
-         let diff = last - first;
-          if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) {
-            diff = 0;
-        }}
+    let wapdaTotal = 0;
+    for (const tag of wapdaTags) {
+      const first = entry[`first_${tag}`] || 0;
+      const last = entry[`last_${tag}`] || 0;
+      let diff = last - first;
+      if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+      wapdaTotal += diff;
+    }
 
+    let solarTotal = 0;
+    for (const tag of solarTags) {
+      const first = entry[`first_${tag}`] || 0;
+      const last = entry[`last_${tag}`] || 0;
+      let diff = last - first;
+      if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+      solarTotal += diff;
+    }
+
+    let unit4Total = 0;
+    for (const tag of unit4Tags) {
+      const first = entry[`first_${tag}`] || 0;
+      const last = entry[`last_${tag}`] || 0;
+      let diff = last - first;
+      if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+      unit4Total += diff;
+    }
+
+    let unit5Total = 0;
+    for (const tag of unit5Tags) {
+      const first = entry[`first_${tag}`] || 0;
+      const last = entry[`last_${tag}`] || 0;
+      let diff = last - first;
+      if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+      unit5Total += diff;
+    }
+
+    const totalConsumption = unit4Total + unit5Total;
+    const totalGeneration = htTotal + ltTotal + wapdaTotal + solarTotal;
 
     return {
-  date: formattedDate,
-  ht: +htTotal.toFixed(2),
-  LT: +ltTotal.toFixed(2),
-  wapda: +wapdaTotal.toFixed(2),
-  solar: +solarTotal.toFixed(2),
-  unit4: +unit4Total.toFixed(2),
-  unit5: +unit5Total.toFixed(2),
-
-  total_consumption: +(unit4Total + unit5Total).toFixed(2),
-  total_generation: +(htTotal + ltTotal + wapdaTotal + solarTotal).toFixed(2),
-  unaccountable_energy: +((unit4Total + unit5Total) - (htTotal + ltTotal + wapdaTotal + solarTotal)).toFixed(2),
-  efficiency: +(((htTotal + ltTotal + wapdaTotal + solarTotal) / (unit4Total + unit5Total)) * 100 || 0).toFixed(2),
-};
-
+      date: formattedDate,
+      ht: +htTotal.toFixed(2),
+      LT: +ltTotal.toFixed(2),
+      wapda: +wapdaTotal.toFixed(2),
+      solar: +solarTotal.toFixed(2),
+      unit4: +unit4Total.toFixed(2),
+      unit5: +unit5Total.toFixed(2),
+      total_consumption: +totalConsumption.toFixed(2),
+      total_generation: +totalGeneration.toFixed(2),
+      unaccountable_energy: +(totalConsumption - totalGeneration).toFixed(2),
+      efficiency: +((totalGeneration / totalConsumption) * 100 || 0).toFixed(2),
+    };
   });
 }
+
 
 
   async getPowerData(startDate: string, endDate: string, label: string) {
@@ -202,22 +176,17 @@ async getDailyPowerAverages(start: string, end: string) {
 
   // Meter groups
   const meterGroups = {
-    HT: ["U20_GW03", "U21_GW03", "U23_GW01", "U7_GW01"],
-    LT: ["U19_PLC", "U21_PLC"],
-    wapda: ["U22_GW01"],
+    HT: ['U21_PLC', 'U13_GW01', 'U16_GW03','U13_GW02'],
+    LT: ['U19_PLC', 'U11_GW01'],
+
+    wapda: ['U13_GW02', 'U16_GW03'],
     solar: ["U6_GW02", "U17_GW03"],
     unit4: [
-      'U1_PLC', 'U2_PLC', 'U3_PLC', 'U4_PLC','U5_PLC', 'U6_PLC', 'U7_PLC', 'U8_PLC', 'U9_PLC','U10_PLC',
-      'U11_PLC', 'U12_PLC', 'U13_PLC', 'U14_PLC','U15_PLC', 'U16_PLC', 'U17_PLC', 'U18_PLC', 'U20_PLC',
-      'U1_GW01', 'U2_GW01', 'U3_GW01', 'U4_GW01', 'U5','U6_GW01', 'U8_GW01', 'U9_GW01', 'U10_GW01','U11_GW01',
-      'U12_GW01','U14_GW01', 'U15_GW01', 'U16_GW01','U18_GW01', 'U19_GW01', 'U20_GW01', 'U21_GW01', 'U22_GW01'
+      'U19_PLC', 'U21_PLC', 'U11_GW01', 'U13_GW01'
+      
     ],
     unit5: [
-      "U1_GW02", "U2_GW02", "U3_GW02", "U4_GW02", "U5_GW02","U7_GW02", "U8_GW02", "U9_GW02","U10_GW02",
-      "U11_GW02", "U12_GW02","U13_GW02", "U14_GW02", "U15_GW02", "U16_GW02", "U17_GW02","U18_GW02","U19_GW02",
-      "U20_GW02", "U21_GW02", "U22_GW02","U23_GW02", "U1_GW03", "U2_GW03", "U3_GW03", "U4_GW03","U5_GW03",
-      "U6_GW03", "U7_GW03", "U8_GW03", "U9_GW03","U10_GW03", "U11_GW03", "U12_GW03", "U13_GW03", "U14_GW03",
-      "U15_GW03", "U16_GW03", "U18_GW03", "U19_GW03","U22_GW03"
+     'U6_GW02', 'U13_GW02', 'U16_GW03', 'U17_GW03'
     ]
   };
 
@@ -332,29 +301,14 @@ async getMonthlyAverages(startDate: string, endDate: string) {
 
   // Define valid meter groups
   const meterGroups: Record<EnergyGroupKey, string[]> = {
-    HT: ['U20_GW03_Del_ActiveEnergy', 'U21_GW03_Del_ActiveEnergy', 'U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'],
-    LT: ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy'],
-    wapda: ["U22_GW01_Del_ActiveEnergy"],
+    HT: ['U21_PLC_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy','U13_GW02_Del_ActiveEnergy'],
+    LT: ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'],
+    wapda: ['U13_GW02_ActiveEnergy_Imp_kWh', 'U16_GW03_ActiveEnergy_Imp_kWh'],
     solar: ["U6_GW02_Del_ActiveEnergy", "U17_GW03_Del_ActiveEnergy"],
     unit4: [
-      'U1_PLC_Del_ActiveEnergy', 'U2_PLC_Del_ActiveEnergy', 'U3_PLC_Del_ActiveEnergy', 'U4_PLC_Del_ActiveEnergy',
-      'U5_PLC_Del_ActiveEnergy', 'U6_PLC_Del_ActiveEnergy', 'U7_PLC_Del_ActiveEnergy', 'U8_PLC_Del_ActiveEnergy', 'U9_PLC_Del_ActiveEnergy',
-      'U10_PLC_Del_ActiveEnergy', 'U11_PLC_Del_ActiveEnergy', 'U12_PLC_Del_ActiveEnergy', 'U13_PLC_Del_ActiveEnergy', 'U14_PLC_Del_ActiveEnergy',
-      'U15_PLC_Del_ActiveEnergy', 'U16_PLC_Del_ActiveEnergy', 'U17_PLC_Del_ActiveEnergy', 'U18_PLC_Del_ActiveEnergy', 'U20_PLC_Del_ActiveEnergy',
-      'U1_GW01_Del_ActiveEnergy', 'U2_GW01_Del_ActiveEnergy', 'U3_GW01_Del_ActiveEnergy', 'U4_GW01_Del_ActiveEnergy', 'U5_GW01_Del_ActiveEnergy',
-      'U6_GW01_Del_ActiveEnergy', 'U8_GW01_Del_ActiveEnergy', 'U9_GW01_Del_ActiveEnergy', 'U10_GW01_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy',
-      'U12_GW01_Del_ActiveEnergy', 'U14_GW01_Del_ActiveEnergy', 'U15_GW01_Del_ActiveEnergy', 'U16_GW01_Del_ActiveEnergy',
-      'U18_GW01_Del_ActiveEnergy', 'U19_GW01_Del_ActiveEnergy', 'U20_GW01_Del_ActiveEnergy', 'U21_GW01_Del_ActiveEnergy', 'U22_GW01_Del_ActiveEnergy'
+     'U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy'
     ],
-    unit5:["U1_GW02_Del_ActiveEnergy", "U2_GW02_Del_ActiveEnergy", "U3_GW02_Del_ActiveEnergy", "U4_GW02_Del_ActiveEnergy", "U5_GW02_Del_ActiveEnergy",
-        "U7_GW02_Del_ActiveEnergy", "U8_GW02_Del_ActiveEnergy", "U9_GW02_Del_ActiveEnergy","U10_GW02_Del_ActiveEnergy", "U11_GW02_Del_ActiveEnergy", "U12_GW02_Del_ActiveEnergy",
-        "U13_GW02_Del_ActiveEnergy", "U14_GW02_Del_ActiveEnergy", "U15_GW02_Del_ActiveEnergy", "U16_GW02_Del_ActiveEnergy", "U17_GW02_Del_ActiveEnergy",
-        "U18_GW02_Del_ActiveEnergy","U19_GW02_Del_ActiveEnergy", "U20_GW02_Del_ActiveEnergy", "U21_GW02_Del_ActiveEnergy", "U22_GW02_Del_ActiveEnergy",
-        "U23_GW02_Del_ActiveEnergy", "U1_GW03_Del_ActiveEnergy", "U2_GW03_Del_ActiveEnergy", "U3_GW03_Del_ActiveEnergy", "U4_GW03_Del_ActiveEnergy",
-         "U5_GW03_Del_ActiveEnergy", "U6_GW03_Del_ActiveEnergy", "U7_GW03_Del_ActiveEnergy", "U8_GW03_Del_ActiveEnergy", "U9_GW03_Del_ActiveEnergy",
-         "U10_GW03_Del_ActiveEnergy", "U11_GW03_Del_ActiveEnergy", "U12_GW03_Del_ActiveEnergy", "U13_GW03_Del_ActiveEnergy", "U14_GW03_Del_ActiveEnergy",
-         "U15_GW03_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U18_GW03_Del_ActiveEnergy", "U19_GW03_Del_ActiveEnergy",
-        "U22_GW03_Del_ActiveEnergy"]
+    unit5:["U6_GW02_Del_ActiveEnergy","U13_GW02_Del_ActiveEnergy","U16_GW03_Del_ActiveEnergy", "U17_GW03_Del_ActiveEnergy"]
   };
 
   
