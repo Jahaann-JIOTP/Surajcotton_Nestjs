@@ -232,7 +232,7 @@ async getDailyPowerAverages(start: string, end: string) {
     totalConsumption: number;
     totalgeneration: number;
     unaccountable_energy: number;
-    Efficiency: number;
+    efficiency: number;
   };
 
   const dailyResults: DailyResult[] = [];
@@ -281,7 +281,7 @@ for (const key of allKeys) {
       totalConsumption: +totalConsumption.toFixed(2),
       totalgeneration: +totalgeneration.toFixed(2),
       unaccountable_energy: +unaccountable_energy.toFixed(2),
-      Efficiency: +Efficiency.toFixed(2),
+      efficiency: +Efficiency.toFixed(2),
     });
   }
 
@@ -398,7 +398,7 @@ async getMonthlyAverages(startDate: string, endDate: string) {
           total_consumption: 0,
           total_generation: 0,
           unaccoutable_energy: 0,
-          efficiency: '0.00'
+          efficiency: 0.00
         };
       }
 
@@ -411,11 +411,10 @@ async getMonthlyAverages(startDate: string, endDate: string) {
     month.total_consumption = Math.round((month.unit4 + month.unit5) * 100) / 100;
     month.total_generation = Math.round((month.HT + month.LT + month.wapda + month.solar) * 100) / 100;
     month.unaccoutable_energy = Math.round((month.total_consumption - month.total_generation) * 100) / 100;
-    month.efficiency = (
-      month.total_generation > 0
-        ? ((month.total_consumption / month.total_generation) * 100)
-        : 0
-    ).toFixed(2);
+   month.efficiency = month.total_generation > 0
+  ? Math.round((month.total_consumption / month.total_generation) * 100 * 100) / 100
+  : 0;
+
   }
 
   return Object.values(results).sort((a, b) => a.date.localeCompare(b.date));
