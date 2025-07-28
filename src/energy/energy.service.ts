@@ -42,21 +42,28 @@ export class EnergyService {
     const Solar1Keys = ['U6_GW02_Del_ActiveEnergy'];
     const Solar2Keys = ['U17_GW03_Del_ActiveEnergy'];
     const Aux_consumptionKeys = ['0'];
-    const totalgeneration1Keys = ['U1_PLC_Del_ActiveEnergy', 'U2_PLC_Del_ActiveEnergy', 'U3_PLC_Del_ActiveEnergy', 'U4_PLC_Del_ActiveEnergy',
+    const totalgeneration1Keys = [
+      'U1_PLC_Del_ActiveEnergy', 'U2_PLC_Del_ActiveEnergy', 'U3_PLC_Del_ActiveEnergy', 'U4_PLC_Del_ActiveEnergy',
         'U5_PLC_Del_ActiveEnergy', 'U6_PLC_Del_ActiveEnergy', 'U7_PLC_Del_ActiveEnergy', 'U8_PLC_Del_ActiveEnergy', 'U9_PLC_Del_ActiveEnergy',
         'U10_PLC_Del_ActiveEnergy', 'U11_PLC_Del_ActiveEnergy', 'U12_PLC_Del_ActiveEnergy', 'U13_PLC_Del_ActiveEnergy', 'U14_PLC_Del_ActiveEnergy',
         'U15_PLC_Del_ActiveEnergy', 'U16_PLC_Del_ActiveEnergy', 'U17_PLC_Del_ActiveEnergy', 'U18_PLC_Del_ActiveEnergy', 'U20_PLC_Del_ActiveEnergy',
         'U1_GW01_Del_ActiveEnergy', 'U2_GW01_Del_ActiveEnergy', 'U3_GW01_Del_ActiveEnergy', 'U4_GW01_Del_ActiveEnergy', 'U5_GW01_Del_ActiveEnergy',
         'U6_GW01_Del_ActiveEnergy', 'U8_GW01_Del_ActiveEnergy', 'U9_GW01_Del_ActiveEnergy', 'U10_GW01_Del_ActiveEnergy','U12_GW01_Del_ActiveEnergy','U14_GW01_Del_ActiveEnergy', 'U15_GW01_Del_ActiveEnergy', 'U16_GW01_Del_ActiveEnergy',
-        'U18_GW01_Del_ActiveEnergy', 'U19_GW01_Del_ActiveEnergy', 'U20_GW01_Del_ActiveEnergy', 'U21_GW01_Del_ActiveEnergy', 'U22_GW01_Del_ActiveEnergy', "U1_GW02_Del_ActiveEnergy", "U2_GW02_Del_ActiveEnergy", "U3_GW02_Del_ActiveEnergy", "U4_GW02_Del_ActiveEnergy", "U5_GW02_Del_ActiveEnergy",
+        'U18_GW01_Del_ActiveEnergy', 'U19_GW01_Del_ActiveEnergy', 'U20_GW01_Del_ActiveEnergy', 'U21_GW01_Del_ActiveEnergy', 'U22_GW01_Del_ActiveEnergy',
+        "U1_GW02_Del_ActiveEnergy",
+        "U2_GW02_Del_ActiveEnergy",
+        "U3_GW02_Del_ActiveEnergy", // this one tag some time shows negative values 
+        "U4_GW02_Del_ActiveEnergy",
+        "U5_GW02_Del_ActiveEnergy",
         "U7_GW02_Del_ActiveEnergy", "U8_GW02_Del_ActiveEnergy", "U9_GW02_Del_ActiveEnergy","U10_GW02_Del_ActiveEnergy", "U11_GW02_Del_ActiveEnergy", "U12_GW02_Del_ActiveEnergy",
         "U14_GW02_Del_ActiveEnergy", "U15_GW02_Del_ActiveEnergy", "U16_GW02_Del_ActiveEnergy", "U17_GW02_Del_ActiveEnergy",
         "U18_GW02_Del_ActiveEnergy","U19_GW02_Del_ActiveEnergy", "U20_GW02_Del_ActiveEnergy", "U21_GW02_Del_ActiveEnergy", "U22_GW02_Del_ActiveEnergy",
         "U23_GW02_Del_ActiveEnergy", "U1_GW03_Del_ActiveEnergy", "U2_GW03_Del_ActiveEnergy", "U3_GW03_Del_ActiveEnergy", "U4_GW03_Del_ActiveEnergy",
-         "U5_GW03_Del_ActiveEnergy", "U6_GW03_Del_ActiveEnergy", "U7_GW03_Del_ActiveEnergy", "U8_GW03_Del_ActiveEnergy", "U9_GW03_Del_ActiveEnergy",
-         "U10_GW03_Del_ActiveEnergy", "U11_GW03_Del_ActiveEnergy", "U12_GW03_Del_ActiveEnergy", "U13_GW03_Del_ActiveEnergy", "U14_GW03_Del_ActiveEnergy",
-         "U15_GW03_Del_ActiveEnergy", "U18_GW03_Del_ActiveEnergy", "U19_GW03_Del_ActiveEnergy",
-         "U22_GW03_Del_ActiveEnergy"];
+        "U5_GW03_Del_ActiveEnergy", "U6_GW03_Del_ActiveEnergy", "U7_GW03_Del_ActiveEnergy", "U8_GW03_Del_ActiveEnergy", "U9_GW03_Del_ActiveEnergy",
+        "U10_GW03_Del_ActiveEnergy", "U11_GW03_Del_ActiveEnergy", "U12_GW03_Del_ActiveEnergy", "U13_GW03_Del_ActiveEnergy", "U14_GW03_Del_ActiveEnergy",
+        "U15_GW03_Del_ActiveEnergy", "U18_GW03_Del_ActiveEnergy", "U19_GW03_Del_ActiveEnergy",
+        "U22_GW03_Del_ActiveEnergy"
+        ];
 
 
     const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];

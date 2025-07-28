@@ -32,9 +32,9 @@ export class Unit5LT4Service {
      U14_GW03: 'MLDB2 Ring Con',
      U15_GW03: 'Deep Valve Turbine',
      U18_GW03: 'PF Panel',
-     U19_GW03: 'wapda + HFO + Gas Incoming',
-     U20_GW03: 'WAPDA + HFO + Gas Outgoing T/F 3',
-     U21_GW03: 'WAPDA + HFO + Gas Outgoing T/F 4',
+    //  U19_GW03: 'wapda + HFO + Gas Incoming',
+    //  U20_GW03: 'WAPDA + HFO + Gas Outgoing T/F 3',
+    //  U21_GW03: 'WAPDA + HFO + Gas Outgoing T/F 4',
      U22_GW03: 'PDB 07',
      U23_GW03: 'PDB 10',
 

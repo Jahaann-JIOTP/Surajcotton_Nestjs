@@ -35,8 +35,8 @@ export class Unit4LT2Service {
      U19_GW01: 'AC Lab',
      U20_GW01: 'Spare 01',
      U21_GW01: 'Spare-02',
-     U22_GW01: 'HFO Incoming',
-     U23_GW01: 'Wapda 1 Incoming',
+    //  U22_GW01: 'HFO Incoming',
+    //  U23_GW01: 'Wapda 1 Incoming',
 
 
     };
