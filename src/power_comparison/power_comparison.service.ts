@@ -23,7 +23,7 @@ async getPowerAverages(startDate: string, endDate: string) {
   const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi").endOf('day').utc().toDate();
 
   // Define tags
-  const htTags = ['U21_PLC_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy'];
+  const htTags = ['U23_GW01_Del_ActiveEnergy', 'U22_GW01_Del_ActiveEnergy', 'U20_GW03_Del_ActiveEnergy', 'U19_GW03_Del_ActiveEnergy'];
   const ltTags = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
   const wapdaTags = ['U13_GW02_ActiveEnergy_Imp_kWh', 'U16_GW03_ActiveEnergy_Imp_kWh'];
   const solarTags = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
@@ -176,7 +176,9 @@ async getDailyPowerAverages(start: string, end: string) {
 
   // Meter groups
   const meterGroups = {
-    HT: ['U21_PLC', 'U13_GW01', 'U16_GW03','U13_GW02'],
+    HT: ['U23_GW01', 'U22_GW01', 'U20_GW03','U19_GW03'],
+    
+
     LT: ['U19_PLC', 'U11_GW01'],
 
     wapda: ['U13_GW02', 'U16_GW03'],
@@ -302,7 +304,7 @@ async getMonthlyAverages(startDate: string, endDate: string) {
   type EnergyGroupKey = 'HT' | 'LT' | 'wapda' | 'solar' | 'unit4' | 'unit5';
 
   const meterGroups: Record<EnergyGroupKey, string[]> = {
-    HT: ['U21_PLC_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy'],
+    HT: ['U23_GW01_Del_ActiveEnergy', 'U22_GW01_Del_ActiveEnergy', 'U20_GW03_Del_ActiveEnergy', 'U19_GW03_Del_ActiveEnergy'],
     LT: ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'],
     wapda: ['U13_GW02_ActiveEnergy_Imp_kWh', 'U16_GW03_ActiveEnergy_Imp_kWh'],
     solar: ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'],
