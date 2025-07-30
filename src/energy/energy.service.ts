@@ -22,8 +22,7 @@ export class EnergyService {
     const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
     const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
     const HTGenerationKeys = ['U23_GW01_Del_ActiveEnergy', 'U22_GW01_Del_ActiveEnergy', 'U20_GW03_Del_ActiveEnergy','U19_GW03_Del_ActiveEnergy']; //is may sum show karvana ha nilgata or jms ka jab us k tags ayain gay
-
-    const WapdaImportKeys = ['U13_GW02_ActiveEnergy_Imp_kWh', 'U16_GW03_ActiveEnergy_Imp_kWh'];
+    const WapdaImportKeys = ['U22_GW01_ActiveEnergy_Imp_kWh'];
     const WapdaExportKeys = ['U13_GW02_ActiveEnergy_Exp_kWh', 'U16_GW03_ActiveEnergy_Exp_kWh'];
     const Trafo1IncomingKeys = ['U23_GW01_Del_ActiveEnergy'];
     // const Trafo1activepowertotalKeys = ['U21_PLC_ActivePower_Total'];
@@ -31,11 +30,10 @@ export class EnergyService {
     // const Trafo2activepowertotalKeys = ['U13_GW01_ActivePower_Total'];
     const Trafo3IncomingKeys = ['U20_GW03_Del_ActiveEnergy'];
     const Trafo4IncomingKeys = ['U19_GW03_Del_ActiveEnergy'];
-       const Trafo1outgoingKeys = ['U21_PLC_Del_ActiveEnergy'];
+    const Trafo1outgoingKeys = ['U21_PLC_Del_ActiveEnergy'];
     const Trafo2outgoingKeys = ['U13_GW01_Del_ActiveEnergy'];
     const Trafo3outgoingKeys = ['U13_GW02_Del_ActiveEnergy'];
     const Trafo4outgoingKeys = ['U16_GW03_Del_ActiveEnergy'];
-
     const DieselGensetKeys = ['U19_PLC_Del_ActiveEnergy'];
     const GasGensetKeys = ['U11_GW01_Del_ActiveEnergy'];
     const Solar1Keys = ['U6_GW02_Del_ActiveEnergy'];
@@ -164,7 +162,7 @@ const sumGroup = (keys: string[]) =>
     let Trafo4losses = Trafo4Incoming - Trafo4outgoing;
     
     let TrasformerLosses = Trafo1losses + Trafo2losses+ Trafo3losses + Trafo4losses;
-    let unaccoutable_energy= totalenergyinput-totalgeneration1;
+    let unaccoutable_energy= totalenergyinput-totalGeneration;
     // let unaccountable = totalConsumption - production;
 
     return {
