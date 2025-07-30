@@ -19,8 +19,8 @@ export class PowerSummaryReportService {
   private getMeterIdsForArea(area: string): string[] {
     const areaMapping: Record<string, string[]> = {
       Unit_4: ['U19_PLC', 'U21_PLC', 'U13_GW01', 'U11_GW01'],
-      Unit_5:['U13_GW02', 'U16_GW03', 'U6_GW02', 'U17_GW03'],
-      ALL:['U19_PLC', 'U21_PLC', 'U13_GW01', 'U11_GW01','U13_GW02', 'U16_GW03', 'U6_GW02', 'U17_GW03']
+      Unit_5:["U13_GW02", "U16_GW03", "U6_GW02","U17_GW03"],
+      ALL:['U19_PLC', 'U21_PLC', 'U13_GW01', 'U11_GW01', "U13_GW02", "U16_GW03", "U6_GW02","U17_GW03"]
       // Unit_4: [
       //   'U1_PLC', 'U2_PLC', 'U3_PLC', 'U4_PLC', 'U5_PLC', 'U6_PLC', 'U7_PLC', 'U8_PLC',
       //   'U9_PLC', 'U10_PLC', 'U11_PLC', 'U12_PLC', 'U13_PLC', 'U14_PLC', 'U15_PLC', 'U16_PLC',

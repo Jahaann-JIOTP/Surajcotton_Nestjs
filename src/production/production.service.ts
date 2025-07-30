@@ -2,8 +2,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Production, ProductionDocument } from './schemas/production.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CreateProductionDto } from './dto/create-production.dto';
+import { UpdateProductionDto } from './dto/update-production.dto';
 import * as moment from 'moment';
 
 @Injectable()
@@ -26,4 +27,13 @@ export class ProductionService {
   async findAll(): Promise<Production[]> {
     return this.productionModel.find().sort({ date: 1 }).exec();
   }
+  async updateProduction(dto: UpdateProductionDto): Promise<Production | null> {
+  const { id, ...updates } = dto;
+  return this.productionModel.findByIdAndUpdate(id, updates, { new: true }).exec();
+}
+
+async deleteProduction(id: string): Promise<{ deleted: boolean }> {
+  const result = await this.productionModel.deleteOne({ _id: new Types.ObjectId(id) }).exec();
+  return { deleted: result.deletedCount > 0 };
+}
 }
