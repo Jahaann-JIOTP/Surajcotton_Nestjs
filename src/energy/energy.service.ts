@@ -18,7 +18,7 @@ export class EnergyService {
         "U2_GW02", "U3_GW02", "U4_GW02", "U5_GW02", "U7_GW02", "U8_GW02", "U9_GW02", "U10_GW02", "U11_GW02", "U12_GW02", "U13_GW02", "U14_GW02",
         "U15_GW02", "U16_GW02", "U17_GW02", "U18_GW02", "U19_GW02", "U20_GW02", "U21_GW02", "U22_GW02", "U23_GW02", "U1_GW03", "U2_GW03", "U3_GW03",
         "U4_GW03", "U5_GW03", "U6_GW03", "U18_GW03", "U19_GW03", "U20_GW03", "U21_GW03", "U22_GW03", "U23_GW03", "U16_GW03"];
-    const suffixes: string[] = ['Del_ActiveEnergy', 'ActivePower_Total'];
+    const suffixes: string[] = ['Del_ActiveEnergy', 'ActivePower_Total', 'ActiveEnergy_Imp_kWh', 'ActiveEnergy_Exp_kWh'];
     const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
     const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
     const HTGenerationKeys = ['U23_GW01_Del_ActiveEnergy', 'U22_GW01_Del_ActiveEnergy', 'U20_GW03_Del_ActiveEnergy','U19_GW03_Del_ActiveEnergy']; //is may sum show karvana ha nilgata or jms ka jab us k tags ayain gay
