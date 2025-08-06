@@ -1,10 +1,12 @@
 // src/production/production.controller.ts
-import { Body, Controller, Delete, Get, Param, Patch, Post} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query} from '@nestjs/common';
 import { ProductionService } from './production.service';
 import { CreateProductionDto } from './dto/create-production.dto';
 import { UpdateProductionDto } from './dto/update-production.dto'
 import { plainToInstance } from 'class-transformer';
 import { Production } from './schemas/production.schema';
+import * as moment from 'moment';
+
 
 @Controller('production')
 export class ProductionController {
@@ -16,11 +18,29 @@ export class ProductionController {
     return plainToInstance(Production, result, { excludeExtraneousValues: true });
   }
 
-  @Get()
-  async getAllProductions() {
-    const result = await this.productionService.findAll();
-    return plainToInstance(Production, result, { excludeExtraneousValues: true });
+  // @Get()
+  // async getAllProductions() {
+  //   const result = await this.productionService.findAll();
+  //   return plainToInstance(Production, result, { excludeExtraneousValues: true });
+  // }
+ @Get()
+async getProductions(
+  @Query('date') date?: string,
+  @Query('unit') unit?: string,
+) {
+  console.log('Received query:', { unit, date });
+
+  if (unit && date) {
+    const formattedDate = moment(date).format('YYYY-MM-DD');
+    const result = await this.productionService.findByDateAndUnit(formattedDate, unit);
+    console.log('Result:', result);  // 👈 Debugging line
+    return result;
   }
+
+  return this.productionService.findAll();
+}
+
+
 
   @Patch()
 async updateProduction(@Body() dto: UpdateProductionDto) {

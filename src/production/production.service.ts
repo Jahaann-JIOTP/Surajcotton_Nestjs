@@ -23,10 +23,38 @@ export class ProductionService {
 
     return this.productionModel.insertMany(entries);
   }
+// async findByDateAndUnit(date: string, unit: string) {
+//   return this.productionModel.find({ date, unit }).exec();
+// }
+async findAll(): Promise<Production[]> {
+  return this.productionModel.find().sort({ date: 1 }).exec();
+}
 
-  async findAll(): Promise<Production[]> {
-    return this.productionModel.find().sort({ date: 1 }).exec();
-  }
+
+
+  // src/production/production.service.ts
+async findByDateAndUnit(date: string, unit: string): Promise<Production[]> {
+  // Try both match types
+  const formatted = moment(date).format('YYYY-MM-DD');
+  const start = moment(date).startOf('day').toDate();
+  const end = moment(date).endOf('day').toDate();
+
+  // Try exact string match
+  const stringMatch = await this.productionModel.find({ unit, date: formatted }).exec();
+  if (stringMatch.length > 0) return stringMatch;
+
+  // Fallback: try date range match
+  const dateMatch = await this.productionModel.find({
+    unit,
+    date: { $gte: start, $lte: end },
+  }).exec();
+
+  return dateMatch;
+}
+
+
+
+
   async updateProduction(dto: UpdateProductionDto): Promise<Production | null> {
   const { id, ...updates } = dto;
   return this.productionModel.findByIdAndUpdate(id, updates, { new: true }).exec();
