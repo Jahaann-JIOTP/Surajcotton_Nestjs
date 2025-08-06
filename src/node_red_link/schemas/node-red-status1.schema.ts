@@ -5,16 +5,18 @@ import { Document } from 'mongoose';
 
 export type NodeRedStatusDocument1 = NodeRedStatus1 & Document;
 
-@Schema({})
+@Schema({ timestamps: false })
 export class NodeRedStatus1 {
   @Prop({ required: true })
   status: 'up' | 'down';
 
-  @Prop()
+  @Prop({ required: true })
   message: string;
 
   @Prop()
-  startTime: Date;
-}
+  startTime?: Date;
 
+  @Prop()
+  endTime?: Date;
+}
 export const NodeRedStatusSchema = SchemaFactory.createForClass(NodeRedStatus1);

@@ -1,21 +1,21 @@
-// src/node_red_link/node_red_link.module.ts
+// src/node_red_link/node-red-link.module.ts
+
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
-import { ScheduleModule } from '@nestjs/schedule';
 import { MongooseModule } from '@nestjs/mongoose';
-import { NodeRedLinkController } from './node_red_link.controller';
+import { NodeRedStatus1, NodeRedStatusSchema } from './schemas/node-red-status.schema';
 import { NodeRedLinkService } from './node_red_link.service';
-import { NodeRedStatus, NodeRedStatusSchema } from './schemas/node-red-status.schema';
+import { NodeRedLinkController } from './node_red_link.controller';
 
 @Module({
   imports: [
     HttpModule,
-    ScheduleModule.forRoot(),
-    MongooseModule.forFeature([{ name: NodeRedStatus.name, schema: NodeRedStatusSchema }],
-       'surajcotton'
+    MongooseModule.forFeature(
+      [{ name: NodeRedStatus1.name, schema: NodeRedStatusSchema }],
+      'surajcotton'
     ),
   ],
-  controllers: [NodeRedLinkController],
   providers: [NodeRedLinkService],
+  controllers: [NodeRedLinkController],
 })
 export class NodeRedLinkModule {}

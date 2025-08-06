@@ -1,110 +1,73 @@
-// src/node_red_link/node_red_link.service.ts
-import { Injectable } from '@nestjs/common';
+
+import { Injectable, HttpException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { Cron } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { NodeRedStatus } from './schemas/node-red-status.schema';
+import { NodeRedStatus1, NodeRedStatusDocument1 } from './schemas/node-red-status.schema';
+import { firstValueFrom } from 'rxjs';
+import * as moment from 'moment-timezone';
 
 @Injectable()
 export class NodeRedLinkService {
   private previousStatus: 'up' | 'down' = 'up';
+  private isFirstCheckDone = false;
 
   constructor(
     private readonly httpService: HttpService,
-    @InjectModel(NodeRedStatus.name, 'surajcotton')
-    private readonly statusModel: Model<NodeRedStatus>,
+    @InjectModel(NodeRedStatus1.name, 'surajcotton') private readonly statusModel: Model<NodeRedStatusDocument1>,
   ) {}
+  async fetchNodeRedData(): Promise<any> {
+    try {
+      const response = await this.httpService.axiosRef.get('http://13.234.241.103:1880/surajcotton');
+      return response.data;
+    } catch (error) {
+      throw new HttpException('Unable to fetch data from Node-RED', 500);
+    }
+  }
 
-  // 🟢 API to fetch manual status
- 
-
-async fetchNodeRedData(): Promise<any> {
-  const now = new Date();
+async checkNodeRedLink(): Promise<string> {
+  let currentStatus: 'up' | 'down' = 'up';
+  let message = 'Link is up';
 
   try {
-    const response = await this.httpService.axiosRef.get('http://13.234.241.103:1880/surajcotton', {
-      timeout: 5000,
-      validateStatus: () => true,
-    });
+    const { data } = await firstValueFrom(
+      this.httpService.get('http://13.234.241.103:1880/surajcotton')
+    );
 
-    const result = {
-      status: 'up',
-      startTime: now,
-      message: 'Node-RED link is reachable',
-    };
-
-    // ✅ Save to DB
-    await this.statusModel.create(result);
-
-    return {
-      ...result,
-      data: response.data,
-    };
+    if (data?.error === 'Invalid data structure') {
+      currentStatus = 'down';
+      message = 'Link is down';
+    }
   } catch (error) {
-    const result = {
-      status: 'down',
-      startTime: now,
-      message: 'Node-RED link is unreachable (connection error)',
-    };
-
-    // ✅ Save to DB
-    await this.statusModel.create(result);
-
-    return result;
+    currentStatus = 'down';
+    message = 'Link is down';
   }
+
+  const now = moment().tz('Asia/Karachi').toDate();
+
+  if (!this.isFirstCheckDone || currentStatus !== this.previousStatus) {
+    if (currentStatus === 'down') {
+      // Create a new document for link down
+      await this.statusModel.create({
+        status: 'down',
+        message: 'Node-RED link is down',
+        startTime: now,
+      });
+    } else if (currentStatus === 'up') {
+      // Create a new document for link up
+      await this.statusModel.create({
+        status: 'up',
+        message: 'Node-RED link is reachable',
+        endTime: now,
+      });
+    }
+
+
+    this.previousStatus = currentStatus;
+    this.isFirstCheckDone = true;
+  }
+  return message;
 }
 
 
-  // 🔁 Runs every minute
-  @Cron('*/1 * * * *')
-  async checkNodeRedLink() {
-    const now = new Date();
-
-    try {
-      const response = await this.httpService.axiosRef.get('http://13.234.241.103:1880/surajcotton', {
-        timeout: 5000,
-        validateStatus: () => true,
-      });
-
-      if (response.status >= 200 && response.status < 300) {
-        // Link is UP
-        if (this.previousStatus === 'down') {
-          await this.statusModel.findOneAndUpdate(
-            { status: 'down', endTime: null },
-            {
-              endTime: now,
-              status: 'up',
-            }
-          );
-          console.log('✅ Link is back up at', now);
-        }
-
-        this.previousStatus = 'up';
-      } else {
-        // Link is DOWN (non-2xx)
-        if (this.previousStatus === 'up') {
-          await this.statusModel.create({
-            status: 'down',
-            startTime: now,
-            endTime: null,
-          });
-          console.log('❌ Link is down at', now);
-        }
-
-        this.previousStatus = 'down';
-      }
-    } catch (err) {
-      // Total connection failure
-      if (this.previousStatus === 'up') {
-        await this.statusModel.create({
-          status: 'down',
-          startTime: now,
-          endTime: null,
-        });
-        console.log('❌ Link is down (connection error) at', now);
-        this.previousStatus = 'down';
-      }
-    }
-  }
 }
