@@ -84,7 +84,7 @@ async getLatestConfig() {
       .lean();
 
     if (!configs.length) {
-      return { message: 'No configurations found.' };
+      return { message: 'No configurations found.'};
     }
 
     return configs;
