@@ -3,10 +3,6 @@ import { MeterService } from './meter.service';
 import { ToggleMeterDto } from './dto/toggle-meter.dto';
 import { JwtAuthGuard } from '../auth/jwt.authguard';
 import { AdminGuard } from 'src/auth/roles.authguard';
-// import { Roles} from '../roles/schema/roles.schema'
-// import { Roles, RolesDocument } from 'src/roles/schema/roles.schema';
-
-// import { Roles } from '../auth/roles.decorator';
 
 @Controller('meter')
 export class MeterController {
