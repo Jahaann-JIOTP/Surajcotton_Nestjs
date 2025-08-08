@@ -13,11 +13,14 @@ export class MeterController {
   async toggle(@Body() dto: ToggleMeterDto) {
     return await this.meterService.toggleMeter(dto);
   }
-  @Get('toggles')
+
+@UseGuards(JwtAuthGuard)
+@Get('toggles')
 async getAllToggles() {
   return await this.meterService.getAllToggleData();
 }
   // ✅ GET latest config
+@UseGuards(JwtAuthGuard)
 @Get('config/latest')
 async getLatestConfig() {
   return await this.meterService.getLatestConfig();

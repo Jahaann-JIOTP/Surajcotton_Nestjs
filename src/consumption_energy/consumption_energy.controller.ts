@@ -1,5 +1,3 @@
-
-
 import { Controller, Get, Query, UseGuards  } from '@nestjs/common';
 import { ConsumptionEnergyService } from './consumption_energy.service';
 import { Consumption_energyDto  } from './dto/consumption_energy.dto'; // Correct import for DTO

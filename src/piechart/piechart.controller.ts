@@ -1,11 +1,13 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { PieChartService } from './piechart.service';
 import { PieChartDto } from './dto/pie-chart.dto';
+import { JwtAuthGuard } from 'src/auth/jwt.authguard';
 
 @Controller('pie-chart')
 export class PieChartController {
   constructor(private readonly pieChartService: PieChartService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Get('chart-data')
   async getChartData(@Query() pieChartDto: PieChartDto) {
     let startTimestamp: number;

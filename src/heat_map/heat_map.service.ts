@@ -9,6 +9,7 @@ import { HeatMap, HeatMapDocument } from './schemas/heat_map.schema';
 
 
 
+
 @Injectable()
 export class HeatMapService  {
   

@@ -1,12 +1,14 @@
 // src/meter_data/meter_data.controller.ts
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { meter_dataService } from './meter_data.service';
 import { RealtimeDto } from './dto/realtime.dto';
+import { JwtAuthGuard } from 'src/auth/jwt.authguard';
 
 @Controller('meter-data')
 export class meter_dataController {
   constructor(private readonly meterDataService: meter_dataService) {}
-
+ 
+  @UseGuards(JwtAuthGuard)
   @Post()
   async getFilteredMeterData(@Body() dto: RealtimeDto) {
     const { area, LT_selections, meterId } = dto;
