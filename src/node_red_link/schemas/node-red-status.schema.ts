@@ -15,6 +15,9 @@ export class NodeRedStatus1 {
 
   @Prop()
   startTime: Date;
+
+  @Prop()
+  endTime: Date;
 }
 
 export const NodeRedStatusSchema = SchemaFactory.createForClass(NodeRedStatus1);
