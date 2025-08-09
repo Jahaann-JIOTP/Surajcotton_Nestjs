@@ -7,10 +7,7 @@ import { MongoClient } from 'mongodb';
 // import * as moment from 'moment-timezone';
 import * as moment from 'moment';
 import { HeatMap, HeatMapDocument } from './schemas/heat_map.schema';
-import {
-  TransformerInput,
-  TransformerInputDocument,
-} from './schemas/transformer.schema';
+import {TransformerInput,TransformerInputDocument} from './schemas/transformer.schema';
 import { CreateTransformerInputDto } from './dto/create-transformer-input.dto';
 
 

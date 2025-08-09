@@ -66,7 +66,8 @@ const ltTotal = +ltSubData.reduce((sum, item) => sum + item.value, 0).toFixed(2)
 
 // Solar Generation
 const solarSubData = mapSubData(SolarGenerationKeys);
-const solarTotal = +solarSubData.reduce((sum, item) => sum + item.value, 0).toFixed(2);
+const solarTotal = +solarSubData.reduce((sum, item) => sum + item.
+value, 0).toFixed(2);
 
 // WAPDA Import
 const wapdaSubData = mapSubData(WapdaImportKeys);

@@ -1,5 +1,5 @@
 // src/production/production.controller.ts
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards, Put} from '@nestjs/common';
 import { ProductionService } from './production.service';
 import { CreateProductionDto } from './dto/create-production.dto';
 import { UpdateProductionDto } from './dto/update-production.dto'
@@ -45,7 +45,7 @@ export class ProductionController {
 
 
 @UseGuards(JwtAuthGuard)
-@Patch()
+@Put()
 async updateProduction(@Body() dto: UpdateProductionDto) {
   const result = await this.productionService.updateProduction(dto);
   return plainToInstance(Production, result, { excludeExtraneousValues: true });
