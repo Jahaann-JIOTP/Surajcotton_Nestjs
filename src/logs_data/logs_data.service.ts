@@ -19,7 +19,7 @@ export class LogsDataService {
     reactive_power: ["ReactivePower_Total"],
     reactive_energy: ["ActiveEnergy_Total"],
     apparent_power: ["ApparentPower_Total"],
-    harmonics: ["Harmonics_V1_THD","Harmonics_V2_THD","Harmonics_V3_THD"],
+    harmonics: ["Harmonics_V1_THD","Harmonics_V2_THD","Harmonics_V3_THD", "Harmonics_I1_THD", "Harmonics_I2_THD", "Harmonics_I3_THD"],
     active_energy: ["Del_ActiveEnergy"],
   };
 
