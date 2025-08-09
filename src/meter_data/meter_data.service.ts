@@ -12,13 +12,14 @@ export class meter_dataService {
   private getMeterPrefixes(area: string, LT_selections: string): string[] {
     const mapping: Record<string, Record<string, string[]>> = {
       'Unit_4': {
-        LT_1: ['U1_PLC', 'U2_PLC', 'U3_PLC', 'U4_PLC', 'U5_PLC', 'U6_PLC', 'U7_PLC', 'U8_PLC',
+        LT_1: ['U1_PLC', 'U2_PLC', 'U3_PLC', 'U03_PLC', 'U4_PLC', 'U5_PLC', 'U6_PLC', 'U7_PLC', 'U8_PLC',
         'U9_PLC', 'U10_PLC', 'U11_PLC', 'U12_PLC', 'U13_PLC', 'U14_PLC', 'U15_PLC', 'U16_PLC',
         'U17_PLC', 'U18_PLC', 'U19_PLC', 'U20_PLC', 'U21_PLC'],
         LT_2: [ 'U1_GW01', 'U2_GW01', 'U3_GW01', 'U4_GW01', 'U5_GW01', 'U6_GW01', 'U7_GW01',
         'U8_GW01', 'U9_GW01', 'U10_GW01', 'U11_GW01', 'U12_GW01', 'U13_GW01', 'U14_GW01',
         'U15_GW01', 'U16_GW01', 'U17_GW01', 'U18_GW01', 'U19_GW01', 'U20_GW01', 'U21_GW01',
         'U22_GW01', 'U23_GW01'],
+
       },
       'Unit_5': {
         LT_3: ['U1_GW02', 'U2_GW02', 'U3_GW02', 'U4_GW02', 'U5_GW02', 'U6_GW02', 'U7_GW02',
