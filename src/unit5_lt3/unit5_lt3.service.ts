@@ -112,12 +112,12 @@ export class Unit5LT3Service {
     const totalLT3 = +(tf3 + solar).toFixed(2);
 
     const sankeyData = [
-      { from: 'tf3', to: 'totalLT3', value: tf3 },
-      { from: 'solar', to: 'totalLT3', value: solar },
+      { from: 'TF3', to: 'TotalLT3', value: tf3 },
+      { from: 'Solar', to: 'TotalLT3', value: solar },
       ...Object.entries(meterMap).map(([meter, label]) => {
         const key = `${meter}_Del_ActiveEnergy`;
         return {
-          from: 'totalLT3',
+          from: 'TotalLT3',
           to: label,
           value: +(consumptionTotals[key] || 0).toFixed(2),
         };

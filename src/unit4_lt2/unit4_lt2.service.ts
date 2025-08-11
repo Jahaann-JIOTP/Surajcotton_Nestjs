@@ -112,12 +112,12 @@ export class Unit4LT2Service {
     const totalLT2 = +(tf2 + GasGen).toFixed(2);
 
     const sankeyData = [
-      { from: 'tf2', to: 'totalLT2', value: tf2 },
-      { from: 'GasGen', to: 'totalLT2', value: GasGen },
+      { from: 'TF2', to: 'TotalLT2', value: tf2 },
+      { from: 'GasGen', to: 'TotalLT2', value: GasGen },
       ...Object.entries(meterMap).map(([meter, label]) => {
         const key = `${meter}_Del_ActiveEnergy`;
         return {
-          from: 'totalLT2',
+          from: 'TotalLT2',
           to: label,
           value: +(consumptionTotals[key] || 0).toFixed(2),
         };
