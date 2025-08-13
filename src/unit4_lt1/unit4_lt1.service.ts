@@ -71,7 +71,7 @@ export class Unit4LT1Service {
         },
       },
       {
-        $sort: { timestamp: 1 } as const, // ✅ Type-safe sort
+        $sort: { timestamp: 1 } as const,
       },
       {
         $group: {
@@ -88,9 +88,16 @@ export class Unit4LT1Service {
     meterFields.forEach(field => consumptionTotals[field] = 0);
 
     for (const entry of results) {
+      console.log(`\n📅 Date: ${entry._id}`);
       for (const field of meterFields) {
         const first = entry[`first_${field}`] || 0;
         const last = entry[`last_${field}`] || 0;
+
+        // 🔍 Debug logs
+        console.log(`Meter: ${field}`);
+        console.log(`  First: ${first}`);
+        console.log(`  Last : ${last}`);
+
         let consumption = last - first;
 
         const isExponential =

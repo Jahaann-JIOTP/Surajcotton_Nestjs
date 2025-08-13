@@ -1,4 +1,33 @@
-import { Controller, Get, Param, Post, Body, UseGuards } from '@nestjs/common';
+// import { Controller, Get, Param, Post, Body, UseGuards } from '@nestjs/common';
+// import { MeterService } from './meter.service';
+// import { ToggleMeterDto } from './dto/toggle-meter.dto';
+// import { JwtAuthGuard } from '../auth/jwt.authguard';
+// import { AdminGuard } from 'src/auth/roles.authguard';
+
+// @Controller('meter')
+// export class MeterController {
+//   constructor(private readonly meterService: MeterService) {}
+
+//   @Post('toggle')
+//   @UseGuards(JwtAuthGuard, AdminGuard)
+//   async toggle(@Body() dto: ToggleMeterDto) {
+//     return await this.meterService.toggleMeter(dto);
+//   }
+
+// @UseGuards(JwtAuthGuard)
+// @Get('toggles')
+// async getAllToggles() {
+//   return await this.meterService.getAllToggleData();
+// }
+//   // ✅ GET latest config
+// @UseGuards(JwtAuthGuard)
+// @Get('config/latest')
+// async getLatestConfig() {
+//   return await this.meterService.getLatestConfig();
+// }
+
+// }
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { MeterService } from './meter.service';
 import { ToggleMeterDto } from './dto/toggle-meter.dto';
 import { JwtAuthGuard } from '../auth/jwt.authguard';
@@ -8,22 +37,37 @@ import { AdminGuard } from 'src/auth/roles.authguard';
 export class MeterController {
   constructor(private readonly meterService: MeterService) {}
 
+  // ✅ Toggle meter
   @Post('toggle')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async toggle(@Body() dto: ToggleMeterDto) {
     return await this.meterService.toggleMeter(dto);
   }
 
-@UseGuards(JwtAuthGuard)
-@Get('toggles')
-async getAllToggles() {
-  return await this.meterService.getAllToggleData();
+  // ✅ Get all toggles
+  @UseGuards(JwtAuthGuard)
+  @Get('toggles')
+  async getAllToggles() {
+    return await this.meterService.getAllToggleData();
+  }
+
+  // ✅ Get latest config
+  @UseGuards(JwtAuthGuard)
+  @Get('config/latest')
+  async getLatestConfig() {
+    return await this.meterService.getLatestConfig();
+  }
+
+ 
+@Post('fetch-real-time')
+async fetchAndStoreRealTime(@Body() body: { unit: string; meterIds: string[] }) {
+  return await this.meterService.fetchAndStoreRealTime(body);
 }
-  // ✅ GET latest config
-@UseGuards(JwtAuthGuard)
-@Get('config/latest')
-async getLatestConfig() {
-  return await this.meterService.getLatestConfig();
-}
+
+
+
+
+
+
 
 }
