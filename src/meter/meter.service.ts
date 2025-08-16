@@ -7,6 +7,7 @@ import { MeterConfiguration, MeterConfigurationDocument } from './schemas/meter-
 import { ToggleMeterDto } from './dto/toggle-meter.dto';
 import { FieldMeterRawData } from './schemas/field-meter-raw-data.schema';
 import axios from 'axios';
+import { Cron, CronExpression } from '@nestjs/schedule'; 
 
 
 @Injectable()
@@ -118,70 +119,102 @@ private readonly METER_UNIT_MAP: Record<string, string[]> = {
 async fetchAndStoreRealTime(body: { unit: string; meterIds: string[] }) {
   const { unit, meterIds } = body;
 
-  // --- Step 1: API call karke realtime data lao
-  const apiRes = await axios.get("http://13.234.241.103:1880/surajcotton");
+  const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
   const apiData = apiRes.data;
 
-  // --- Step 2: Ek hi object prepare karo (all meters data inside one doc)
   let realTimeValuesObj: Record<string, { area: string; value: number }> = {};
 
   for (const meterId of Object.keys(this.METER_UNIT_MAP)) {
-    const shortId = meterId.replace("_Del_ActiveEnergy", "");
-
+    const shortId = meterId.replace('_Del_ActiveEnergy', '');
     const apiValue = apiData[meterId] ?? apiData[shortId] ?? 0;
 
     realTimeValuesObj[meterId] = {
-      area: meterIds.includes(shortId) ? unit : "Unit_4",
+      area: meterIds.includes(shortId) ? unit : 'Unit_4',
       value: Math.round(apiValue * 100) / 100,
     };
   }
 
-  // --- Step 3: Last saved doc le aao
-  const lastDoc = await this.fieldMeterRawDataModel
-    .findOne()
-    .sort({ timestamp: -1 });
+  // ✅ toggle insert ke liye source = 'toggle'
+  const newDoc = await this.fieldMeterRawDataModel.create({
+    ...realTimeValuesObj,
+    timestamp: new Date(),
+    // source: 'toggle',
+  });
 
-  if (!lastDoc) {
-    // ❌ Pehla doc hi nahi hai → new insert
-    const newDoc = await this.fieldMeterRawDataModel.create({
-      ...realTimeValuesObj,
-      timestamp: new Date(),
-    });
-    return newDoc;
-  }
+  return newDoc;
+}
 
-  // --- Step 4: Check if koi bhi meter ka area change hua hai
-  let areaChanged = false;
-  for (const meterId of Object.keys(realTimeValuesObj)) {
-    if (
-      lastDoc[meterId]?.area &&
-      lastDoc[meterId].area !== realTimeValuesObj[meterId].area
-    ) {
-      areaChanged = true;
-      break;
+// 🔹 har 5 min baad yeh cron job chalegi
+@Cron('0 */15 * * * *') // har 2 minute me run
+async storeEvery15Minutes() {
+  try {
+    // API call
+    const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
+    const apiData = apiRes.data;
+
+    // last document
+    const lastDoc = await this.fieldMeterRawDataModel.findOne().sort({ timestamp: -1 });
+    if (!lastDoc) {
+      console.log('⏹ No previous document found, cron will insert first record');
     }
-  }
 
-  if (areaChanged) {
-    // ✅ Agar area change hua → NEW document insert
-    const newDoc = await this.fieldMeterRawDataModel.create({
+    const now = new Date();
+    let skipCron = false;
+
+    // check: agar last doc toggle se aaya aur abhi same minute me hai → skip
+    if (lastDoc) {
+      const lastTime = new Date(lastDoc.timestamp);
+      const sameMinute =
+        lastTime.getFullYear() === now.getFullYear() &&
+        lastTime.getMonth() === now.getMonth() &&
+        lastTime.getDate() === now.getDate() &&
+        lastTime.getHours() === now.getHours() &&
+        lastTime.getMinutes() === now.getMinutes() &&
+        lastDoc.source === 'toggle';
+
+      if (sameMinute) {
+        skipCron = true;
+      }
+    }
+
+    if (skipCron) {
+      console.log('⏩ Cron skipped: toggle record already inserted this minute');
+      return;
+    }
+
+    // prepare document
+    const realTimeValuesObj: Record<string, { area: string; value: number }> = {};
+    for (const meterId of Object.keys(this.METER_UNIT_MAP)) {
+      const shortId = meterId.replace('_Del_ActiveEnergy', '');
+      const apiValue = apiData[meterId] ?? apiData[shortId] ?? 0;
+
+      realTimeValuesObj[meterId] = {
+        area: lastDoc?.[meterId]?.area || 'Unit_4', // last area use karo
+        value: Math.round(apiValue * 100) / 100,
+      };
+    }
+
+    // insert document with source = 'cron'
+    await this.fieldMeterRawDataModel.create({
       ...realTimeValuesObj,
-      timestamp: new Date(),
+      timestamp: now,
+      // source: 'cron',
     });
-    return newDoc;
-  } else {
-    // ✅ Agar same area hai → Update existing doc
-    await this.fieldMeterRawDataModel.updateOne(
-      { _id: lastDoc._id },
-      { $set: { ...realTimeValuesObj, timestamp: new Date() } }
-    );
-    return { ...lastDoc.toObject(), ...realTimeValuesObj };
+
+    console.log('✅ Cron 2-min insert complete');
+  } catch (err) {
+    console.error('❌ Cron error:', err.message);
   }
 }
 
 
-
 }
+
+
+
+
+
+
 
 
 

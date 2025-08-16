@@ -29,6 +29,7 @@ import { Unit4Lt2Module } from './unit4_lt2/unit4_lt2.module';
 import { Unit5Lt3Module } from './unit5_lt3/unit5_lt3.module';
 import { Unit5Lt4Module } from './unit5_lt4/unit5_lt4.module';
 import { PowerSummaryReportModule } from './power_summary_report/power_summary_report.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 
 
@@ -38,6 +39,7 @@ import { PowerSummaryReportModule } from './power_summary_report/power_summary_r
     ConfigModule.forRoot({ isGlobal: true }),
     // MongooseModule.forRoot(process.env.surajcotton_URI!),
     // MongooseModule.forRoot(process.env.MONGODB_URI!),
+     ScheduleModule.forRoot(),
     MongooseModule.forRoot(process.env.surajcotton_URI!, {
       connectionName: 'surajcotton',
     }),
