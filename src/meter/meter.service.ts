@@ -6,6 +6,8 @@ import { MeterToggle, MeterToggleDocument } from './schemas/meter-toggle.schema'
 import { MeterConfiguration, MeterConfigurationDocument } from './schemas/meter-configuration.schema';
 import { ToggleMeterDto } from './dto/toggle-meter.dto';
 import { FieldMeterRawData } from './schemas/field-meter-raw-data.schema';
+import axios from 'axios';
+
 
 @Injectable()
 export class MeterService {
@@ -110,43 +112,72 @@ private readonly METER_UNIT_MAP: Record<string, string[]> = {
 
 
 
-// ✅ API se realtime data fetch karna aur DB me store karna
+
+
+
 async fetchAndStoreRealTime(body: { unit: string; meterIds: string[] }) {
   const { unit, meterIds } = body;
 
-  // Object to store all meter data
-  const realTimeValuesObj: Record<string, { area: string; value: number }> = {};
+  // --- Step 1: API call karke realtime data lao
+  const apiRes = await axios.get("http://13.234.241.103:1880/surajcotton");
+  const apiData = apiRes.data;
 
-  // Populate with real-time values (yahan aap API call kar sakte ho)
-  for (const meterId of meterIds) {
-    const value = Math.random() * 100; // Replace with actual real-time value
-    realTimeValuesObj[meterId] = { area: unit, value };
+  // --- Step 2: Ek hi object prepare karo (all meters data inside one doc)
+  let realTimeValuesObj: Record<string, { area: string; value: number }> = {};
+
+  for (const meterId of Object.keys(this.METER_UNIT_MAP)) {
+    const shortId = meterId.replace("_Del_ActiveEnergy", "");
+
+    const apiValue = apiData[meterId] ?? apiData[shortId] ?? 0;
+
+    realTimeValuesObj[meterId] = {
+      area: meterIds.includes(shortId) ? unit : "Unit_4",
+      value: Math.round(apiValue * 100) / 100,
+    };
   }
 
-  // Save in DB in a single document
-  // Filter empty {} ensures first document is created or updated
-  const existing = await this.fieldMeterRawDataModel.findOne();
+  // --- Step 3: Last saved doc le aao
+  const lastDoc = await this.fieldMeterRawDataModel
+    .findOne()
+    .sort({ timestamp: -1 });
 
-  if (existing) {
-    // Update existing document
-    await this.fieldMeterRawDataModel.updateOne(
-      { _id: existing._id },
-      { $set: { ...realTimeValuesObj, timestamp: new Date() } }
-    );
-  } else {
-    // Create new document
-    await this.fieldMeterRawDataModel.create({
+  if (!lastDoc) {
+    // ❌ Pehla doc hi nahi hai → new insert
+    const newDoc = await this.fieldMeterRawDataModel.create({
       ...realTimeValuesObj,
       timestamp: new Date(),
     });
+    return newDoc;
   }
 
-  // Return same object
-  return realTimeValuesObj;
+  // --- Step 4: Check if koi bhi meter ka area change hua hai
+  let areaChanged = false;
+  for (const meterId of Object.keys(realTimeValuesObj)) {
+    if (
+      lastDoc[meterId]?.area &&
+      lastDoc[meterId].area !== realTimeValuesObj[meterId].area
+    ) {
+      areaChanged = true;
+      break;
+    }
+  }
+
+  if (areaChanged) {
+    // ✅ Agar area change hua → NEW document insert
+    const newDoc = await this.fieldMeterRawDataModel.create({
+      ...realTimeValuesObj,
+      timestamp: new Date(),
+    });
+    return newDoc;
+  } else {
+    // ✅ Agar same area hai → Update existing doc
+    await this.fieldMeterRawDataModel.updateOne(
+      { _id: lastDoc._id },
+      { $set: { ...realTimeValuesObj, timestamp: new Date() } }
+    );
+    return { ...lastDoc.toObject(), ...realTimeValuesObj };
+  }
 }
-
-
-
 
 
 
