@@ -8,6 +8,7 @@ import { MeterToggle, MeterToggleSchema } from './schemas/meter-toggle.schema';
 import { MeterConfiguration, MeterConfigurationSchema } from './schemas/meter-configuration.schema';
 import { Roles, RolesSchema } from '../roles/schema/roles.schema'
 import { FieldMeterRawData, FieldMeterRawDataSchema } from './schemas/field-meter-raw-data.schema';
+import { FieldMeterProcessData, FieldMeterProcessDataSchema } from './schemas/field_meter_process_data';
 
 @Module({
   imports: [
@@ -18,6 +19,8 @@ import { FieldMeterRawData, FieldMeterRawDataSchema } from './schemas/field-mete
        { name: MeterConfiguration.name, schema: MeterConfigurationSchema },
        { name: Roles.name, schema: RolesSchema },
           { name: FieldMeterRawData.name, schema: FieldMeterRawDataSchema },
+          { name: FieldMeterProcessData.name, schema: FieldMeterProcessDataSchema },
+
        
     ],
 'surajcotton',

@@ -6,6 +6,8 @@ import { MeterToggle, MeterToggleDocument } from './schemas/meter-toggle.schema'
 import { MeterConfiguration, MeterConfigurationDocument } from './schemas/meter-configuration.schema';
 import { ToggleMeterDto } from './dto/toggle-meter.dto';
 import { FieldMeterRawData } from './schemas/field-meter-raw-data.schema';
+import {
+  FieldMeterProcessData,FieldMeterProcessDataSchema} from './schemas/field_meter_process_data';
 import axios from 'axios';
 import { Cron, CronExpression } from '@nestjs/schedule'; 
 
@@ -18,6 +20,9 @@ export class MeterService {
       
   private readonly httpService: HttpService,
   @InjectModel(FieldMeterRawData.name, 'surajcotton') private fieldMeterRawDataModel: Model<FieldMeterRawData>,
+@InjectModel(FieldMeterProcessData.name, 'surajcotton')
+private readonly fieldMeterProcessDataModel: Model<FieldMeterProcessData>,
+
 ) {}
   
 
@@ -138,7 +143,7 @@ async fetchAndStoreRealTime(body: { unit: string; meterIds: string[] }) {
   const newDoc = await this.fieldMeterRawDataModel.create({
     ...realTimeValuesObj,
     timestamp: new Date(),
-    // source: 'toggle',
+    source: 'toggle',
   });
 
   return newDoc;
@@ -198,7 +203,7 @@ async storeEvery15Minutes() {
     await this.fieldMeterRawDataModel.create({
       ...realTimeValuesObj,
       timestamp: now,
-      // source: 'cron',
+      source: 'cron',
     });
 
     console.log('✅ Cron 2-min insert complete');
@@ -207,8 +212,82 @@ async storeEvery15Minutes() {
   }
 }
 
+/// for reports logic
+async calculateConsumption() {
+  // ✅ Sirf toggle ka last raw doc lo
+  const lastRawDoc = await this.fieldMeterRawDataModel
+    .findOne({ source: 'toggle' })
+    .sort({ timestamp: -1 });
+
+  if (!lastRawDoc) return { msg: 'No toggle data found' };
+
+  // ✅ Meter keys
+  const meterKeys = [
+    'U23_GW03_Del_ActiveEnergy',
+    'U22_GW03_Del_ActiveEnergy',
+    'U3_GW02_Del_ActiveEnergy',
+    'U1_GW02_Del_ActiveEnergy',
+    'U2_GW02_Del_ActiveEnergy',
+    'U4_GW02_Del_ActiveEnergy',
+  ];
+
+  // ✅ Existing single process doc lo (nahi mila to naya banao)
+  let processDoc = await this.fieldMeterProcessDataModel.findOne({});
+  if (!processDoc) {
+    processDoc = await this.fieldMeterProcessDataModel.create({
+      meters: {},
+    });
+  }
+
+  const allConsumption: Record<
+    string,
+    { Unit_4: number; Unit_5: number }
+  > = {};
+
+  for (const meterId of meterKeys) {
+    const { value } = lastRawDoc[meterId] || {};
+    if (value == null) continue;
+
+    // Ensure meter object exists
+    if (!processDoc.meters[meterId]) {
+      processDoc.meters[meterId] = {
+        Unit_4: { firstValue: value, lastValue: value, consumption: 0 },
+        Unit_5: { firstValue: value, lastValue: value, consumption: 0 },
+      };
+    }
+
+    // ✅ Unit wise calculation
+    for (const area of ['Unit_4', 'Unit_5']) {
+      const meterUnit = processDoc.meters[meterId][area];
+      const consumption = value - meterUnit.firstValue;
+
+      // update values in doc
+      meterUnit.lastValue = value;
+      meterUnit.consumption = consumption;
+
+      allConsumption[meterId] = allConsumption[meterId] || {
+        Unit_4: 0,
+        Unit_5: 0,
+      };
+      allConsumption[meterId][area] = consumption;
+    }
+  }
+
+  // ✅ Save ek hi doc
+  await processDoc.save();
+
+  return { data: allConsumption };
+}
+
+
+
+
+
 
 }
+
+
+
 
 
 

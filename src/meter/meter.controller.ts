@@ -35,7 +35,9 @@ import { AdminGuard } from 'src/auth/roles.authguard';
 
 @Controller('meter')
 export class MeterController {
-  constructor(private readonly meterService: MeterService) {}
+  constructor(private readonly meterService: MeterService,
+    // private readonly consumptionService: ConsumptionService,
+  ) {}
 
   // ✅ Toggle meter
   @Post('toggle')
@@ -63,6 +65,11 @@ export class MeterController {
 async fetchAndStoreRealTime(@Body() body: { unit: string; meterIds: string[] }) {
   return await this.meterService.fetchAndStoreRealTime(body);
 }
+
+  @Get('consumption')
+  async getConsumption() {
+    return this.meterService.calculateConsumption();
+  }
 
 
 
