@@ -13,8 +13,9 @@ export class Unit5LT3Service {
 
   async getSankeyData(startDate: string, endDate: string) {
     // Convert to ISO without timezone issues
-    const start = moment(startDate, 'YYYY-MM-DD').startOf('day').toISOString();
-    const end = moment(endDate, 'YYYY-MM-DD').endOf('day').toISOString();
+     const start = new Date(moment(startDate, 'YYYY-MM-DD').startOf('day').toDate());
+        const end   = new Date(moment(endDate, 'YYYY-MM-DD').endOf('day').toDate());
+        const TZ = 'Asia/Karachi';
 
     const meterMap: Record<string, string> = {
       U1_GW02: 'PDB CD1',
@@ -53,27 +54,30 @@ export class Unit5LT3Service {
       projection[`last_${field}`] = { $last: `$${field}` };
     });
 
-    const pipeline: any[] = [
-      {
-        $match: {
-          timestamp: { $gte: start, $lte: end },
-        },
-      },
-      {
-        $addFields: {
-          dateOnly: { $substr: ['$timestamp', 0, 10] }, // YYYY-MM-DD
-        },
-      },
-      {
-        $sort: { timestamp: 1 as 1 }, // TypeScript safe
-      },
-      {
-        $group: { _id: '$dateOnly', ...projection },
-      },
-      {
-        $match: { _id: { $gte: startDate, $lte: endDate } }, // ✅ Only selected dates
-      },
-    ];
+      const pipeline: any[] = [
+  // 1) Normalize timestamp -> Date (works even if already Date)
+  { $addFields: { ts: { $toDate: "$timestamp" } } },
+
+  // 2) Filter on true Date objects (no string compare)
+  { $match: { ts: { $gte: start, $lte: end } } },
+
+  // 3) Build day bucket in Asia/Karachi (not UTC)
+  { $addFields: {
+      day: {
+        $dateToString: { format: "%Y-%m-%d", date: "$ts", timezone: TZ }
+      }
+    }
+  },
+
+  // 4) Ensure proper order so $first/$last are correct
+  { $sort: { ts: 1 } },
+
+  // 5) Group per local day
+  { $group: { _id: "$day", ...projection } },
+
+  // 6) Defensive re-filter by day string range (same format)
+  { $match: { _id: { $gte: startDate, $lte: endDate } } },
+];
 
     const results = await this.unitModel.aggregate(pipeline).exec();
 
