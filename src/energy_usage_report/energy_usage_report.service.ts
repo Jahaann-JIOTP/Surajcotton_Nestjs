@@ -27,13 +27,13 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   const suffix = suffixes?.[0] || 'Del_ActiveEnergy';
 
   const blowRoomMapping: Record<string, string[]> = {
-    Unit_4: ['U8_GW01','U14_GW01', 'U5_GW01'],
-    Unit_5: ['U12_GW02'],
+    Unit_4: ['U8_GW01','U14_GW01'],
+    Unit_5: ['U12_GW02','U9_GW02'],
   };
 
   const cardMapping: Record<string, string[]> = {
-    Unit_4: ['U5_GW01', 'U9_GW01'],
-    Unit_5: ['U3_GW02','U1_GW02', 'U2_GW02', 'U19_GW02', 'U17_GW02', 'U11_GW02'],
+    Unit_4: ['U5_GW01', 'U9_GW01','U1_GW02', 'U2_GW02',],
+    Unit_5: ['U3_GW02', 'U19_GW02', 'U17_GW02', 'U11_GW02'],
   };
    const comberMapping: Record<string, string[]> = {
     Unit_4: ['U13_PLC'],
@@ -49,6 +49,8 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   };
    const RTransportSystemMapping: Record<string, string[]> = {
     Unit_5: ['U4_GW03'],
+    Unit_4: ['U1_PLC'],
+
   };
    const RingMapping: Record<string, string[]> = {
     Unit_4: ['U10_PLC', 'U11_PLC', 'U12_PLC', 'U17_PLC', 'U15_GW01', 'U17_GW01', 'U16_GW01'],

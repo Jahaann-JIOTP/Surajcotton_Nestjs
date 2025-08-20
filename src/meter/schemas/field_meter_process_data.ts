@@ -13,6 +13,7 @@ export class FieldMeterProcessData extends Document {
     {
       Unit_4: { firstValue: number; lastValue: number; consumption: number };
       Unit_5: { firstValue: number; lastValue: number; consumption: number };
+      lastArea: string; // ✅ Toggle tracking ke liye add kiya
     }
   >;
 }

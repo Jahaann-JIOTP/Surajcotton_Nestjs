@@ -214,70 +214,119 @@ async storeEvery15Minutes() {
 
 /// for reports logic
 async calculateConsumption() {
-  // ✅ Sirf toggle ka last raw doc lo
-  const lastRawDoc = await this.fieldMeterRawDataModel
-    .findOne({ source: 'toggle' })
-    .sort({ timestamp: -1 });
-
-  if (!lastRawDoc) return { msg: 'No toggle data found' };
-
-  // ✅ Meter keys
   const meterKeys = [
-    'U23_GW03_Del_ActiveEnergy',
-    'U22_GW03_Del_ActiveEnergy',
-    'U3_GW02_Del_ActiveEnergy',
-    'U1_GW02_Del_ActiveEnergy',
-    'U2_GW02_Del_ActiveEnergy',
-    'U4_GW02_Del_ActiveEnergy',
+    "U23_GW03_Del_ActiveEnergy",
+    "U22_GW03_Del_ActiveEnergy",
+    "U3_GW02_Del_ActiveEnergy",
+    "U1_GW02_Del_ActiveEnergy",
+    "U2_GW02_Del_ActiveEnergy",
+    "U4_GW02_Del_ActiveEnergy",
   ];
 
-  // ✅ Existing single process doc lo (nahi mila to naya banao)
-  let processDoc = await this.fieldMeterProcessDataModel.findOne({});
-  if (!processDoc) {
-    processDoc = await this.fieldMeterProcessDataModel.create({
-      meters: {},
-    });
+  // 🔹 Pichla process doc (toggle detection ke liye)
+  const prevProcessDoc = await this.fieldMeterProcessDataModel
+    .findOne({})
+    .sort({ createdAt: -1 });
+
+  // 🔹 Har call pe naya doc banao (insert only)
+  let processDoc = new this.fieldMeterProcessDataModel({ meters: {} });
+
+  const lastRawDoc = await this.fieldMeterRawDataModel
+    .findOne({ source: "toggle" })
+    .sort({ timestamp: -1 });
+
+  if (!lastRawDoc) {
+    console.log("⏹ No toggle data found in field_meter_raw_data");
+    return { msg: "No toggle data found" };
   }
+
+  console.log("📌 Last Raw Toggle Doc:", JSON.stringify(lastRawDoc, null, 2));
 
   const allConsumption: Record<
     string,
-    { Unit_4: number; Unit_5: number }
+    { activeArea: string; consumption: number }
   > = {};
 
   for (const meterId of meterKeys) {
-    const { value } = lastRawDoc[meterId] || {};
-    if (value == null) continue;
+    const meterObj = lastRawDoc[meterId];
+    if (!meterObj) continue;
 
-    // Ensure meter object exists
-    if (!processDoc.meters[meterId]) {
+    const currentArea = meterObj.area; // "Unit_4" / "Unit_5"
+    const currentValue = meterObj.value;
+
+    // 🆕 First time init
+    if (!prevProcessDoc || !prevProcessDoc.meters[meterId]) {
       processDoc.meters[meterId] = {
-        Unit_4: { firstValue: value, lastValue: value, consumption: 0 },
-        Unit_5: { firstValue: value, lastValue: value, consumption: 0 },
+        Unit_4: { firstValue: 0, lastValue: 0, consumption: 0 },
+        Unit_5: { firstValue: 0, lastValue: 0, consumption: 0 },
+        lastArea: currentArea,
       };
+
+      processDoc.meters[meterId][currentArea].firstValue = currentValue;
+      processDoc.meters[meterId][currentArea].lastValue = currentValue;
+      // processDoc.meters[meterId][currentArea].consumption = 0;
+
+      console.log(`🆕 Init meter ${meterId} at ${currentArea} = ${currentValue}`);
+    } else {
+      // 🔹 Pichle state lo
+      const prevState = prevProcessDoc.meters[meterId];
+      const prevArea = prevState.lastArea;
+
+      // Purana copy kar lo
+      processDoc.meters[meterId] = JSON.parse(JSON.stringify(prevState));
+
+      if (prevArea !== currentArea) {
+        console.log(`🔄 TOGGLE: ${meterId} ${prevArea} → ${currentArea}`);
+
+        // ✅ Toggle hone par naye area ka firstValue = prev doc ka lastValue
+        processDoc.meters[meterId][currentArea].firstValue =
+          prevState[prevArea].lastValue;
+
+        processDoc.meters[meterId][currentArea].lastValue = currentValue;
+        processDoc.meters[meterId][currentArea].consumption =
+          currentValue - processDoc.meters[meterId][currentArea].firstValue;
+
+        // Inactive area ka consumption reset
+        // processDoc.meters[meterId][prevArea].consumption = 0;
+      } else {
+        // ✅ Same area, continue values
+        processDoc.meters[meterId][currentArea].lastValue = currentValue;
+        processDoc.meters[meterId][currentArea].consumption =
+          currentValue - processDoc.meters[meterId][currentArea].firstValue;
+
+        // Dusre area ka consumption hamesha 0
+        const otherArea = currentArea === "Unit_4" ? "Unit_5" : "Unit_4";
+        processDoc.meters[meterId][otherArea].consumption = 0;
+      }
+
+      processDoc.meters[meterId].lastArea = currentArea;
     }
 
-    // ✅ Unit wise calculation
-    for (const area of ['Unit_4', 'Unit_5']) {
-      const meterUnit = processDoc.meters[meterId][area];
-      const consumption = value - meterUnit.firstValue;
+    // ✅ Aggregation
+    allConsumption[meterId] = {
+      activeArea: currentArea,
+      consumption: processDoc.meters[meterId][currentArea].consumption,
+    };
 
-      // update values in doc
-      meterUnit.lastValue = value;
-      meterUnit.consumption = consumption;
-
-      allConsumption[meterId] = allConsumption[meterId] || {
-        Unit_4: 0,
-        Unit_5: 0,
-      };
-      allConsumption[meterId][area] = consumption;
-    }
+    console.log(
+      `✅ ${meterId} | Active: ${currentArea} | Consumption: ${allConsumption[meterId].consumption}`
+    );
   }
 
-  // ✅ Save ek hi doc
+  // 🔹 Always insert
   await processDoc.save();
+  console.log("💾 New processDoc inserted successfully");
+  console.log("📊 Final Consumption:", JSON.stringify(allConsumption, null, 2));
 
   return { data: allConsumption };
 }
+
+
+
+
+
+
+
 
 
 
