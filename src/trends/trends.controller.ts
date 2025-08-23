@@ -10,16 +10,12 @@ export class TrendsController {
   @UseGuards(JwtAuthGuard)
   @Post()
   async getTrends(@Body() body: TrendsBodyDto) {
-    const meterIds = body.meterId.split(',').map(id => id.trim());
-    const suffixes = body.suffixes.split(',').map(suffix => suffix.trim());
-
     return this.trendsService.getTrendData(
       body.start_date,
       body.end_date,
-      meterIds,
-      suffixes,
-      body.area,
-      body.LT_selections
+      body.meterId,   // 🔹 string as it is (comma separated)
+      body.suffixes,  // 🔹 string as it is
+      body.area,      // 🔹 "Unit 5 LT_3" parse hoga service mein
     );
   }
 }

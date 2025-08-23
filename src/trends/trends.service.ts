@@ -12,8 +12,8 @@ export class TrendsService {
     private readonly csNewModel: Model<CSNew>,
   ) {}
 
-private getMeterPrefixes(area: string, LT_selections: string): string[] {
-  const mapping: Record<string, Record<string, string[]>> = {
+  // 🔹 Area-to-meters mapping
+  private readonly METER_MAPPING: Record<string, Record<string, string[]> | string[]> = {
     'Unit 4': {
       LT_1: [
         'U1_PLC', 'U2_PLC', 'U3_PLC', 'U4_PLC', 'U5_PLC', 'U6_PLC', 'U7_PLC', 'U8_PLC',
@@ -28,49 +28,63 @@ private getMeterPrefixes(area: string, LT_selections: string): string[] {
       ],
     },
     'Unit 5': {
-      LT_3: [
+      LT_1: [
         'U1_GW02', 'U2_GW02', 'U3_GW02', 'U4_GW02', 'U5_GW02', 'U6_GW02', 'U7_GW02',
         'U8_GW02', 'U9_GW02', 'U10_GW02', 'U11_GW02', 'U12_GW02', 'U13_GW02', 'U14_GW02',
         'U15_GW02', 'U16_GW02', 'U17_GW02', 'U18_GW02', 'U19_GW02', 'U20_GW02', 'U21_GW02',
         'U22_GW02', 'U23_GW02',
       ],
-      LT_4: [
+      LT_2: [
         'U1_GW03', 'U2_GW03', 'U3_GW03', 'U4_GW03', 'U5_GW03', 'U6_GW03', 'U7_GW03',
         'U8_GW03', 'U9_GW03', 'U10_GW03', 'U11_GW03', 'U12_GW03', 'U13_GW03', 'U14_GW03',
         'U15_GW03', 'U16_GW03', 'U17_GW03', 'U18_GW03', 'U19_GW03', 'U20_GW03', 'U21_GW03',
         'U22_GW03', 'U23_GW03',
       ],
     },
+    'HFO': [
+      'U22_PLC', 'U23_PLC', 'U24_PLC', 'U25_PLC', 'U26_PLC', 'U27_PLC',
+    ],
+    'HT_Room1': ['U22_GW01', 'U23_GW01'],
+    'HT_Room2': ['U19_GW03', 'U20_GW03'],
   };
 
-  const areaMapping = mapping[area];
-
-  if (!areaMapping) return [];
-
-  // Return both LT_1 and LT_2 if "ALL" is selected
-  if (LT_selections === 'ALL') {
-    return [...(areaMapping['LT_1'] || []), ...(areaMapping['LT_2'] || []), ...(areaMapping['LT_3'] || []), ...(areaMapping['LT_4'] || [])];
+  // 🔹 Parse "Unit 5 LT_3" or just "HFO"
+  private parseArea(areaStr: string): { unit: string; lt?: string } {
+    const parts = areaStr.split(' ');
+    if (parts.length === 1) {
+      // HFO, HT Room 1, HT Room 2
+      return { unit: parts[0] };
+    } else if (parts.length >= 3) {
+      return { unit: parts[0] + ' ' + parts[1], lt: parts[2] };
+    }
+    return { unit: areaStr };
   }
-
-  return areaMapping[LT_selections] || [];
-}
-
-
 
  async getTrendData(
   startDate: string,
   endDate: string,
-  meterIds: string[],
-  suffixes: string[],
+  meterIdsStr: string,
+  suffixesStr: string,
   area: string,
-  LT_selections: string
 ) {
   const start = `${startDate}T00:00:00.000+05:00`;
   const end = `${endDate}T23:59:59.999+05:00`;
 
-  const allowedMeterIds = this.getMeterPrefixes(area, LT_selections);
-  const projection: any = { timestamp: 1 };
+  const { unit, lt } = this.parseArea(area);
 
+  // 🔹 Determine allowed meters
+  let allowedMeterIds: string[] = [];
+  const mapping = this.METER_MAPPING[unit];
+  if (Array.isArray(mapping)) {
+    allowedMeterIds = mapping;
+  } else if (lt && mapping) {
+    allowedMeterIds = mapping[lt] || [];
+  }
+
+  const meterIds = meterIdsStr.split(',').map(m => m.trim());
+  const suffixes = suffixesStr.split(',').map(s => s.trim());
+
+  const projection: any = { timestamp: 1 };
   meterIds.forEach(meterId => {
     if (allowedMeterIds.includes(meterId)) {
       suffixes.forEach(suffix => {
@@ -79,39 +93,34 @@ private getMeterPrefixes(area: string, LT_selections: string): string[] {
     }
   });
 
-  const rawData = await this.csNewModel.find({ timestamp: { $gte: start, $lte: end } }, projection).lean();
+  const rawData = await this.csNewModel.find(
+    { timestamp: { $gte: start, $lte: end } },
+    projection,
+  ).lean();
 
-const formatted = rawData.map(doc => {
-  const flat: any = {
-    timestamp: doc.timestamp,
-  };
-
-  meterIds.forEach(meterId => {
-    if (allowedMeterIds.includes(meterId)) {
-      suffixes.forEach(suffix => {
-        const key = `${meterId}_${suffix}`;
-        if (doc[key] !== undefined) {
-          const value = doc[key];
-          // If value is in scientific notation (e+ or e-), show 0
-          flat[key] = value.toString().includes('e') ? 0 : value;
-        } else {
-          flat[key] = 0;
-        }
-      });
-    }
+  const formatted = rawData.map(doc => {
+    const flat: any = { timestamp: doc.timestamp };
+    meterIds.forEach(meterId => {
+      if (allowedMeterIds.includes(meterId)) {
+        suffixes.forEach(suffix => {
+          const key = `${meterId}_${suffix}`;
+          if (doc[key] !== undefined) {
+            let value = doc[key];
+            // scientific notation check
+            if (value.toString().includes('e')) value = 0;
+            // round to 2 decimal places
+            flat[key] = Math.round(value * 100) / 100;
+          } else {
+            flat[key] = 0;
+          }
+        });
+      }
+    });
+    return flat;
   });
 
-  return flat;
-});
-
-
-
-  
-
-formatted.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-return formatted;
-
+  formatted.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  return formatted;
 }
-
 
 }
