@@ -149,6 +149,15 @@ async fetchAndStoreRealTime(body: { unit: string; meterIds: string[] }) {
   return newDoc;
 }
 
+
+
+  
+
+
+
+
+
+
 // 🔹 har 5 min baad yeh cron job chalegi
 @Cron('0 */15 * * * *') // har 2 minute me run
 async storeEvery15Minutes() {
@@ -213,113 +222,128 @@ async storeEvery15Minutes() {
 }
 
 /// for reports logic
-async calculateConsumption() {
-  const meterKeys = [
-    "U23_GW03_Del_ActiveEnergy",
-    "U22_GW03_Del_ActiveEnergy",
-    "U3_GW02_Del_ActiveEnergy",
-    "U1_GW02_Del_ActiveEnergy",
-    "U2_GW02_Del_ActiveEnergy",
-    "U4_GW02_Del_ActiveEnergy",
-  ];
+ 
+ async calculateConsumption() {
+    const meterKeys = [
+      "U23_GW03_Del_ActiveEnergy",
+      "U22_GW03_Del_ActiveEnergy",
+      "U3_GW02_Del_ActiveEnergy",
+      "U1_GW02_Del_ActiveEnergy",
+      "U2_GW02_Del_ActiveEnergy",
+      "U4_GW02_Del_ActiveEnergy",
+    ];
 
-  // 🔹 Pichla process doc (toggle detection ke liye)
-  const prevProcessDoc = await this.fieldMeterProcessDataModel
-    .findOne({})
-    .sort({ createdAt: -1 });
+    const prevProcessDoc = await this.fieldMeterProcessDataModel
+      .findOne({})
+      .sort({ timestamp: -1 });
 
-  // 🔹 Har call pe naya doc banao (insert only)
-  let processDoc = new this.fieldMeterProcessDataModel({ meters: {} });
+    // let processDoc = new this.fieldMeterProcessDataModel({ meters: {}, flatMeters: {} });
 
-  const lastRawDoc = await this.fieldMeterRawDataModel
-    .findOne({ source: "toggle" })
-    .sort({ timestamp: -1 });
+    const lastRawDoc = await this.fieldMeterRawDataModel
+      .findOne({ source: "toggle" })
+      .sort({ timestamp: -1 });
 
-  if (!lastRawDoc) {
-    console.log("⏹ No toggle data found in field_meter_raw_data");
-    return { msg: "No toggle data found" };
-  }
-
-  console.log("📌 Last Raw Toggle Doc:", JSON.stringify(lastRawDoc, null, 2));
-
-  const allConsumption: Record<
-    string,
-    { activeArea: string; consumption: number }
-  > = {};
-
-  for (const meterId of meterKeys) {
-    const meterObj = lastRawDoc[meterId];
-    if (!meterObj) continue;
-
-    const currentArea = meterObj.area; // "Unit_4" / "Unit_5"
-    const currentValue = meterObj.value;
-
-    // 🆕 First time init
-    if (!prevProcessDoc || !prevProcessDoc.meters[meterId]) {
-      processDoc.meters[meterId] = {
-        Unit_4: { firstValue: 0, lastValue: 0, consumption: 0 },
-        Unit_5: { firstValue: 0, lastValue: 0, consumption: 0 },
-        lastArea: currentArea,
-      };
-
-      processDoc.meters[meterId][currentArea].firstValue = currentValue;
-      processDoc.meters[meterId][currentArea].lastValue = currentValue;
-      // processDoc.meters[meterId][currentArea].consumption = 0;
-
-      console.log(`🆕 Init meter ${meterId} at ${currentArea} = ${currentValue}`);
-    } else {
-      // 🔹 Pichle state lo
-      const prevState = prevProcessDoc.meters[meterId];
-      const prevArea = prevState.lastArea;
-
-      // Purana copy kar lo
-      processDoc.meters[meterId] = JSON.parse(JSON.stringify(prevState));
-
-      if (prevArea !== currentArea) {
-        console.log(`🔄 TOGGLE: ${meterId} ${prevArea} → ${currentArea}`);
-
-        // ✅ Toggle hone par naye area ka firstValue = prev doc ka lastValue
-        processDoc.meters[meterId][currentArea].firstValue =
-          prevState[prevArea].lastValue;
-
-        processDoc.meters[meterId][currentArea].lastValue = currentValue;
-        processDoc.meters[meterId][currentArea].consumption =
-          currentValue - processDoc.meters[meterId][currentArea].firstValue;
-
-        // Inactive area ka consumption reset
-        // processDoc.meters[meterId][prevArea].consumption = 0;
-      } else {
-        // ✅ Same area, continue values
-        processDoc.meters[meterId][currentArea].lastValue = currentValue;
-        processDoc.meters[meterId][currentArea].consumption =
-          currentValue - processDoc.meters[meterId][currentArea].firstValue;
-
-        // Dusre area ka consumption hamesha 0
-        const otherArea = currentArea === "Unit_4" ? "Unit_5" : "Unit_4";
-        processDoc.meters[meterId][otherArea].consumption = 0;
-      }
-
-      processDoc.meters[meterId].lastArea = currentArea;
+    if (!lastRawDoc) {
+      console.log("⏹ No toggle data found in field_meter_raw_data");
+      return { msg: "No toggle data found" };
     }
 
-    // ✅ Aggregation
-    allConsumption[meterId] = {
-      activeArea: currentArea,
-      consumption: processDoc.meters[meterId][currentArea].consumption,
-    };
+   
+    let processDoc: any = { meters: {} };
+const flatMeters: Record<string, { fV: number; lV: number; CONS: number }> = {};
+const allConsumption: Record<string, { activeArea: string; consumption: number }> = {};
 
-    console.log(
-      `✅ ${meterId} | Active: ${currentArea} | Consumption: ${allConsumption[meterId].consumption}`
-    );
-  }
+    for (const meterId of meterKeys) {
+      const meterObj = lastRawDoc[meterId];
+      if (!meterObj) continue;
 
-  // 🔹 Always insert
-  await processDoc.save();
-  console.log("💾 New processDoc inserted successfully");
-  console.log("📊 Final Consumption:", JSON.stringify(allConsumption, null, 2));
+      const currentArea = meterObj.area; // "Unit_4" / "Unit_5"
+      const currentValue = meterObj.value;
 
-  return { data: allConsumption };
+      if (!prevProcessDoc || !prevProcessDoc.meters[meterId]) {
+        // 🆕 First-time initialization
+        processDoc.meters[meterId] = {
+          Unit_4: { firstValue: 0, lastValue: 0, consumption: 0 },
+          Unit_5: { firstValue: 0, lastValue: 0, consumption: 0 },
+          lastArea: currentArea,
+        };
+
+        processDoc.meters[meterId][currentArea].firstValue = currentValue;
+        processDoc.meters[meterId][currentArea].lastValue = currentValue;
+
+        console.log(`🆕 Init meter ${meterId} at ${currentArea} = ${currentValue}`);
+      } else {
+        const prevState = prevProcessDoc.meters[meterId];
+        const prevArea = prevState.lastArea;
+
+        processDoc.meters[meterId] = JSON.parse(JSON.stringify(prevState));
+
+        if (prevArea !== currentArea) {
+          console.log(`🔄 TOGGLE: ${meterId} ${prevArea} → ${currentArea}`);
+
+          // Update the previous area with the new value
+          processDoc.meters[meterId][prevArea].lastValue = currentValue;
+          processDoc.meters[meterId][prevArea].consumption =
+          currentValue - processDoc.meters[meterId][prevArea].firstValue;
+
+          // Initialize new area
+          processDoc.meters[meterId][currentArea].firstValue = currentValue;
+          processDoc.meters[meterId][currentArea].lastValue = currentValue;
+          processDoc.meters[meterId][currentArea].consumption = 0;
+
+        } else {
+          // Same area, just update the lastValue and consumption
+          processDoc.meters[meterId][currentArea].lastValue = currentValue;
+          processDoc.meters[meterId][currentArea].consumption =
+          currentValue - processDoc.meters[meterId][currentArea].firstValue;
+        }
+
+        // Update the last area
+        processDoc.meters[meterId].lastArea = currentArea;
+      }
+
+      // Store the consumption for each area
+      allConsumption[meterId] = {
+        activeArea: currentArea,
+        consumption:
+          processDoc.meters[meterId].Unit_4.consumption +
+          processDoc.meters[meterId].Unit_5.consumption,
+      };
+
+      // Store flattened data for output and saving to DB
+      flatMeters[`U4_${meterId}`] = {
+        fV: processDoc.meters[meterId].Unit_4.firstValue,
+        lV: processDoc.meters[meterId].Unit_4.lastValue,
+        CONS: processDoc.meters[meterId].Unit_4.consumption,
+      };
+
+      flatMeters[`U5_${meterId}`] = {
+        fV: processDoc.meters[meterId].Unit_5.firstValue,
+        lV: processDoc.meters[meterId].Unit_5.lastValue,
+        CONS: processDoc.meters[meterId].Unit_5.consumption,
+      };
+    }
+
+    // ✅ Save the flattened meters directly in the database
+     // ✅ Save only flatMeters in DB
+  processDoc.flatMeters = flatMeters;
+processDoc.timestamp = new Date();
+await this.fieldMeterProcessDataModel.create(processDoc);
+
+await this.fieldMeterProcessDataModel.create({
+  meters: processDoc.meters,
+  flatMeters,
+  timestamp: new Date(),
+});
+
+
+
+  console.log("💾 New flatMeters inserted successfully");
+  console.log("📊 Final Consumption:", JSON.stringify(flatMeters, null, 2));
+
+  return { data: flatMeters };
 }
+
 
 
 
