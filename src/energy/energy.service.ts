@@ -35,7 +35,7 @@ export class EnergyService {
     const Wapda2Keys = ['U27_PLC_ActiveEnergy_Imp_kWh'];
     const NiigataKeys = ['U22_PLC_Del_ActiveEnergy'];
     const JMSKeys = ['U26_PLC_Del_ActiveEnergy'];
-    const WapdaExportKeys = ['U13_GW02_ActiveEnergy_Exp_kWh', 'U16_GW03_ActiveEnergy_Exp_kWh'];
+    const WapdaExportKeys = ['U20_GW03_ActiveEnergy_Exp_kWh', 'U19_GW03_ActiveEnergy_Exp_kWh'];
     const Trafo1IncomingKeys = ['U23_GW01_Del_ActiveEnergy'];
     const Trafo2IncomingKeys = ['U22_GW01_Del_ActiveEnergy'];
     const Trafo3IncomingKeys = ['U20_GW03_Del_ActiveEnergy'];
@@ -44,8 +44,8 @@ export class EnergyService {
     const Trafo2outgoingKeys = ['U13_GW01_Del_ActiveEnergy'];
     const Trafo3outgoingKeys = ['U13_GW02_Del_ActiveEnergy'];
     const Trafo4outgoingKeys = ['U16_GW03_Del_ActiveEnergy'];
-    const DieselGensetKeys = ['U19_PLC_Del_ActiveEnergy'];
-    const GasGensetKeys = ['U11_GW01_Del_ActiveEnergy'];
+    const DieselGensetandGasGensetKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
+    
     const Solar1Keys = ['U6_GW02_Del_ActiveEnergy'];
     const Solar2Keys = ['U17_GW03_Del_ActiveEnergy'];
     const PH_ICKeys = ['U23_GW01_Del_ActiveEnergy'];
@@ -187,8 +187,8 @@ const sumGroup = (keys: string[]) =>
     let Trafo2outgoing = sumGroup(Trafo2outgoingKeys);
     let Trafo3outgoing = sumGroup(Trafo3outgoingKeys);
     let Trafo4outgoing = sumGroup(Trafo4outgoingKeys);
-    let DieselGenset = sumGroup(DieselGensetKeys);
-    let GasGenset = sumGroup(GasGensetKeys);
+    let DieselandGasGenset = sumGroup(DieselGensetandGasGensetKeys);
+    // let GasGenset = sumGroup(GasGensetKeys);
     let Solar1 = sumGroup(Solar1Keys);
     let Solar2 = sumGroup(Solar2Keys);
     let Aux_consumption= sumGroup(Aux_consumptionKeys);
@@ -259,8 +259,8 @@ const sumGroup = (keys: string[]) =>
     total_energy_input: totalenergyinput.toFixed(2),
     totalenergyoutput : totalenergyoutput.toFixed(2),
     unaccoutable_energy: unaccoutable_energy.toFixed(2),
-    DieselGenset: DieselGenset.toFixed(2),
-    GasGenset: GasGenset.toFixed(2),
+    DieselandGasGenset: DieselandGasGenset.toFixed(2),
+    // GasGenset: GasGenset.toFixed(2),
     // Compressor3: Compressor3.toFixed(5),
     // Sum_of_compressors: production.toFixed(5),
     // Unaccountable_Energy: unaccountable.toFixed(5),
