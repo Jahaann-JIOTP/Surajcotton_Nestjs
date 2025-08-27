@@ -14,12 +14,18 @@ export class EnergyService {
     const meterIds = [ "U1_PLC", "U2_PLC", "U3_PLC", "U4_PLC", "U5_PLC", "U6_PLC", "U7_PLC", "U8_PLC", "U9_PLC",
        "U10_PLC", "U11_PLC", "U12_PLC", "U13_PLC", "U14_PLC", "U15_PLC", "U16_PLC", "U17_PLC","U18_PLC",
        "U19_PLC","U20_PLC", "U21_PLC","U22_PLC", "U23_PLC","U24_PLC","U25_PLC","U26_PLC","U27_PLC",
-        "U6_GW02", "U17_GW03", "U23_GW01", 
+       
+        
         "U1_GW01", "U2_GW01", "U3_GW01", "U4_GW01", "U5_GW01", "U6_GW01", "U7_GW01", "U8_GW01", "U9_GW01", "U10_GW01", "U11_GW01",
-        "U12_GW01", "U13_GW01", "U14_GW01", "U15_GW01", "U16_GW01", "U17_GW01", "U18_GW01", "U19_GW01", "U20_GW01", "U21_GW01", "U22_GW01", "U23_GW01","U1_GW02",
-        "U2_GW02", "U3_GW02", "U4_GW02", "U5_GW02", "U7_GW02", "U8_GW02", "U9_GW02", "U10_GW02", "U11_GW02", "U12_GW02", "U13_GW02", "U14_GW02",
-        "U15_GW02", "U16_GW02", "U17_GW02", "U18_GW02", "U19_GW02", "U20_GW02", "U21_GW02", "U22_GW02", "U23_GW02", "U1_GW03", "U2_GW03", "U3_GW03",
-        "U4_GW03", "U5_GW03", "U6_GW03", "U18_GW03", "U19_GW03", "U20_GW03", "U21_GW03", "U22_GW03", "U23_GW03", "U16_GW03"];
+        "U12_GW01", "U13_GW01", "U14_GW01", "U15_GW01", "U16_GW01", "U17_GW01", "U18_GW01", "U19_GW01", "U20_GW01", "U21_GW01", "U22_GW01", "U23_GW01",
+        
+        "U1_GW02","U2_GW02", "U3_GW02", "U4_GW02", "U5_GW02", "U6_GW02", "U7_GW02","U8_GW02", "U9_GW02", "U10_GW02", "U11_GW02", "U12_GW02", "U13_GW02", "U14_GW02",
+        "U15_GW02", "U16_GW02", "U17_GW02", "U18_GW02", "U19_GW02", "U20_GW02", "U21_GW02", "U22_GW02", "U23_GW02",
+        
+        "U1_GW03", "U2_GW03", "U3_GW03","U4_GW03", "U5_GW03", "U6_GW03", "U7_GW03", "U8_GW03", "U9_GW03", "U10_GW03","U11_GW03","U12_GW03","U13_GW03","U14_GW03","U15_GW03",
+        "U16_GW03","U17_GW03", "U18_GW03", "U19_GW03", "U20_GW03", "U21_GW03", "U22_GW03", "U23_GW03", "U16_GW03"];
+
+
     const suffixes: string[] = ['Del_ActiveEnergy', 'ActivePower_Total', 'ActiveEnergy_Imp_kWh', 'ActiveEnergy_Exp_kWh'];
     const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
     const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
@@ -55,11 +61,20 @@ export class EnergyService {
        'U12_GW01_Del_ActiveEnergy',  'U14_GW01_Del_ActiveEnergy','U15_GW01_Del_ActiveEnergy',
         'U16_GW01_Del_ActiveEnergy',  'U17_GW01_Del_ActiveEnergy',  'U18_GW01_Del_ActiveEnergy',  'U19_GW01_Del_ActiveEnergy',
          'U20_GW01_Del_ActiveEnergy',  'U21_GW01_Del_ActiveEnergy'
-   ]
+   ];
+
+   ////// i did not add 4 PDB meters in U5_LT1 because its not add in SLD
     const Unit5_LT1Keys = ['U5_GW02_Del_ActiveEnergy','U7_GW02_Del_ActiveEnergy','U8_GW02_Del_ActiveEnergy','U9_GW02_Del_ActiveEnergy',
       'U10_GW02_Del_ActiveEnergy','U11_GW02_Del_ActiveEnergy','U12_GW02_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy',  'U14_GW02_Del_ActiveEnergy',
       'U15_GW02_Del_ActiveEnergy','U16_GW02_Del_ActiveEnergy',  'U17_GW02_Del_ActiveEnergy',  'U18_GW02_Del_ActiveEnergy',  'U19_GW02_Del_ActiveEnergy',
          'U20_GW02_Del_ActiveEnergy',  'U21_GW02_Del_ActiveEnergy',  'U22_GW02_Del_ActiveEnergy',  'U23_GW02_Del_ActiveEnergy'
+   ];
+    ////// i did not add 2 PDB meters in U5_LT2 because its not add in SLD
+       const Unit5_LT2Keys = ['U1_GW03_Del_ActiveEnergy', 'U2_GW03_Del_ActiveEnergy','U3_GW03_Del_ActiveEnergy', 'U4_GW03_Del_ActiveEnergy',
+      'U5_GW03_Del_ActiveEnergy', 'U6_GW03_Del_ActiveEnergy','U7_GW03_Del_ActiveEnergy','U8_GW03_Del_ActiveEnergy','U9_GW03_Del_ActiveEnergy',
+      'U10_GW03_Del_ActiveEnergy','U11_GW03_Del_ActiveEnergy','U12_GW03_Del_ActiveEnergy', 'U13_GW03_Del_ActiveEnergy',  'U14_GW03_Del_ActiveEnergy',
+      'U15_GW03_Del_ActiveEnergy','U16_GW03_Del_ActiveEnergy',   'U18_GW03_Del_ActiveEnergy',
+      'U21_GW03_Del_ActiveEnergy',  'U22_GW03_Del_ActiveEnergy',  'U23_GW03_Del_ActiveEnergy'
    ]
 
     
@@ -162,6 +177,7 @@ const sumGroup = (keys: string[]) =>
     let Unit4_LT1 = sumGroup (Unit4_LT1Keys );
     let Unit4_LT2 = sumGroup (Unit4_LT2Keys );
     let Unit5_LT1 = sumGroup (Unit5_LT1Keys );
+    let Unit5_LT2 = sumGroup (Unit5_LT2Keys );
     let WapdaExport= sumGroup( WapdaExportKeys);
     let Trafo1Incoming = sumGroup(Trafo1IncomingKeys);
     let Trafo2Incoming = sumGroup(Trafo2IncomingKeys);
@@ -193,7 +209,7 @@ const sumGroup = (keys: string[]) =>
     let Trafo4losses = Trafo4Incoming - Trafo4outgoing;
     let TrasformerLosses = T1andT2losses+ Trafo3losses + Trafo4losses;
     let HT_Transmissioin_Losses = (Wapda2+ Niigata + JMS)- (Trafo3Incoming + Trafo4Incoming + PH_IC );
-    let unaccoutable_energy= totalenergyinput-totalGeneration;
+    let unaccoutable_energy= (U4_Consumption+ U5_Consumption)- (Unit4_LT1+Unit4_LT2+Unit5_LT1+Unit5_LT2);
     // let unaccountable = totalConsumption - production;
 
     return {
@@ -209,6 +225,7 @@ const sumGroup = (keys: string[]) =>
     Unit4_LT1: Unit4_LT1.toFixed(2),
     Unit4_LT2: Unit4_LT2.toFixed(2),
     Unit5_LT1: Unit5_LT1.toFixed(2),
+    Unit5_LT2: Unit5_LT2.toFixed(2),
     PH_ICKeys: PH_IC.toFixed(2),
     Wapdaexport: WapdaExport.toFixed(2),
     T1andT2incoming: T1andT2incoming.toFixed(2),

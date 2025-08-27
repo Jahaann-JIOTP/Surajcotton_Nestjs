@@ -29,6 +29,14 @@ async getPowerAverages(startDate: string, endDate: string) {
   const solarTags = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
   const unit4Tags = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy'];
   const unit5Tags = ['U6_GW02_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
+  const Trafo1IncomingTags = ['U23_GW01_Del_ActiveEnergy'];
+  const Trafo2IncomingTags = ['U22_GW01_Del_ActiveEnergy'];
+  const Trafo3IncomingTags = ['U20_GW03_Del_ActiveEnergy'];
+   const Trafo4IncomingTags = ['U19_GW03_Del_ActiveEnergy'];
+    const Trafo1outgoingTags = ['U21_PLC_Del_ActiveEnergy'];
+    const Trafo2outgoingTags = ['U13_GW01_Del_ActiveEnergy'];
+    const Trafo3outgoingTags = ['U13_GW02_Del_ActiveEnergy'];
+    const Trafo4outgoingTags = ['U16_GW03_Del_ActiveEnergy'];
 
   // Aggregation pipeline
   const pipeline = [
@@ -58,7 +66,9 @@ async getPowerAverages(startDate: string, endDate: string) {
       $group: {
         _id: "$hourStart",
         ...Object.fromEntries(
-          [...htTags, ...ltTags, ...wapdaTags, ...solarTags, ...unit4Tags, ...unit5Tags].flatMap(tag => [
+          [...htTags, ...ltTags, ...wapdaTags, ...solarTags, ...unit4Tags, ...unit5Tags, ...Trafo1IncomingTags, ...Trafo2IncomingTags,
+            ...Trafo3IncomingTags, ...Trafo4IncomingTags, ...Trafo1outgoingTags, ...Trafo2outgoingTags, ...Trafo3outgoingTags,
+             ...Trafo4outgoingTags].flatMap(tag => [
             [`first_${tag}`, { $first: { $ifNull: [`$${tag}`, 0] } }],
             [`last_${tag}`, { $last: { $ifNull: [`$${tag}`, 0] } }],
           ])
@@ -127,6 +137,74 @@ async getPowerAverages(startDate: string, endDate: string) {
       unit5Total += diff;
     }
 
+    let Trafo1Incoming = 0;
+    for (const tag of Trafo1IncomingTags) {
+      const first = entry[`first_${tag}`] || 0;
+      const last = entry[`last_${tag}`] || 0;
+      let diff = last - first;
+      if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+      Trafo1Incoming += diff;
+    }
+
+      let Trafo2Incoming = 0;
+    for (const tag of Trafo2IncomingTags) {
+      const first = entry[`first_${tag}`] || 0;
+      const last = entry[`last_${tag}`] || 0;
+      let diff = last - first;
+      if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+      Trafo2Incoming += diff;
+    }
+
+    let Trafo3Incoming = 0;
+    for (const tag of Trafo3IncomingTags) {
+      const first = entry[`first_${tag}`] || 0;
+      const last = entry[`last_${tag}`] || 0;
+      let diff = last - first;
+      if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+      Trafo3Incoming += diff;
+    }
+
+    let Trafo4Incoming = 0;
+    for (const tag of Trafo4IncomingTags) {
+      const first = entry[`first_${tag}`] || 0;
+      const last = entry[`last_${tag}`] || 0;
+      let diff = last - first;
+      if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+      Trafo4Incoming += diff;
+    }
+        let Trafo1outgoing = 0;
+    for (const tag of Trafo1outgoingTags) {
+      const first = entry[`first_${tag}`] || 0;
+      const last = entry[`last_${tag}`] || 0;
+      let diff = last - first;
+      if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+      Trafo1outgoing += diff;
+    }
+        let Trafo2outgoing = 0;
+    for (const tag of Trafo2outgoingTags) {
+      const first = entry[`first_${tag}`] || 0;
+      const last = entry[`last_${tag}`] || 0;
+      let diff = last - first;
+      if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+      Trafo2outgoing += diff;
+    }
+        let Trafo3outgoing = 0;
+    for (const tag of Trafo3outgoingTags) {
+      const first = entry[`first_${tag}`] || 0;
+      const last = entry[`last_${tag}`] || 0;
+      let diff = last - first;
+      if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+      Trafo3outgoing += diff;
+    }
+        let Trafo4outgoing = 0;
+    for (const tag of Trafo4outgoingTags) {
+      const first = entry[`first_${tag}`] || 0;
+      const last = entry[`last_${tag}`] || 0;
+      let diff = last - first;
+      if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+      Trafo4outgoing += diff;
+    }
+   
     const totalConsumption = unit4Total + unit5Total;
     const totalGeneration = htTotal + ltTotal + wapdaTotal + solarTotal;
 
