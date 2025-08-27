@@ -42,10 +42,8 @@ export class PieChartService {
       // Define tag groups
       const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
       const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
-      const WapdaImportKeys = ['U13_GW02_ActiveEnergy_Imp_kWh', 'U16_GW03_ActiveEnergy_Imp_kWh'];
-      const HTGenerationKeys = [
-       'U23_GW01_Del_ActiveEnergy', 'U22_GW01_Del_ActiveEnergy', 'U20_GW03_Del_ActiveEnergy','U19_GW03_Del_ActiveEnergy'
-      ];
+      const WapdaImportKeys = ['U22_GW01_ActiveEnergy_Imp_kWh', 'U27_PLC_ActiveEnergy_Imp_kWh'];
+      const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];
 
       // Utility to build and filter consumption arrays
    // Utility to build and filter consumption arrays

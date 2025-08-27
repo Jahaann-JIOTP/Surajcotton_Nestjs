@@ -107,6 +107,8 @@ async getLatestConfig() {
     return { message: 'Something went wrong' };
   }
 }
+
+////... These are the feild meter ids ...///
 private readonly METER_UNIT_MAP: Record<string, string[]> = {
   'U23_GW03_Del_ActiveEnergy': ['Unit_4', 'Unit_5'],
   'U22_GW03_Del_ActiveEnergy': ['Unit_4', 'Unit_5'],
@@ -119,8 +121,7 @@ private readonly METER_UNIT_MAP: Record<string, string[]> = {
 
 
 
-
-
+/////..... this one logic for toggle area from unit 4 to unit 5...../////
 async fetchAndStoreRealTime(body: { unit: string; meterIds: string[] }) {
   const { unit, meterIds } = body;
 
@@ -144,9 +145,9 @@ async fetchAndStoreRealTime(body: { unit: string; meterIds: string[] }) {
   timestampNow.setSeconds(0, 0); // seconds & ms zero to avoid duplicates
 
   // 🔹 Step 2: agar toggle se aaya hai to +1 second shift kar diya
-  if (body?.unit) {
-    timestampNow.setSeconds(timestampNow.getSeconds() + 1);
-  }
+  // if (body?.unit) {
+  //   timestampNow.setSeconds(timestampNow.getSeconds() + 1);
+  // }
 
   // ✅ Insert or update (upsert) toggle record
 const newDoc = await this.fieldMeterRawDataModel.findOneAndUpdate(
@@ -166,132 +167,15 @@ return newDoc;
 
 
 
-
-  
-
-
-
-
-// 🔹 har 1 min baad yeh cron job chalegi
+// 🔹 har 15 min baad yeh cron job chalegi or doc db may jay ga //
 @Cron('0 */15 * * * *') 
- async calculateConsumption() {
-  const meterKeys = [
-    "U23_GW03_Del_ActiveEnergy",
-    "U22_GW03_Del_ActiveEnergy",
-    "U3_GW02_Del_ActiveEnergy",
-    "U1_GW02_Del_ActiveEnergy",
-    "U2_GW02_Del_ActiveEnergy",
-    "U4_GW02_Del_ActiveEnergy",
-  ];
-
-  const prevProcessDoc = await this.fieldMeterProcessDataModel
-    .findOne({})
-    .sort({ timestamp: -1 });
-
-  let processDoc = new this.fieldMeterProcessDataModel({ flatMeters: {} });
-
-  // 🔹 Last raw doc (toggle OR cron, whichever latest is available)
-  const lastRawDoc = await this.fieldMeterRawDataModel
-    .findOne({})
-    .sort({ timestamp: -1 });
-
-  if (!lastRawDoc) {
-    console.log("⏹ No raw data found in field_meter_raw_data");
-    return { msg: "No raw data found" };
-  }
-
-  const allConsumption: Record<string, { activeArea: string; consumption: number }> = {};
-  const flatMeters: Record<string, { fV: number; lV: number; CONS: number }> = {};
-
-  for (const meterId of meterKeys) {
-    const meterObj = lastRawDoc[meterId];
-    if (!meterObj) continue;
-
-    const currentArea = meterObj.area;
-    const currentValue = meterObj.value;
-
-    if (!prevProcessDoc || !prevProcessDoc.meters[meterId]) {
-      // 🆕 First-time init
-      processDoc.meters[meterId] = {
-        Unit_4: { firstValue: currentValue, lastValue: currentValue, consumption: 0 },
-        Unit_5: { firstValue: 0, lastValue: 0, consumption: 0 },
-        lastArea: currentArea,
-      };
-    } else {
-      const prevState = prevProcessDoc.meters[meterId];
-      const prevArea = prevState.lastArea;
-
-      processDoc.meters[meterId] = JSON.parse(JSON.stringify(prevState));
-
-      // 🔄 Case 1: Toggle hua → existing logic
-      if (prevArea !== currentArea && lastRawDoc.source === "toggle") {
-        console.log(`🔄 TOGGLE: ${meterId} ${prevArea} → ${currentArea}`);
-
-        processDoc.meters[meterId][prevArea].lastValue = currentValue;
-        processDoc.meters[meterId][prevArea].consumption =
-          currentValue - processDoc.meters[meterId][prevArea].firstValue;
-
-        processDoc.meters[meterId][currentArea].firstValue = currentValue;
-        processDoc.meters[meterId][currentArea].lastValue = currentValue;
-        processDoc.meters[meterId][currentArea].consumption = 0;
-      } else {
-        // 🔄 Case 2: Cron doc aya (15 min interval)
-        // Yahan firstValue = prevProcessDoc ka lastValue
-        // aur lastValue = currentValue
-        if (lastRawDoc.source === "cron") {
-          const firstVal = prevState[meterObj.area].lastValue;
-          processDoc.meters[meterId][currentArea].firstValue = firstVal;
-          processDoc.meters[meterId][currentArea].lastValue = currentValue;
-          processDoc.meters[meterId][currentArea].consumption = currentValue - firstVal;
-        } else {
-          // 🔄 Case 3: Same area + toggle record
-          processDoc.meters[meterId][currentArea].lastValue = currentValue;
-          processDoc.meters[meterId][currentArea].consumption =
-            currentValue - processDoc.meters[meterId][currentArea].firstValue;
-        }
-      }
-
-      processDoc.meters[meterId].lastArea = currentArea;
-    }
-
-    // Aggregate consumption
-    allConsumption[meterId] = {
-      activeArea: currentArea,
-      consumption:
-        processDoc.meters[meterId].Unit_4.consumption +
-        processDoc.meters[meterId].Unit_5.consumption,
-    };
-
-    flatMeters[`U4_${meterId}`] = {
-      fV: processDoc.meters[meterId].Unit_4.firstValue,
-      lV: processDoc.meters[meterId].Unit_4.lastValue,
-      CONS: processDoc.meters[meterId].Unit_4.consumption,
-    };
-
-    flatMeters[`U5_${meterId}`] = {
-      fV: processDoc.meters[meterId].Unit_5.firstValue,
-      lV: processDoc.meters[meterId].Unit_5.lastValue,
-      CONS: processDoc.meters[meterId].Unit_5.consumption,
-    };
-  }
-
-  // Save
-  processDoc.flatMeters = flatMeters;
-  processDoc.timestamp = lastRawDoc.timestamp; // ⏰ Save interval-wise timestamp
-  await processDoc.save();
-
-  console.log("💾 New processDoc inserted successfully");
-  console.log("📊 Final Consumption:", JSON.stringify(flatMeters, null, 2));
-
-  return { data: flatMeters };
-}
 async storeEvery15Minutes() {
   try {
     // 1️⃣ API call
     const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
     const apiData = apiRes.data;
 
-    // 2️⃣ Round current time to nearest 15-min slot
+    // 2️⃣ Round current time to nearest 1-minute slot
     const now = new Date();
     const roundedMinutes = Math.floor(now.getMinutes() / 15) * 15;
     const timestamp15 = new Date(now);
@@ -311,7 +195,7 @@ async storeEvery15Minutes() {
       };
     }
 
-    // 4️⃣ Insert with upsert (only one cron doc per 15-min slot)
+    // 4️⃣ Insert with upsert (only one cron doc per minute)
     const newDoc = await this.fieldMeterRawDataModel.findOneAndUpdate(
       { timestamp: timestamp15, source: 'cron' }, // unique condition
       {
@@ -325,6 +209,10 @@ async storeEvery15Minutes() {
     );
 
     console.log(`✅ Cron insert complete for ${timestamp15.toISOString()}`);
+
+    // After storing the real-time data, now call the calculateConsumption function
+    await this.calculateConsumption(); // Calling calculateConsumption after storing data
+
     return newDoc;
 
   } catch (err) {
@@ -332,121 +220,199 @@ async storeEvery15Minutes() {
   }
 }
 
-//  async calculateConsumption() {
-//   const meterKeys = [
-//     "U23_GW03_Del_ActiveEnergy",
-//     "U22_GW03_Del_ActiveEnergy",
-//     "U3_GW02_Del_ActiveEnergy",
-//     "U1_GW02_Del_ActiveEnergy",
-//     "U2_GW02_Del_ActiveEnergy",
-//     "U4_GW02_Del_ActiveEnergy",
-//   ];
+////....... thid one logic help to calculate consumption for cron and toggles docs and save consumption in process data....///////
+async calculateConsumption() {
+  const meterKeys = [
+    "U23_GW03_Del_ActiveEnergy",
+    "U22_GW03_Del_ActiveEnergy",
+    "U3_GW02_Del_ActiveEnergy",
+    "U1_GW02_Del_ActiveEnergy",
+    "U2_GW02_Del_ActiveEnergy",
+    "U4_GW02_Del_ActiveEnergy",
+  ];
 
-//   const prevProcessDoc = await this.fieldMeterProcessDataModel
-//     .findOne({})
-//     .sort({ timestamp: -1 });
+  // 🔹 Last processDoc (for previous state of flatMeters)
+  const prevProcessDoc = await this.fieldMeterProcessDataModel
+    .findOne({})
+    .sort({ timestamp: -1 });
 
-//   let processDoc = new this.fieldMeterProcessDataModel({ flatMeters: {} });
+  // 🔹 Latest rawDoc (toggle OR cron)
+  const lastRawDoc = await this.fieldMeterRawDataModel
+    .findOne({})
+    .sort({ timestamp: -1 });
 
-//   // 🔹 Last raw doc (toggle OR cron, whichever latest is available)
-//   const lastRawDoc = await this.fieldMeterRawDataModel
-//     .findOne({})
-//     .sort({ timestamp: -1 });
+  if (!lastRawDoc) {
+    console.log("⏹ No raw data found in field_meter_raw_data");
+    return { msg: "No raw data found" };
+  }
 
-//   if (!lastRawDoc) {
-//     console.log("⏹ No raw data found in field_meter_raw_data");
-//     return { msg: "No raw data found" };
-//   }
+  // --- CRON CASE ---
+  if (lastRawDoc.source === "cron") {
+    // 1️⃣ Get the last 2 cron docs based on timestamp
+    const cronDocs = await this.fieldMeterRawDataModel
+      .find({ source: "cron" })
+      .sort({ timestamp: -1 })
+      .limit(2)
+      .lean();
 
-//   const allConsumption: Record<string, { activeArea: string; consumption: number }> = {};
-//   const flatMeters: Record<string, { fV: number; lV: number; CONS: number }> = {};
+    if (cronDocs.length < 2) {
+      console.log("⏹ Not enough cron docs for consumption calculation");
+      return { msg: "Not enough cron docs" };
+    }
 
-//   for (const meterId of meterKeys) {
-//     const meterObj = lastRawDoc[meterId];
-//     if (!meterObj) continue;
+    const latestCron = cronDocs[0]; // e.g., 11:30
+    const prevCron = cronDocs[1]; // e.g., 11:15
 
-//     const currentArea = meterObj.area;
-//     const currentValue = meterObj.value;
+// Inside your calculateConsumption function:
 
-//     if (!prevProcessDoc || !prevProcessDoc.meters[meterId]) {
-//       // 🆕 First-time init
-//       processDoc.meters[meterId] = {
-//         Unit_4: { firstValue: currentValue, lastValue: currentValue, consumption: 0 },
-//         Unit_5: { firstValue: 0, lastValue: 0, consumption: 0 },
-//         lastArea: currentArea,
-//       };
-//     } else {
-//       const prevState = prevProcessDoc.meters[meterId];
-//       const prevArea = prevState.lastArea;
+const flatMeters: Record<string, { fV: number; lV: number; CONS: number }> = {}; // source removed
 
-//       processDoc.meters[meterId] = JSON.parse(JSON.stringify(prevState));
+for (const meterId of meterKeys) {
+  const prevMeter = prevCron[meterId];
+  const latestMeter = latestCron[meterId];
+  if (!prevMeter || !latestMeter) continue;
 
-//       // 🔄 Case 1: Toggle hua → existing logic
-//       if (prevArea !== currentArea && lastRawDoc.source === "toggle") {
-//         console.log(`🔄 TOGGLE: ${meterId} ${prevArea} → ${currentArea}`);
+  const fV = prevMeter.value;
+  const lV = latestMeter.value;
+  const CONS = lV - fV;
 
-//         processDoc.meters[meterId][prevArea].lastValue = currentValue;
-//         processDoc.meters[meterId][prevArea].consumption =
-//           currentValue - processDoc.meters[meterId][prevArea].firstValue;
+  // Get the area information from the previous document (to keep the same area for both U4 and U5)
+  let prevArea = prevProcessDoc?.[`lastArea_${meterId}`] || 'U4';
+  if (prevArea.startsWith("Unit_")) {
+    prevArea = prevArea.replace("Unit_", "U");
+  }
+  const newMeterId = `${prevArea}_${meterId}`;
 
-//         processDoc.meters[meterId][currentArea].firstValue = currentValue;
-//         processDoc.meters[meterId][currentArea].lastValue = currentValue;
-//         processDoc.meters[meterId][currentArea].consumption = 0;
-//       } else {
-//         // 🔄 Case 2: Cron doc aya (15 min interval)
-//         // Yahan firstValue = prevProcessDoc ka lastValue
-//         // aur lastValue = currentValue
-//         if (lastRawDoc.source === "cron") {
-//           const firstVal = prevState[meterObj.area].lastValue;
-//           processDoc.meters[meterId][currentArea].firstValue = firstVal;
-//           processDoc.meters[meterId][currentArea].lastValue = currentValue;
-//           processDoc.meters[meterId][currentArea].consumption = currentValue - firstVal;
-//         } else {
-//           // 🔄 Case 3: Same area + toggle record
-//           processDoc.meters[meterId][currentArea].lastValue = currentValue;
-//           processDoc.meters[meterId][currentArea].consumption =
-//             currentValue - processDoc.meters[meterId][currentArea].firstValue;
-//         }
-//       }
+  // Save the consumption data, including the source field
+  flatMeters[newMeterId] = { fV, lV, CONS };
+}
 
-//       processDoc.meters[meterId].lastArea = currentArea;
-//     }
+// Save result against the latest cron timestamp, including source at the document level
+const res = await this.fieldMeterProcessDataModel.updateOne(
+  { timestamp: latestCron.timestamp },
+  { 
+    $set: { 
+      ...flatMeters, 
+      timestamp: latestCron.timestamp, 
+      source: "cron" // Add source field here at the document level
+    },
+  },
+  { upsert: true }
+);
 
-//     // Aggregate consumption
-//     allConsumption[meterId] = {
-//       activeArea: currentArea,
-//       consumption:
-//         processDoc.meters[meterId].Unit_4.consumption +
-//         processDoc.meters[meterId].Unit_5.consumption,
-//     };
+console.log("Cron upsert result:", res);
+console.log("📊 Cron Consumption:", JSON.stringify(flatMeters, null, 2));
 
-//     flatMeters[`U4_${meterId}`] = {
-//       fV: processDoc.meters[meterId].Unit_4.firstValue,
-//       lV: processDoc.meters[meterId].Unit_4.lastValue,
-//       CONS: processDoc.meters[meterId].Unit_4.consumption,
-//     };
-
-//     flatMeters[`U5_${meterId}`] = {
-//       fV: processDoc.meters[meterId].Unit_5.firstValue,
-//       lV: processDoc.meters[meterId].Unit_5.lastValue,
-//       CONS: processDoc.meters[meterId].Unit_5.consumption,
-//     };
-//   }
-
-//   // Save
-//   processDoc.flatMeters = flatMeters;
-//   processDoc.timestamp = lastRawDoc.timestamp; // ⏰ Save interval-wise timestamp
-//   await processDoc.save();
-
-//   console.log("💾 New processDoc inserted successfully");
-//   console.log("📊 Final Consumption:", JSON.stringify(flatMeters, null, 2));
-
-//   return { data: flatMeters };
-// }
+return { data: flatMeters };
+  }
 
 
-/// for reports logic
- 
+  // --- TOGGLE CASE ---
+  let processDoc = new this.fieldMeterProcessDataModel({});
+  const flatMeters: Record<string, { fV: number; lV: number; CONS: number }> = {};
+
+  for (const meterId of meterKeys) {
+    const meterObj = lastRawDoc[meterId];
+    if (!meterObj) continue;
+
+    const currentArea = meterObj.area; // "Unit_4" / "Unit_5"
+    const currentValue = meterObj.value;
+
+    // Fetch previous values
+    const prevFlatU4 = prevProcessDoc?.[`U4_${meterId}`];
+    const prevFlatU5 = prevProcessDoc?.[`U5_${meterId}`];
+    const prevLastArea = prevProcessDoc?.[`lastArea_${meterId}`];
+
+    let u4 = prevFlatU4 ? { ...prevFlatU4 } : { fV: 0, lV: 0, CONS: 0 };
+    let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0 };
+
+    // First-time init
+    if (!prevProcessDoc) {
+      if (currentArea === "Unit_4") {
+        u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
+      } else {
+        u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
+      }
+    } else {
+      // 🔄 Toggle event
+      if (prevLastArea && prevLastArea !== currentArea) {
+        if (currentArea === "Unit_4") {
+          // finalize Unit_5
+          u5.lV = currentValue;
+          u5.CONS = u5.lV - u5.fV;
+
+          // reset Unit_4
+          u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
+        } else {
+          // finalize Unit_4
+          u4.lV = currentValue;
+          u4.CONS = u4.lV - u4.fV;
+
+          // reset Unit_5
+          u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
+        }
+      }
+
+      // ➡ Same area update
+      else {
+        if (currentArea === "Unit_4") {
+          u4.lV = currentValue;
+          u4.CONS = currentValue - u4.fV;
+        } else {
+          u5.lV = currentValue;
+          u5.CONS = currentValue - u5.fV;
+        }
+      }
+    }
+
+    // Save into flatMeters
+    flatMeters[`U4_${meterId}`] = u4;
+    flatMeters[`U5_${meterId}`] = u5;
+    flatMeters[`lastArea_${meterId}`] = currentArea;
+  }
+
+  // ✅ Save ordered doc
+  const orderedDoc: Record<string, any> = { timestamp: lastRawDoc.timestamp };
+
+  for (const meterId of meterKeys) {
+    if (!flatMeters[`U4_${meterId}`]) continue;
+
+    orderedDoc[`U4_${meterId}`] = flatMeters[`U4_${meterId}`];
+    orderedDoc[`U5_${meterId}`] = flatMeters[`U5_${meterId}`];
+    orderedDoc[`lastArea_${meterId}`] = flatMeters[`lastArea_${meterId}`];
+  }
+
+  await this.fieldMeterProcessDataModel.updateOne(
+    { timestamp: lastRawDoc.timestamp },
+    { $set: orderedDoc },
+    { upsert: true }
+  );
+
+  console.log("💾 New processDoc inserted successfully");
+  console.log("📊 Final Consumption:", JSON.stringify(flatMeters, null, 2));
+
+  return { data: flatMeters };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
