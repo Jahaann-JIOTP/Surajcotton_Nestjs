@@ -60,12 +60,13 @@ export class MeterController {
     return await this.meterService.getLatestConfig();
   }
 
- 
+@UseGuards(JwtAuthGuard)
 @Post('fetch-real-time')
 async fetchAndStoreRealTime(@Body() body: { unit: string; meterIds: string[] }) {
   return await this.meterService.fetchAndStoreRealTime(body);
 }
 
+  @UseGuards(JwtAuthGuard)
   @Get('consumption')
   async getConsumption() {
     return this.meterService.calculateConsumption();

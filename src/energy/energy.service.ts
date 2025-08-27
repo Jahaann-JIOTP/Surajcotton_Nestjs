@@ -38,6 +38,7 @@ export class EnergyService {
     const WapdaExportKeys = ['U20_GW03_ActiveEnergy_Exp_kWh', 'U19_GW03_ActiveEnergy_Exp_kWh'];
     const Trafo1IncomingKeys = ['U23_GW01_Del_ActiveEnergy'];
     const Trafo2IncomingKeys = ['U22_GW01_Del_ActiveEnergy'];
+    
     const Trafo3IncomingKeys = ['U20_GW03_Del_ActiveEnergy'];
     const Trafo4IncomingKeys = ['U19_GW03_Del_ActiveEnergy'];
     const Trafo1outgoingKeys = ['U21_PLC_Del_ActiveEnergy'];
