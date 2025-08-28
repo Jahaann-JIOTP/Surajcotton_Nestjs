@@ -60,7 +60,7 @@ async getConsumptionData(dto: GetEnergyCostDto) {
 
   };
      const RingMapping: Record<string, string[]> = {
-    Unit_4: ['URing10_PLC', 'U11_PLC', 'U12_PLC', 'U17_PLC', 'U15_GW01', 'U17_GW01', 'U16_GW01'],
+    Unit_4: ['U10_PLC', 'U11_PLC', 'U12_PLC', 'U17_PLC', 'U15_GW01', 'U17_GW01', 'U16_GW01'],
     Unit_5: ['U10_GW02', 'U7_GW02', 'U1_GW03','U5_GW03', 'U9_GW03', 'U12_GW03'],
   };
 
