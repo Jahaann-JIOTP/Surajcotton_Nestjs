@@ -32,7 +32,7 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   // -------------------------------
   const AutoConeMapping: Record<string, string[]> = {
     Unit_4: ['U4_U23_GW03', 'U4_U22_GW03'],
-    Unit_5: ['U5_U23_GW03', 'U5_U22_GW03', 'U18_GW02', 'U10_GW03', 'U23_GW03', 'U22_GW03'],
+    Unit_5: ['U5_U23_GW03', 'U5_U22_GW03', 'U18_GW02', 'U10_GW03'],
   };
   const CardMapping: Record<string, string[]> = {
     Unit_4: ['U5_GW01', 'U9_GW01', 'U4_U3_GW02', 'U4_U1_GW02', 'U4_U2_GW02'],
@@ -40,7 +40,7 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   };
   const ComberMapping: Record<string, string[]> = {
     Unit_4: ['U4_U4_GW02', 'U13_PLC'],
-    Unit_5: ['U5_U4_GW02', 'U6_GW03', 'U4_GW02'],
+    Unit_5: ['U5_U4_GW02', 'U6_GW03'],
   };
   const BlowRoomMapping: Record<string, string[]> = {
     Unit_4: ['U8_GW01', 'U14_GW01'],
@@ -243,7 +243,7 @@ for (const key of areaKeys) {
     const meterKey = `${meterId}_${suffix}`;
 
     // If this meter is U18_GW02, treat like BlowRoom (start & end snapshot)
-   if (['U18_GW02', 'U10_GW03', 'U23_GW03', 'U22_GW03'].includes(meterId)) {
+   if (['U18_GW02', 'U10_GW03', 'U23_GW03'].includes(meterId)) {
       const startVal = this.sanitizeValue(firstDoc[meterKey]);
       const endVal = this.sanitizeValue(lastDoc[meterKey]);
       const consumption = this.sanitizeValue(endVal - startVal);
