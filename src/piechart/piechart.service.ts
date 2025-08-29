@@ -17,12 +17,13 @@ export class PieChartService {
         .find({
           UNIXtimestamp: { $gt: startTimestamp, $lte: endTimestamp },
         })
-        .select(
-          'U19_PLC_Del_ActiveEnergy U21_PLC_Del_ActiveEnergy ' +
-          'U6_GW02_Del_ActiveEnergy U17_GW03_Del_ActiveEnergy ' +
-          'U23_GW01_Del_ActiveEnergy U20_GW03_Del_ActiveEnergy ' +
-          'U21_GW03_Del_ActiveEnergy U7_GW01_Del_ActiveEnergy',
-        )
+      .select(
+      'U19_PLC_Del_ActiveEnergy U11_GW01_Del_ActiveEnergy ' +
+      'U6_GW02_Del_ActiveEnergy U17_GW03_Del_ActiveEnergy ' +
+      'U22_GW01_ActiveEnergy_Imp_kWh U27_PLC_ActiveEnergy_Imp_kWh ' +
+      'U22_PLC_Del_ActiveEnergy U26_PLC_Del_ActiveEnergy'
+    )
+
         .exec();
 
       if (data.length === 0) {

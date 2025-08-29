@@ -4,13 +4,13 @@ import { Schema, Document } from 'mongoose';
 export const PieChartSchema = new Schema(
   {
     U19_PLC_Del_ActiveEnergy: Number,
-    U21_PLC_Del_ActiveEnergy: Number,
+    U11_GW01_Del_ActiveEnergy: Number,
     U6_GW02_Del_ActiveEnergy: Number,
     U17_GW03_Del_ActiveEnergy: Number,
-    U23_GW01_Del_ActiveEnergy: Number,
-    U20_GW03_Del_ActiveEnergy: Number,
-    U21_GW03_Del_ActiveEnergy: Number,
-    U7_GW01_Del_ActiveEnergy: Number,
+    U22_GW01_ActiveEnergy_Imp_kWh: Number,
+    U27_PLC_ActiveEnergy_Imp_kWh: Number,
+    U22_PLC_Del_ActiveEnergy: Number,
+    U26_PLC_Del_ActiveEnergy: Number,
     PLC_Date_Time: Date,
     UNIXtimestamp: Number,
   },
@@ -21,16 +21,18 @@ export const PieChartSchema = new Schema(
 
 export interface PieChart extends Document {
 U19_PLC_Del_ActiveEnergy: number;
-U21_PLC_Del_ActiveEnergy: number;
+U11_GW01_Del_ActiveEnergy: number;
 U6_GW02_Del_ActiveEnergy: number;
 U17_GW03_Del_ActiveEnergy: number;
-U23_GW01_Del_ActiveEnergy: number;
-U20_GW03_Del_ActiveEnergy: number;
-U21_GW03_Del_ActiveEnergy: number;
-U7_GW01_Del_ActiveEnergy: number;
+U22_GW01_ActiveEnergy_Imp_kWh: number;
+U27_PLC_ActiveEnergy_Imp_kWh: number;
+U22_PLC_Del_ActiveEnergy: number;
+U26_PLC_Del_ActiveEnergy: number;
 
 
  
   PLC_Date_Time: Date;
   UNIXtimestamp: number;
 }   
+
+
