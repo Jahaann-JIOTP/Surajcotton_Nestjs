@@ -7,8 +7,8 @@ export const PieChartSchema = new Schema(
     U11_GW01_Del_ActiveEnergy: Number,
     U6_GW02_Del_ActiveEnergy: Number,
     U17_GW03_Del_ActiveEnergy: Number,
-    U22_GW01_ActiveEnergy_Imp_kWh: Number,
-    U27_PLC_ActiveEnergy_Imp_kWh: Number,
+    U22_GW01_Del_ActiveEnergy: Number,
+    U27_PLC_Del_ActiveEnergy: Number,
     U22_PLC_Del_ActiveEnergy: Number,
     U26_PLC_Del_ActiveEnergy: Number,
     PLC_Date_Time: Date,
@@ -24,8 +24,8 @@ U19_PLC_Del_ActiveEnergy: number;
 U11_GW01_Del_ActiveEnergy: number;
 U6_GW02_Del_ActiveEnergy: number;
 U17_GW03_Del_ActiveEnergy: number;
-U22_GW01_ActiveEnergy_Imp_kWh: number;
-U27_PLC_ActiveEnergy_Imp_kWh: number;
+U22_GW01_Del_ActiveEnergy: number;
+U27_PLC_Del_ActiveEnergy: number;
 U22_PLC_Del_ActiveEnergy: number;
 U26_PLC_Del_ActiveEnergy: number;
 

@@ -30,9 +30,9 @@ export class EnergyService {
     const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
     const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
     const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy']; //is may sum show karvana ha nilgata or jms ka jab us k tags ayain gay
-    const WapdaImportKeys = ['U22_GW01_ActiveEnergy_Imp_kWh', 'U27_PLC_ActiveEnergy_Imp_kWh'];
-    const Wapda1Keys = ['U22_GW01_ActiveEnergy_Imp_kWh'];
-    const Wapda2Keys = ['U27_PLC_ActiveEnergy_Imp_kWh'];
+    const WapdaImportKeys = ['U22_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
+    const Wapda1Keys = ['U22_GW01_Del_ActiveEnergy'];
+    const Wapda2Keys = ['U27_PLC_Del_ActiveEnergy'];
     const NiigataKeys = ['U22_PLC_Del_ActiveEnergy'];
     const JMSKeys = ['U26_PLC_Del_ActiveEnergy'];
     const WapdaExportKeys = ['U20_GW03_ActiveEnergy_Exp_kWh', 'U19_GW03_ActiveEnergy_Exp_kWh'];

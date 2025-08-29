@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PieChart } from './schemas/pie-chart.schema';
+import * as moment from 'moment-timezone';
 
 @Injectable()
 export class PieChartService {
@@ -13,17 +14,34 @@ export class PieChartService {
 
   async fetchData(startTimestamp: number, endTimestamp: number) {
     try {
+      // ✅ Convert start/end to Pakistan timezone (Asia/Karachi)
+      const startOfDay = moment
+        .unix(startTimestamp) // jo bhi tum timestamp bhejo, usko base banao
+        .tz('Asia/Karachi')
+        .startOf('day')
+        .unix(); // UNIX seconds
+
+      const endOfDay = moment
+        .unix(endTimestamp)
+        .tz('Asia/Karachi')
+        .endOf('day')
+        .unix();
+
+      // ✅ Query MongoDB with corrected timestamps
       const data = await this.pieChartModel
         .find({
-          UNIXtimestamp: { $gt: startTimestamp, $lte: endTimestamp },
+          UNIXtimestamp: {
+            $gte: startOfDay,
+            $lte: endOfDay,
+          },
         })
-      .select(
-      'U19_PLC_Del_ActiveEnergy U11_GW01_Del_ActiveEnergy ' +
-      'U6_GW02_Del_ActiveEnergy U17_GW03_Del_ActiveEnergy ' +
-      'U22_GW01_ActiveEnergy_Imp_kWh U27_PLC_ActiveEnergy_Imp_kWh ' +
-      'U22_PLC_Del_ActiveEnergy U26_PLC_Del_ActiveEnergy'
-    )
-
+        .select(
+          'U19_PLC_Del_ActiveEnergy U11_GW01_Del_ActiveEnergy ' +
+            'U6_GW02_Del_ActiveEnergy U17_GW03_Del_ActiveEnergy ' +
+            'U22_GW01_Del_ActiveEnergy U27_PLC_Del_ActiveEnergy ' +
+            'U22_PLC_Del_ActiveEnergy U26_PLC_Del_ActiveEnergy',
+        )
+        .sort({ UNIXtimestamp: 1 }) // ✅ first → last
         .exec();
 
       if (data.length === 0) {
@@ -37,46 +55,85 @@ export class PieChartService {
         ];
       }
 
-      const getConsumption = (arr: number[]): number =>
-        arr.length > 1 ? arr[arr.length - 1] - arr[0] : 0;
+      // ✅ Consumption calc
+      const getConsumption = (arr: number[]): number => {
+        if (arr.length < 2) return 0;
+        return arr[arr.length - 1] - arr[0];
+      };
 
-      // Define tag groups
-      const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
-      const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
-      const WapdaImportKeys = ['U22_GW01_ActiveEnergy_Imp_kWh', 'U27_PLC_ActiveEnergy_Imp_kWh'];
-      const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];
+      // Tags grouping
+      const LTGenerationKeys = [
+        'U19_PLC_Del_ActiveEnergy',
+        'U11_GW01_Del_ActiveEnergy',
+      ];
+      const SolarGenerationKeys = [
+        'U6_GW02_Del_ActiveEnergy',
+        'U17_GW03_Del_ActiveEnergy',
+      ];
+      const WapdaImportKeys = [
+        'U22_GW01_Del_ActiveEnergy',
+        'U27_PLC_Del_ActiveEnergy',
+      ];
+      const HTGenerationKeys = [
+        'U22_PLC_Del_ActiveEnergy',
+        'U26_PLC_Del_ActiveEnergy',
+      ];
 
-      // Utility to build and filter consumption arrays
-   // Utility to build and filter consumption arrays
-const buildConsumptionArray = (tag: string) =>
-  data.map((doc) => doc[tag]).filter((v) => typeof v === 'number');
+      // Utility: build consumption array
+      const buildConsumptionArray = (tag: string) =>
+        data.map((doc) => doc[tag]).filter((v) => typeof v === 'number');
 
-// Helper to map and format values
-const mapSubData = (keys: string[]) =>
-  keys.map((key) => {
-    const arr = buildConsumptionArray(key);
-    const value = getConsumption(arr);
-    return { name: key, value: +value.toFixed(2) };
-  });
+      // Utility: map subData
+      const mapSubData = (keys: string[]) => {
+        const subData = keys.map((key) => {
+          const arr = buildConsumptionArray(key);
 
-// LT Generation
-const ltSubData = mapSubData(LTGenerationKeys);
-const ltTotal = +ltSubData.reduce((sum, item) => sum + item.value, 0).toFixed(2);
+          if (arr.length > 0) {
+            const first = arr[0];
+            const last = arr[arr.length - 1];
+            const consumption = getConsumption(arr);
 
-// Solar Generation
-const solarSubData = mapSubData(SolarGenerationKeys);
-const solarTotal = +solarSubData.reduce((sum, item) => sum + item.
-value, 0).toFixed(2);
+            console.log(
+              `🔍 Tag: ${key}, First: ${first}, Last: ${last}, Subtraction: ${consumption}, Count: ${arr.length}`,
+            );
 
-// WAPDA Import
-const wapdaSubData = mapSubData(WapdaImportKeys);
-const wapdaTotal = +wapdaSubData.reduce((sum, item) => sum + item.value, 0).toFixed(2);
+            return { name: key, value: +consumption.toFixed(2) };
+          } else {
+            console.log(`⚠️ Tag: ${key}, No values found`);
+            return { name: key, value: 0 };
+          }
+        });
 
-// HT Generation
-const htSubData = mapSubData(HTGenerationKeys);
-const htTotal = +htSubData.reduce((sum, item) => sum + item.value, 0).toFixed(2);
+        const groupSum = +subData
+          .reduce((sum, item) => sum + item.value, 0)
+          .toFixed(2);
 
-      // Final response
+        console.log(
+          `✅ Group Keys: [${keys.join(
+            ', ',
+          )}] => Group Total (Sum of meters): ${groupSum}`,
+        );
+
+        return { subData, groupSum };
+      };
+
+      // LT Generation
+      const { subData: ltSubData, groupSum: ltTotal } =
+        mapSubData(LTGenerationKeys);
+
+      // Solar Generation
+      const { subData: solarSubData, groupSum: solarTotal } =
+        mapSubData(SolarGenerationKeys);
+
+      // WAPDA Import
+      const { subData: wapdaSubData, groupSum: wapdaTotal } =
+        mapSubData(WapdaImportKeys);
+
+      // HT Generation
+      const { subData: htSubData, groupSum: htTotal } =
+        mapSubData(HTGenerationKeys);
+
+      // ✅ Final response
       return [
         {
           category: 'LT Generation',
@@ -105,7 +162,9 @@ const htTotal = +htSubData.reduce((sum, item) => sum + item.value, 0).toFixed(2)
       ];
     } catch (error) {
       console.error('Error while fetching data from MongoDB:', error.message);
-      throw new Error('Error while fetching data from MongoDB: ' + error.message);
+      throw new Error(
+        'Error while fetching data from MongoDB: ' + error.message,
+      );
     }
   }
 }

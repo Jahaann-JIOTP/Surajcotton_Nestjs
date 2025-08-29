@@ -23,9 +23,9 @@ async getPowerAverages(startDate: string, endDate: string) {
   const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi").endOf('day').utc().toDate();
 
   // Define tags
-  const htTags = ['U23_GW01_Del_ActiveEnergy', 'U22_GW01_Del_ActiveEnergy', 'U20_GW03_Del_ActiveEnergy', 'U19_GW03_Del_ActiveEnergy'];
+  const htTags = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];
   const ltTags = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
-  const wapdaTags = ['U13_GW02_ActiveEnergy_Imp_kWh', 'U16_GW03_ActiveEnergy_Imp_kWh'];
+  const wapdaTags = ['U22_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
   const solarTags = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
   const unit4Tags = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy'];
   const unit5Tags = ['U6_GW02_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
@@ -37,7 +37,7 @@ async getPowerAverages(startDate: string, endDate: string) {
     const Trafo2outgoingTags = ['U13_GW01_Del_ActiveEnergy'];
     const Trafo3outgoingTags = ['U13_GW02_Del_ActiveEnergy'];
     const Trafo4outgoingTags = ['U16_GW03_Del_ActiveEnergy'];
-    const Wapda2Tags = ['U27_PLC_ActiveEnergy_Imp_kWh'];
+    const Wapda2Tags = ['U27_PLC_Del_ActiveEnergy'];
     const NiigataTags = ['U22_PLC_Del_ActiveEnergy'];
     const JMSTags = ['U26_PLC_Del_ActiveEnergy'];
     const PH_ICTags = ['U23_GW01_Del_ActiveEnergy'];
@@ -305,9 +305,9 @@ async getDailyPowerAverages(start: string, end: string) {
 
   // Meter groups
   const meterGroups = {
-    HT: ['U23_GW01', 'U22_GW01', 'U20_GW03', 'U19_GW03'],
+    HT: ['U22_PLC', 'U26_PLC'],
     LT: ['U19_PLC', 'U11_GW01'],
-    wapda: ['U13_GW02', 'U16_GW03'],
+    wapda: ['U22_GW01', 'U27_PLC'],
     solar: ['U6_GW02', 'U17_GW03'],
     unit4: ['U19_PLC', 'U21_PLC', 'U11_GW01', 'U13_GW01'],
     unit5: ['U6_GW02', 'U13_GW02', 'U16_GW03', 'U17_GW03'],
@@ -491,9 +491,9 @@ async getMonthlyAverages(startDate: string, endDate: string) {
   | 'Wapda2' | 'Niigata'| 'JMS'| 'PH_IC';
 
   const meterGroups: Record<EnergyGroupKey, string[]> = {
-    HT: ['U23_GW01_Del_ActiveEnergy', 'U22_GW01_Del_ActiveEnergy', 'U20_GW03_Del_ActiveEnergy', 'U19_GW03_Del_ActiveEnergy'],
+    HT: ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'],
     LT: ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'],
-    wapda: ['U13_GW02_ActiveEnergy_Imp_kWh', 'U16_GW03_ActiveEnergy_Imp_kWh'],
+    wapda: ['U22_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'],
     solar: ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'],
     unit4: ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy'],
     unit5: ['U6_GW02_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'],
@@ -505,7 +505,7 @@ async getMonthlyAverages(startDate: string, endDate: string) {
     Trafo2outgoing: ['U13_GW01_Del_ActiveEnergy'],
     Trafo3outgoing: ['U13_GW02_Del_ActiveEnergy'],
     Trafo4outgoing: ['U16_GW03_Del_ActiveEnergy'],
-    Wapda2: ['U27_PLC_ActiveEnergy_Imp_kWh'],
+    Wapda2: ['U27_PLC_Del_ActiveEnergy'],
     Niigata: ['U22_PLC_Del_ActiveEnergy'],
     JMS: ['U26_PLC_Del_ActiveEnergy'],
     PH_IC: ['U23_GW01_Del_ActiveEnergy'],
