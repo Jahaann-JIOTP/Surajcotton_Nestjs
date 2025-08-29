@@ -257,7 +257,7 @@ async getPowerAverages(startDate: string, endDate: string) {
 
     return {
       date: formattedDate,
-      ht: +htTotal.toFixed(2),
+      HT: +htTotal.toFixed(2),
       LT: +ltTotal.toFixed(2),
       wapda: +wapdaTotal.toFixed(2),
       solar: +solarTotal.toFixed(2),
