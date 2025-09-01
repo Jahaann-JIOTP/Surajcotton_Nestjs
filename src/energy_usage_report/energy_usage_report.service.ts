@@ -79,6 +79,8 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   };
    const ResidentialcolonyMapping: Record<string, string[]> = {
     Unit_4: ['U4_GW01','U6_GW01'],
+    Unit_5: ['U3_GW03'],
+
   };
    const SpareMapping: Record<string, string[]> = {
     Unit_4: ['U7_PLC','U20_GW01','U21_GW01'],
@@ -95,7 +97,9 @@ async getConsumptionData(dto: GetEnergyCostDto) {
     
   };
    const PackingMapping: Record<string, string[]> = {
-    Unit_4: ['U2_GW01']
+    Unit_4: ['U2_GW01'],
+    Unit_5: ['U14_GW03'],
+
     
   };
      const LabMapping: Record<string, string[]> = {
@@ -123,7 +127,7 @@ async getConsumptionData(dto: GetEnergyCostDto) {
     
   };
       const HFO2ndSourceMapping: Record<string, string[]> = {
-    Unit_4: ['U5_PLC']
+    Unit_4: ['U5_PLC', 'U7 GW01']
     
   };
   const LightningMapping: Record<string, string[]> = {
@@ -131,6 +135,9 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   };
    const AuxUnit5Mapping: Record<string, string[]> = {
     Unit_4: ['U2_PLC']
+  };
+     const CapacitorbankMapping: Record<string, string[]> = {
+    Unit_5: ['U18_GW03', 'U5_GW02']
   };
 
   // -------------------------------
@@ -168,6 +175,8 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   const HFO2ndSourceMap: Record<string, number> = { Unit_4: 0, Unit_5: 0 };
   const LightningMap: Record<string, number> = { Unit_4: 0, Unit_5: 0 };
   const AuxUnit5Map: Record<string, number> = { Unit_4: 0, Unit_5: 0 };
+  const CapacitorbankMap: Record<string, number> = { Unit_4: 0, Unit_5: 0 };
+
 
 
   // -------------------------------
@@ -210,6 +219,8 @@ async getConsumptionData(dto: GetEnergyCostDto) {
       result[`${areaKey.toLowerCase()}HFO2ndSource_consumption`] = 0;
       result[`${areaKey.toLowerCase()}Lightning_consumption`] = 0;
       result[`${areaKey.toLowerCase()}AuxUnit5_consumption`] = 0;
+      result[`${areaKey.toLowerCase()}Capacitorbank_consumption`] = 0;
+
 
     }
     return [result];
@@ -545,6 +556,16 @@ for (const key of areaKeys) {
 
     console.log(`AuxUnit5 Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
+
+      for (const meterId of  CapacitorbankMapping[key] || []) {
+    const meterKey = `${meterId}_${suffix}`;
+    const startVal = this.sanitizeValue(firstDoc[meterKey]);
+    const endVal = this.sanitizeValue(lastDoc[meterKey]);
+    const consumption = this.sanitizeValue(endVal - startVal);
+     CapacitorbankMap[key] += consumption;
+
+    console.log(`AuxUnit5 Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+  }
   }
 
   // -------------------------------
@@ -582,6 +603,8 @@ for (const key of areaKeys) {
     result[`${areaKey.toLowerCase()}HFO2ndSource_consumption`] = +HFO2ndSourceMap[areaKey].toFixed(2);
     result[`${areaKey.toLowerCase()}Lightning_consumption`] = +LightningMap[areaKey].toFixed(2);
     result[`${areaKey.toLowerCase()}AuxUnit5_consumption`] = +AuxUnit5Map[areaKey].toFixed(2);
+    result[`${areaKey.toLowerCase()}Capacitorbank_consumption`] = +CapacitorbankMap[areaKey].toFixed(2);
+
   }
 
   return [result];
