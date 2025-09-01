@@ -36,18 +36,15 @@ export class GenerationEnergyService {
 
 private async calculateConsumption(range: { start: string; end: string }) {
   // Define all meter key arrays
-  const DieselICKeys = ["U19_PLC_Del_ActiveEnergy"];
-  const WapdaICKeys = ["U21_PLC_Del_ActiveEnergy"];
-   const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
-   const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
-   const Wapda1Keys = ["U22_GW01_Del_ActiveEnergy"];
-   const HTGenerationKeys = ['U20_GW03_Del_ActiveEnergy','U21_GW03_Del_ActiveEnergy','U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy',
-      ];
+ const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
+    const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
+    const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];
+      
   
   
 
 
-  const allMeterKeys = [...DieselICKeys, ...WapdaICKeys, ...Solar1Keys, ...Solar2Keys, ...HTGenerationKeys];
+  const allMeterKeys = [ ...LTGenerationKeys, ...SolarGenerationKeys, ...HTGenerationKeys];
 
   // ✅ Dynamically build meterSuffixMap from meter keys
   const meterSuffixMap: Record<string, string> = {};
@@ -121,17 +118,17 @@ private async calculateConsumption(range: { start: string; end: string }) {
     }, 0);
 
   // ✅ Calculate each group total
- const DieselIC = sumByMeterGroup(DieselICKeys);
-  const WapdaIC = sumByMeterGroup(WapdaICKeys);
-  const Solar1 = sumByMeterGroup(Solar1Keys);
-  const Solar2 = sumByMeterGroup(Solar2Keys);
-  const Wapda1 = sumByMeterGroup(Wapda1Keys);
+//  const DieselIC = sumByMeterGroup(DieselICKeys);
+//   const WapdaIC = sumByMeterGroup(WapdaICKeys);
+//   const Solar1 = sumByMeterGroup(Solar1Keys);
+  const Solar2 = sumByMeterGroup(SolarGenerationKeys);
+  const Wapda1 = sumByMeterGroup(SolarGenerationKeys);
   const HTGeneration = sumByMeterGroup(HTGenerationKeys);
 
   
 
   // ✅ Final totals
- const totalConsumption = DieselIC+ WapdaIC + Solar1 + Solar2 + Wapda1 +HTGeneration
+ const totalConsumption = Solar2 + Wapda1 +HTGeneration
 
 
 // const total= totalConsumption + totalConsumption1
@@ -183,18 +180,13 @@ const total= totalConsumption
  
 
 async calculateConsumption1(range: { start: string; end: string }): Promise<number> {
-const DieselICKeys = ["U19_PLC_Del_ActiveEnergy"];
-  const WapdaICKeys = ["U21_PLC_Del_ActiveEnergy"];
-   const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
-   const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
-   const Wapda1Keys = ["U22_GW01_Del_ActiveEnergy"];
-    const HTGenerationKeys = ['U20_GW03_Del_ActiveEnergy','U21_GW03_Del_ActiveEnergy','U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy',
-      ];
+ const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
+    const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
+    const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];
+      
 
   const allKeys = [
-    ...DieselICKeys,
-     ...WapdaICKeys,
-     ...Solar1Keys, ...Solar2Keys, ...Wapda1Keys, 
+  ...LTGenerationKeys, ...SolarGenerationKeys, 
     ...HTGenerationKeys
     ];
 
@@ -256,18 +248,18 @@ allKeys.forEach(key => {
   const sum = (keys: string[]) =>
     keys.reduce((total, key) => total + (consumption[key] || 0), 0);
 
-  const DieselIC = sum(DieselICKeys);
-  const WapdaIC = sum(WapdaICKeys);
-  const Solar1 = sum(Solar1Keys);
-  const Solar2 = sum(Solar2Keys);
-  const Wapda1 = sum(Wapda1Keys);
+  // const DieselIC = sum(DieselICKeys);
+  // const WapdaIC = sum(WapdaICKeys);
+  // const Solar1 = sum(Solar1Keys);
+  const Solar2 = sum(LTGenerationKeys);
+  const Wapda1 = sum(SolarGenerationKeys);
   const HTGeneration = sum(HTGenerationKeys);
 
   
 
   // ✅ Final totals
  const totalConsumption = 
- DieselIC+ WapdaIC + Solar1 + Solar2 + Wapda1 +HTGeneration
+Solar2 + Wapda1 +HTGeneration
 
 const total= totalConsumption
   // Logs
@@ -320,13 +312,11 @@ async getTodayGeneration(): Promise<HourlyData[]> {
 
   const meterKeys = [
     "U19_PLC_Del_ActiveEnergy",
-    "U21_PLC_Del_ActiveEnergy",
+    'U11_GW01_Del_ActiveEnergy',
+    'U17_GW03_Del_ActiveEnergy',
     "U6_GW02_Del_ActiveEnergy",
-    "U17_GW03_Del_ActiveEnergy",
-    "U23_GW01_Del_ActiveEnergy",
-    "U20_GW03_Del_ActiveEnergy",
-    "U21_GW03_Del_ActiveEnergy",
-    "U7_GW01_Del_ActiveEnergy"
+    'U22_PLC_Del_ActiveEnergy',
+     'U26_PLC_Del_ActiveEnergy'
     
 
   ];
