@@ -4,7 +4,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { generation_energy } from './schemas/generation_energy.schema';
 import { generation_energyDto } from './dto/generation_energy.dto'; // Correct import for DTO
-
 import * as moment from 'moment-timezone';
 
 export interface HourlyData {
