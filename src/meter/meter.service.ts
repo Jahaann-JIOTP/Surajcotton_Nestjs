@@ -336,13 +336,6 @@ if (lastRawDoc.source === "cron") {
   return { data: flatMeters };
 }
 
-
-
-
-
-
-
-
   // --- TOGGLE CASE ---
   let processDoc = new this.fieldMeterProcessDataModel({});
   const flatMeters: Record<string, { fV: number; lV: number; CONS: number }> = {};
@@ -429,9 +422,6 @@ if (lastRawDoc.source === "cron") {
 
   return { data: flatMeters };
 }
-
-
-
 
 
 
