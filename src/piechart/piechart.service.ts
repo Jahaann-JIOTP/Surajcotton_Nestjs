@@ -14,15 +14,13 @@ export class PieChartService {
 
   async fetchData(startTimestamp: number, endTimestamp: number) {
     try {
-      // ✅ Asia/Karachi day bounds
+      // Asia/Karachi day bounds
       const startOfDay = moment.unix(startTimestamp).tz('Asia/Karachi').startOf('day').unix();
       const endOfDay   = moment.unix(endTimestamp).tz('Asia/Karachi').endOf('day').unix();
 
-      // ✅ Query
+      // Query
       const data = await this.pieChartModel
-        .find({
-          UNIXtimestamp: { $gte: startOfDay, $lte: endOfDay },
-        })
+        .find({ UNIXtimestamp: { $gte: startOfDay, $lte: endOfDay } })
         .select(
           'U19_PLC_Del_ActiveEnergy U11_GW01_Del_ActiveEnergy ' +
           'U6_GW02_Del_ActiveEnergy U17_GW03_Del_ActiveEnergy ' +
@@ -42,34 +40,46 @@ export class PieChartService {
       }
 
       // -----------------------------
-      // 🔒 Sanitize helpers (your rule)
+      // Sanitize helpers
       // -----------------------------
-      const SCI_RE = /e[+-]?\d+$/i;
-      const isWeird = (n: number): boolean => {
-        if (!Number.isFinite(n)) return true;
-        const s = String(n);
-        if (SCI_RE.test(s)) return true;               // has e+/e-
-        const a = Math.abs(n);
-        if (a > 1e10) return true;                     // too big
-        if (a > 0 && a < 1e-5) return true;            // too small (but not exactly 0)
-        return false;
-      };
+      const SCI_RE   = /e[+-]?\d+$/i;
+      const ABS_LIM  = 1e10;     // matches your condition
+      const TINY_LIM = 1e-5;     // matches your condition
+      const MAX_DIFF = 1e6;      // ← cap big jumps like 1,858,745; set to Infinity to disable
+
       const clean = (n: unknown): number => {
         const v = typeof n === 'string' ? parseFloat(n) : (n as number);
-        if (Number.isNaN(v)) return 0;
-        return isWeird(v) ? 0 : v;
+        if (!Number.isFinite(v) || Number.isNaN(v)) return 0;
+        return v;
       };
 
-      // ✅ Consumption calc (first/last also sanitized)
+      // Your exact diff checks + optional spike cap
+      const applyDiffRules = (diff: number): number => {
+        const s = diff.toString();
+        if (
+          s.includes('e+') ||
+          s.includes('e-') ||
+          Math.abs(diff) > ABS_LIM ||
+          (Math.abs(diff) < TINY_LIM && diff !== 0)
+        ) {
+          return 0;
+        }
+        if (Math.abs(diff) > MAX_DIFF) return 0; // handle 1858745-type spikes
+        return diff;
+      };
+
+      // last - first with your rules
       const getConsumption = (arr: number[]): number => {
         if (arr.length < 2) return 0;
         const first = clean(arr[0]);
         const last  = clean(arr[arr.length - 1]);
-        const diff  = last - first;
-        return clean(diff); // apply your e+/e-/range rule to the diff too
+        let diff    = last - first;
+
+        diff = applyDiffRules(diff);
+        return +diff.toFixed(2);
       };
 
-      // Groups (unchanged)
+      // Groups
       const LTGenerationKeys = [
         'U19_PLC_Del_ActiveEnergy',
         'U11_GW01_Del_ActiveEnergy',
@@ -87,38 +97,30 @@ export class PieChartService {
         'U26_PLC_Del_ActiveEnergy',
       ];
 
-      // ✅ Build arrays with sanitation
       const buildConsumptionArray = (tag: string) =>
         data
           .map((doc) => (doc as any)[tag])
           .filter((v) => typeof v === 'number' || typeof v === 'string')
           .map((v) => clean(v));
 
-      // ✅ mapSubData (unchanged structure, but totals sanitized)
       const mapSubData = (keys: string[]) => {
         const subData = keys.map((key) => {
           const arr = buildConsumptionArray(key);
-          if (arr.length > 0) {
-            const consumption = getConsumption(arr);
-            return { name: key, value: +clean(consumption).toFixed(2) };
-          } else {
-            return { name: key, value: 0 };
-          }
+          if (!arr.length) return { name: key, value: 0 };
+          const consumption = getConsumption(arr);
+          return { name: key, value: +consumption.toFixed(2) };
         });
 
-        // sum then clean once more to avoid any weird aggregate
         const rawSum = subData.reduce((sum, item) => sum + item.value, 0);
-        const groupSum = +clean(rawSum).toFixed(2);
+        const groupSum = +applyDiffRules(rawSum).toFixed(2);
         return { subData, groupSum };
       };
 
-      // Groups
       const { subData: ltSubData,    groupSum: ltTotal }    = mapSubData(LTGenerationKeys);
       const { subData: solarSubData, groupSum: solarTotal } = mapSubData(SolarGenerationKeys);
       const { subData: wapdaSubData, groupSum: wapdaTotal } = mapSubData(WapdaImportKeys);
       const { subData: htSubData,    groupSum: htTotal }    = mapSubData(HTGenerationKeys);
 
-      // ✅ Final payload
       return [
         { category: 'LT Generation',   total: ltTotal,    color: '#2980b9', subData: ltSubData },
         { category: 'Solar Generation', total: solarTotal, color: '#e67f22', subData: solarSubData },
@@ -126,8 +128,8 @@ export class PieChartService {
         { category: 'HT Generation',   total: htTotal,    color: '#8e44ad', subData: htSubData },
       ];
     } catch (error: any) {
-      console.error('Error while fetching data from MongoDB:', error.message);
-      throw new Error('Error while fetching data from MongoDB: ' + error.message);
+      console.error('Error while fetching data from MongoDB:', error?.message || error);
+      throw new Error('Error while fetching data from MongoDB: ' + (error?.message || error));
     }
   }
 }

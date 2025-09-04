@@ -246,65 +246,79 @@ async calculateConsumption() {
     return { msg: "No raw data found" };
   }
 
-  // --- CRON CASE ---
-  if (lastRawDoc.source === "cron") {
-    // 1️⃣ Get the last 2 cron docs based on timestamp
-    const cronDocs = await this.fieldMeterRawDataModel
-      .find({ source: "cron" })
-      .sort({ timestamp: -1 })
-      .limit(2)
-      .lean();
+ 
+// --- CRON CASE ---
 
-    if (cronDocs.length < 2) {
-      console.log("⏹ Not enough cron docs for consumption calculation");
-      return { msg: "Not enough cron docs" };
+if (lastRawDoc.source === "cron") {
+  const cronDocs = await this.fieldMeterRawDataModel
+    .find({ source: "cron" })
+    .sort({ timestamp: -1 })
+    .limit(2)
+    .lean();
+
+  if (cronDocs.length < 2) {
+    console.log("⏹ Not enough cron docs for consumption calculation");
+    return { msg: "Not enough cron docs" };
+  }
+
+  const latestCron = cronDocs[0];
+  const prevCron = cronDocs[1];
+
+  const flatMeters: Record<string, { fV: number; lV: number; CONS: number }> = {};
+
+  const meterKeys = Object.keys(latestCron).filter(
+    (k) => !["_id", "timestamp", "source", "__v"].includes(k),
+  );
+
+  for (const meterId of meterKeys) {
+    const prevMeter = prevCron[meterId];
+    const latestMeter = latestCron[meterId];
+    if (!prevMeter || !latestMeter) continue;
+
+    const fV = prevMeter.value;
+    const lV = latestMeter.value;
+    const CONS = lV - fV;
+
+    let area: string | undefined =
+      prevProcessDoc?.[`lastArea_${meterId}`] ||
+      latestCron[meterId]?.area;
+
+    if (area?.startsWith("Unit_")) {
+      area = area.replace("Unit_", "U");
     }
 
-    const latestCron = cronDocs[0]; // e.g., 11:30
-    const prevCron = cronDocs[1]; // e.g., 11:15
+    if (!area) {
+      console.log(`⚠️ Skipped ${meterId}, no area found`);
+      continue;
+    }
 
-// Inside your calculateConsumption function:
-
-const flatMeters: Record<string, { fV: number; lV: number; CONS: number }> = {}; // source removed
-
-for (const meterId of meterKeys) {
-  const prevMeter = prevCron[meterId];
-  const latestMeter = latestCron[meterId];
-  if (!prevMeter || !latestMeter) continue;
-
-  const fV = prevMeter.value;
-  const lV = latestMeter.value;
-  const CONS = lV - fV;
-
-  // Get the area information from the previous document (to keep the same area for both U4 and U5)
-  let prevArea = prevProcessDoc?.[`lastArea_${meterId}`] || 'U4';
-  if (prevArea.startsWith("Unit_")) {
-    prevArea = prevArea.replace("Unit_", "U");
+    const newMeterId = `${area}_${meterId}`;
+    flatMeters[newMeterId] = { fV, lV, CONS };
   }
-  const newMeterId = `${prevArea}_${meterId}`;
 
-  // Save the consumption data, including the source field
-  flatMeters[newMeterId] = { fV, lV, CONS };
+  // ✅ Save only flatMeters in DB (no lastAreas)
+  const res = await this.fieldMeterProcessDataModel.updateOne(
+    { timestamp: latestCron.timestamp },
+    {
+      $set: {
+        ...flatMeters,
+        timestamp: latestCron.timestamp,
+        source: "cron",
+      },
+    },
+    { upsert: true },
+  );
+
+  console.log("Cron upsert result:", res);
+  console.log("📊 Cron Consumption:", JSON.stringify(flatMeters, null, 2));
+
+  return { data: flatMeters };
 }
 
-// Save result against the latest cron timestamp, including source at the document level
-const res = await this.fieldMeterProcessDataModel.updateOne(
-  { timestamp: latestCron.timestamp },
-  { 
-    $set: { 
-      ...flatMeters, 
-      timestamp: latestCron.timestamp, 
-      source: "cron" // Add source field here at the document level
-    },
-  },
-  { upsert: true }
-);
 
-console.log("Cron upsert result:", res);
-console.log("📊 Cron Consumption:", JSON.stringify(flatMeters, null, 2));
 
-return { data: flatMeters };
-  }
+
+
 
 
   // --- TOGGLE CASE ---
