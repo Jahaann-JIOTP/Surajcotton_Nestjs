@@ -30,21 +30,20 @@ import { Unit5Lt3Module } from './unit5_lt3/unit5_lt3.module';
 import { Unit5Lt4Module } from './unit5_lt4/unit5_lt4.module';
 import { PowerSummaryReportModule } from './power_summary_report/power_summary_report.module';
 import { ScheduleModule } from '@nestjs/schedule';
-
-
-
+import { AlarmsModule } from './alarms/alarms.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     // MongooseModule.forRoot(process.env.surajcotton_URI!),
     // MongooseModule.forRoot(process.env.MONGODB_URI!),
-     ScheduleModule.forRoot(),
+    ScheduleModule.forRoot(),
     MongooseModule.forRoot(process.env.surajcotton_URI!, {
       connectionName: 'surajcotton',
     }),
     UsersModule,
     AuthModule,
+    AlarmsModule,
     RolesModule,
     PrivellegesModule,
     TrendsModule,
@@ -60,7 +59,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     GenerationEnergyModule,
     EnergyModule,
     EnergySpindleModule,
-   PieChartModule,
+    PieChartModule,
     MeterModule,
     PowerComparisonModule,
     HeatMapModule,
@@ -68,11 +67,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     Unit5Lt3Module,
     Unit5Lt4Module,
     PowerSummaryReportModule,
-    
- 
   ],
   controllers: [AppController],
   providers: [AppService],
-  
 })
 export class AppModule {}
