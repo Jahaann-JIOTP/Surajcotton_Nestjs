@@ -264,56 +264,78 @@ if (lastRawDoc.source === "cron") {
   const latestCron = cronDocs[0];
   const prevCron = cronDocs[1];
 
-  const flatMeters: Record<string, { fV: number; lV: number; CONS: number }> = {};
-
-  const meterKeys = Object.keys(latestCron).filter(
-    (k) => !["_id", "timestamp", "source", "__v"].includes(k),
-  );
+  const flatMeters: Record<string, any> = {};
 
   for (const meterId of meterKeys) {
-    const prevMeter = prevCron[meterId];
     const latestMeter = latestCron[meterId];
-    if (!prevMeter || !latestMeter) continue;
+    const prevMeter = prevCron[meterId];
+    if (!latestMeter || !prevMeter) continue;
 
-    const fV = prevMeter.value;
-    const lV = latestMeter.value;
-    const CONS = lV - fV;
+    const currentArea = latestMeter.area; // Unit_4 / Unit_5
+    const currentValue = latestMeter.value;
 
-    let area: string | undefined =
-      prevProcessDoc?.[`lastArea_${meterId}`] ||
-      latestCron[meterId]?.area;
+    // Fetch previous values
+    const prevFlatU4 = prevProcessDoc?.[`U4_${meterId}`];
+    const prevFlatU5 = prevProcessDoc?.[`U5_${meterId}`];
+    const prevLastArea = prevProcessDoc?.[`lastArea_${meterId}`];
 
-    if (area?.startsWith("Unit_")) {
-      area = area.replace("Unit_", "U");
+    let u4 = prevFlatU4 ? { ...prevFlatU4 } : { fV: 0, lV: 0, CONS: 0 };
+    let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0 };
+
+    // First-time init
+    if (!prevProcessDoc) {
+      if (currentArea === "Unit_4") {
+        u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
+      } else {
+        u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
+      }
+    } else {
+      // Toggle check
+      if (prevLastArea && prevLastArea !== currentArea) {
+        if (currentArea === "Unit_4") {
+          u5.lV = currentValue;
+          u5.CONS = u5.lV - u5.fV;
+          u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
+        } else {
+          u4.lV = currentValue;
+          u4.CONS = u4.lV - u4.fV;
+          u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
+        }
+      } else {
+        // Same area update
+        if (currentArea === "Unit_4") {
+          u4.lV = currentValue;
+          u4.CONS = currentValue - u4.fV;
+        } else {
+          u5.lV = currentValue;
+          u5.CONS = currentValue - u5.fV;
+        }
+      }
     }
 
-    if (!area) {
-      console.log(`⚠️ Skipped ${meterId}, no area found`);
-      continue;
-    }
-
-    const newMeterId = `${area}_${meterId}`;
-    flatMeters[newMeterId] = { fV, lV, CONS };
+    flatMeters[`U4_${meterId}`] = u4;
+    flatMeters[`U5_${meterId}`] = u5;
+    flatMeters[`lastArea_${meterId}`] = currentArea;
   }
 
-  // ✅ Save only flatMeters in DB (no lastAreas)
-  const res = await this.fieldMeterProcessDataModel.updateOne(
+  // Save ordered doc
+  const orderedDoc: Record<string, any> = { timestamp: latestCron.timestamp, source: "cron" };
+  for (const meterId of meterKeys) {
+    orderedDoc[`U4_${meterId}`] = flatMeters[`U4_${meterId}`];
+    orderedDoc[`U5_${meterId}`] = flatMeters[`U5_${meterId}`];
+    orderedDoc[`lastArea_${meterId}`] = flatMeters[`lastArea_${meterId}`];
+  }
+
+  await this.fieldMeterProcessDataModel.updateOne(
     { timestamp: latestCron.timestamp },
-    {
-      $set: {
-        ...flatMeters,
-        timestamp: latestCron.timestamp,
-        source: "cron",
-      },
-    },
-    { upsert: true },
+    { $set: orderedDoc },
+    { upsert: true }
   );
 
-  console.log("Cron upsert result:", res);
-  console.log("📊 Cron Consumption:", JSON.stringify(flatMeters, null, 2));
-
+  console.log("Cron upsert result:", JSON.stringify(flatMeters, null, 2));
   return { data: flatMeters };
 }
+
 
 
 
