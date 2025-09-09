@@ -14,7 +14,7 @@ async function bootstrap() {
     credentials: true, // only if using cookies/auth
   });
 
-  app.useGlobalPipes(new ValidationPipe());
+  // app.useGlobalPipes(new ValidationPipe());
   app.useGlobalFilters(new AllExceptionsFilter());
   await app.listen(process.env.PORT ?? 5015, '0.0.0.0');
 

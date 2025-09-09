@@ -1,9 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   BadRequestException,
   Injectable,
@@ -52,7 +46,13 @@ export class AlarmsService {
     private alarmOccurrenceModel: Model<AlarmsOccurrenceDocument>,
     private readonly httpService: HttpService,
   ) {}
-
+  /**
+   * @description
+   * @author (Set the text for this tag by adding docthis.authorName to your settings file.)
+   * @date 09/09/2025
+   * @private
+   * @memberof AlarmsService
+   */
   private readonly intervalsSec = [5, 15, 30, 60, 120];
   private readonly Time = [1, 2, 3, 4, 5];
 
@@ -149,13 +149,13 @@ export class AlarmsService {
 
   getMappedLocation(): Record<string, string[]> {
     return {
-      Unit_4: ['LT1', 'LT2', 'HT Room'],
-      'Unit_4.': [
+      Unit_4: ['LT1', 'LT2', 'HT Room','Others'],
+      'Unit_4.Others': [
         'Ring AC (Bypass)',
         'Compressor (Bypass)',
         'Card Filter (Bypass)',
       ],
-      'Unit_4.Ring AC (Bypass)': [
+      'Unit_4.Others.Ring AC (Bypass)': [
         'U18_PLC_Voltage_AB',
         'U18_PLC_Voltage_BC',
         'U18_PLC_Voltage_CA',
@@ -187,7 +187,7 @@ export class AlarmsService {
         'U18_PLC_Power_Phase_B',
         'U18_PLC_Power_Phase_C',
       ],
-      'Unit_4.Compressor (Bypass)': [
+      'Unit_4.Others.Compressor (Bypass)': [
         'U20_PLC_Voltage_AB',
         'U20_PLC_Voltage_BC',
         'U20_PLC_Voltage_CA',
@@ -219,7 +219,7 @@ export class AlarmsService {
         'U20_PLC_Power_Phase_B',
         'U20_PLC_Power_Phase_C',
       ],
-      'Unit_4.Card Filter (Bypass)': [
+      'Unit_4.Others.Card Filter (Bypass)': [
         'U12_GW01_Voltage_AB',
         'U12_GW01_Voltage_BC',
         'U12_GW01_Voltage_CA',
@@ -3137,8 +3137,9 @@ export class AlarmsService {
         'U23_GW03_Power_Phase_B',
         'U23_GW03_Power_Phase_C',
       ],
-      HFO: [''],
-      'HFO.U22_PLC': [
+      HFO: ['Others'],
+      'HFO.Others': ['U22_PLC', 'U23_PLC', 'U24_PLC', 'U25_PLC', 'U26_PLC'],
+      'HFO.Others.U22_PLC': [
         'U22_PLC_Voltage_AB',
         'U22_PLC_Voltage_BC',
         'U22_PLC_Voltage_CA',
@@ -3172,7 +3173,7 @@ export class AlarmsService {
         'U22_PLC_Power_Phase_B',
         'U22_PLC_Power_Phase_C',
       ],
-      'HFO.U23_PLC': [
+      'HFO.Others.U23_PLC': [
         'U23_PLC_Voltage_AB',
         'U23_PLC_Voltage_BC',
         'U23_PLC_Voltage_CA',
@@ -3206,7 +3207,7 @@ export class AlarmsService {
         'U23_PLC_Power_Phase_B',
         'U23_PLC_Power_Phase_C',
       ],
-      'HFO.U24_PLC': [
+      'HFO.Others.U24_PLC': [
         'U24_PLC_Voltage_AB',
         'U24_PLC_Voltage_BC',
         'U24_PLC_Voltage_CA',
@@ -3240,7 +3241,7 @@ export class AlarmsService {
         'U24_PLC_Power_Phase_B',
         'U24_PLC_Power_Phase_C',
       ],
-      'HFO.U25_PLC': [
+      'HFO.Others.U25_PLC': [
         'U25_PLC_Voltage_AB',
         'U25_PLC_Voltage_BC',
         'U25_PLC_Voltage_CA',
@@ -3274,7 +3275,7 @@ export class AlarmsService {
         'U25_PLC_Power_Phase_B',
         'U25_PLC_Power_Phase_C',
       ],
-      'HFO.U26_PLC': [
+      'HFO.Others.U26_PLC': [
         'U26_PLC_Voltage_AB',
         'U26_PLC_Voltage_BC',
         'U26_PLC_Voltage_CA',
@@ -3424,7 +3425,7 @@ export class AlarmsService {
     if (alarmTriggerConfig) {
       if (typeof alarmTriggerConfig === 'object') {
         // Pick _id from DTO or fallback to existing alarm's ruleset
-        let rulesetId =
+        const rulesetId =
           alarmTriggerConfig._id?.toString() ??
           existingAlarm.alarmTriggerConfig?.toString();
 
@@ -3899,11 +3900,12 @@ export class AlarmsService {
    * @returns An array of triggered alarm events.
    */
   async processActiveAlarms() {
+    console.log('Processing active alarms...');
     const resp = await firstValueFrom(
       this.httpService.get('http://13.234.241.103:1880/surajcotton'),
     );
     const payload = resp.data as Record<string, unknown>;
-
+    console.log(payload);
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
       throw new BadRequestException('No data from Node-RED');
     }
@@ -3919,18 +3921,18 @@ export class AlarmsService {
 
     for (const alarm of alarms) {
       const key = Object.keys(payload).find((k) => {
-        const parts = k.split('_').map((p) => p.toLowerCase());
-
+        console.log('Checking key:', k);
+        const parts = k.toLowerCase();
+        console.log('Parts:', parts);
         return (
-          parts[0] === alarm.alarmSubLocation.toLowerCase() && // exact sublocation match
-          parts[1] === alarm.alarmDevice.toLowerCase() && // exact device match
-          parts.slice(2).join('_') === alarm.alarmParameter.toLowerCase() // exact parameter match
+          parts === alarm.alarmParameter.toLowerCase() // exact parameter match
         );
       });
 
       if (!key) continue;
 
       const value = Number(payload[key]);
+      console.log(`Alarm check for ${key}: value=${value}`);
       const rules = alarm.alarmTriggerConfig;
       if (!rules || !rules.thresholds?.length) continue;
 
