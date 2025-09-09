@@ -3137,9 +3137,9 @@ export class AlarmsService {
         'U23_GW03_Power_Phase_B',
         'U23_GW03_Power_Phase_C',
       ],
-      HFO: ['Others'],
-      'HFO.Others': ['U22_PLC', 'U23_PLC', 'U24_PLC', 'U25_PLC', 'U26_PLC'],
-      'HFO.Others.U22_PLC': [
+      HFO: ['Main'],
+      'HFO.Main': ['U22_PLC', 'U23_PLC', 'U24_PLC', 'U25_PLC', 'U26_PLC'],
+      'HFO.Main.U22_PLC': [
         'U22_PLC_Voltage_AB',
         'U22_PLC_Voltage_BC',
         'U22_PLC_Voltage_CA',
@@ -3173,7 +3173,7 @@ export class AlarmsService {
         'U22_PLC_Power_Phase_B',
         'U22_PLC_Power_Phase_C',
       ],
-      'HFO.Others.U23_PLC': [
+      'HFO.Main.U23_PLC': [
         'U23_PLC_Voltage_AB',
         'U23_PLC_Voltage_BC',
         'U23_PLC_Voltage_CA',
@@ -3207,7 +3207,7 @@ export class AlarmsService {
         'U23_PLC_Power_Phase_B',
         'U23_PLC_Power_Phase_C',
       ],
-      'HFO.Others.U24_PLC': [
+      'HFO.Main.U24_PLC': [
         'U24_PLC_Voltage_AB',
         'U24_PLC_Voltage_BC',
         'U24_PLC_Voltage_CA',
@@ -3241,7 +3241,7 @@ export class AlarmsService {
         'U24_PLC_Power_Phase_B',
         'U24_PLC_Power_Phase_C',
       ],
-      'HFO.Others.U25_PLC': [
+      'HFO.Main.U25_PLC': [
         'U25_PLC_Voltage_AB',
         'U25_PLC_Voltage_BC',
         'U25_PLC_Voltage_CA',
@@ -3275,7 +3275,7 @@ export class AlarmsService {
         'U25_PLC_Power_Phase_B',
         'U25_PLC_Power_Phase_C',
       ],
-      'HFO.Others.U26_PLC': [
+      'HFO.Main.U26_PLC': [
         'U26_PLC_Voltage_AB',
         'U26_PLC_Voltage_BC',
         'U26_PLC_Voltage_CA',
