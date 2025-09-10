@@ -246,6 +246,45 @@ async calculateConsumption() {
     return { msg: "No raw data found" };
   }
 
+const updateTotals = (
+  flatMeters: Record<string, any>,
+  prevProcessDoc: any,
+  meterKeys: string[],
+) => {
+  const totals: Record<string, number> = {};
+
+  let unit4Total = 0;
+  let unit5Total = 0;
+
+  for (const meterId of meterKeys) {
+    const u4 = flatMeters[`U4_${meterId}`];
+    const u5 = flatMeters[`U5_${meterId}`];
+
+    // --- Unit 4 total (per meter) ---
+    const prevU4 = prevProcessDoc?.[`total_U4_${meterId}`] || 0;
+    const newU4 = prevU4 + (u4?.CONS || 0);
+    totals[`total_U4_${meterId}`] = newU4;
+    unit4Total += (u4?.CONS || 0);
+
+    // --- Unit 5 total (per meter) ---
+    const prevU5 = prevProcessDoc?.[`total_U5_${meterId}`] || 0;
+    const newU5 = prevU5 + (u5?.CONS || 0);
+    totals[`total_U5_${meterId}`] = newU5;
+    unit5Total += (u5?.CONS || 0);
+  }
+
+  // --- 🔥 Grand totals per Unit (all meters combined) ---
+  const prevU4Total = prevProcessDoc?.total_U4_AllMeters || 0;
+  const prevU5Total = prevProcessDoc?.total_U5_AllMeters || 0;
+
+  totals["total_U4_AllMeters"] = prevU4Total + unit4Total;
+  totals["total_U5_AllMeters"] = prevU5Total + unit5Total;
+
+  return totals;
+};
+
+
+
  
 // --- CRON CASE ---
 
@@ -325,6 +364,12 @@ if (lastRawDoc.source === "cron") {
     orderedDoc[`U5_${meterId}`] = flatMeters[`U5_${meterId}`];
     orderedDoc[`lastArea_${meterId}`] = flatMeters[`lastArea_${meterId}`];
   }
+  // ✨ ADD THIS after orderedDoc is filled in CRON case
+const totals = updateTotals(flatMeters, prevProcessDoc, meterKeys);
+for (const key in totals) {
+  orderedDoc[key] = totals[key];
+}
+
 
   await this.fieldMeterProcessDataModel.updateOne(
     { timestamp: latestCron.timestamp },
@@ -333,8 +378,9 @@ if (lastRawDoc.source === "cron") {
   );
 
   console.log("Cron upsert result:", JSON.stringify(flatMeters, null, 2));
-  return { data: flatMeters };
+  return { data: flatMeters, totals };
 }
+
 
   // --- TOGGLE CASE ---
   let processDoc = new this.fieldMeterProcessDataModel({});
@@ -410,6 +456,12 @@ if (lastRawDoc.source === "cron") {
     orderedDoc[`U5_${meterId}`] = flatMeters[`U5_${meterId}`];
     orderedDoc[`lastArea_${meterId}`] = flatMeters[`lastArea_${meterId}`];
   }
+  // ✨ ADD THIS after orderedDoc is filled in TOGGLE case
+const totals = updateTotals(flatMeters, prevProcessDoc, meterKeys);
+for (const key in totals) {
+  orderedDoc[key] = totals[key];
+}
+
 
   await this.fieldMeterProcessDataModel.updateOne(
     { timestamp: lastRawDoc.timestamp },
@@ -420,7 +472,7 @@ if (lastRawDoc.source === "cron") {
   console.log("💾 New processDoc inserted successfully");
   console.log("📊 Final Consumption:", JSON.stringify(flatMeters, null, 2));
 
-  return { data: flatMeters };
+  return { data: flatMeters, totals };
 }
 
 
