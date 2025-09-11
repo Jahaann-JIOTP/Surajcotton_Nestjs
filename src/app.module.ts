@@ -32,6 +32,8 @@ import { PowerSummaryReportModule } from './power_summary_report/power_summary_r
 import { ScheduleModule } from '@nestjs/schedule';
 import { AlarmsModule } from './alarms/alarms.module';
 
+import { DailyConsumptionModule } from './daily_consumption/daily_consumption.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -67,6 +69,7 @@ import { AlarmsModule } from './alarms/alarms.module';
     Unit5Lt3Module,
     Unit5Lt4Module,
     PowerSummaryReportModule,
+    DailyConsumptionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
