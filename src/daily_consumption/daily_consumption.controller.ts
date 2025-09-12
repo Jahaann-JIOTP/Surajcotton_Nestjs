@@ -1,14 +1,30 @@
-
 import { Controller, Post, Body } from '@nestjs/common';
 import { DailyConsumptionService } from './daily_consumption.service';
 import { ConsumptionDto } from './dto/consumption.dto';
 
-@Controller('Unit4-LT1-daily-consumption')
+@Controller() // No prefix here, URLs are fully defined in @Post()
 export class DailyConsumptionController {
-  constructor(private readonly consumptionService: DailyConsumptionService) {}
+  constructor(private readonly service: DailyConsumptionService) {}
 
-  @Post()
-  async getConsumption(@Body() dto: ConsumptionDto) {
-    return this.consumptionService.calculateConsumption(dto);
+  // Unit4 endpoints
+  @Post('Unit4-LT1-daily-consumption')
+  async getUnit4LT1(@Body() dto: ConsumptionDto) {
+    return this.service.calculateConsumption(dto, 'LT1');
+  }
+
+  @Post('Unit4-LT2-daily-consumption')
+  async getUnit4LT2(@Body() dto: ConsumptionDto) {
+    return this.service.calculateConsumption(dto, 'LT2');
+  }
+
+  // Unit5 endpoints
+  @Post('Unit5-LT1-daily-consumption')
+  async getUnit5LT1(@Body() dto: ConsumptionDto) {
+    return this.service.calculateConsumption(dto, 'Unit5-LT1');
+  }
+
+  @Post('Unit5-LT2-daily-consumption')
+  async getUnit5LT2(@Body() dto: ConsumptionDto) {
+    return this.service.calculateConsumption(dto, 'Unit5-LT2');
   }
 }
