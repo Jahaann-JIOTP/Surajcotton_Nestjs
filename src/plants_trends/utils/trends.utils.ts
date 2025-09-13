@@ -30,6 +30,7 @@ export async function getTrends({
   const currentSuffix = 'Current_Avg';
   const voltageSuffix = 'Voltage_Avg';
   const recEnergySuffix = 'Rec_Active_Energy';
+  const PowerFactor_AvgSuffix = 'PowerFactor_Avg';
   const harmonicsSuffixes = ['Harmonics_V1_THD', 'Harmonics_V2_THD', 'Harmonics_V3_THD'];
 
   // ✅ Build projection
@@ -40,6 +41,7 @@ export async function getTrends({
     projection[`${m}_${currentSuffix}`] = 1;
     projection[`${m}_${voltageSuffix}`] = 1;
     projection[`${m}_${recEnergySuffix}`] = 1;
+    projection[`${m}_${PowerFactor_AvgSuffix}`] = 1;
     harmonicsSuffixes.forEach((h) => (projection[`${m}_${h}`] = 1));
   });
 
@@ -75,6 +77,8 @@ export async function getTrends({
         current: doc[`${m}_Current_Avg`] ?? 0,
         voltage: doc[`${m}_Voltage_Avg`] ?? 0,
         recEnergy: doc[`${m}_Rec_Active_Energy`] ?? 0,
+        powerfactor: doc[`${m}_PowerFactor_Avg`] ?? 0,
+
         harmonicsAvg: uHarmonicsAvg,
       };
     });
@@ -102,6 +106,7 @@ export async function getTrends({
       sumCurrent = 0,
       sumVoltage = 0,
       sumRecEnergy = 0,
+      sumpowerfactor = 0,
       sumHarmonics = 0;
 
     meters.forEach((m) => {
@@ -112,6 +117,7 @@ export async function getTrends({
           current: 0,
           voltage: 0,
           recEnergy: 0,
+          powerfactor: 0,
           harmonicsAvg: 0,
         };
       sumEnergy += v.energy;
@@ -119,6 +125,7 @@ export async function getTrends({
       sumCurrent += v.current;
       sumVoltage += v.voltage;
       sumRecEnergy += v.recEnergy;
+      sumpowerfactor += v.powerfactor;
       sumHarmonics += v.harmonicsAvg;
     });
 
@@ -132,6 +139,7 @@ export async function getTrends({
       sumCurrent: +sumCurrent.toFixed(2),
       sumVoltage: +sumVoltage.toFixed(2),
       sumRecEnergy: +sumRecEnergy.toFixed(2),
+      sumpowerfactor: +sumpowerfactor.toFixed(2),
       sumHarmonics: +sumHarmonics.toFixed(3),
     });
 
