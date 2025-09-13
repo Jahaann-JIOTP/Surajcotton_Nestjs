@@ -25,7 +25,7 @@ export class Unit4LT2Service {
      U4_GW01: 'Mills RES-CLNY& Workshop',
      U5_GW01: 'Card 1',
      U6_GW01: 'Colony',
-     U7_GW01: 'Power House and Source',
+     U11_GW01: 'Power House and 2nd Source',
      U8_GW01: 'Blow Room',
      U9_GW01: 'Card 2',
      U10_GW01: 'Winding 01',
@@ -46,7 +46,7 @@ export class Unit4LT2Service {
 
     const meterFields = [
       'U13_GW01_Del_ActiveEnergy', // TF2
-      'U11_GW01_Del_ActiveEnergy', // Gas Gen
+      'U7_GW01_Del_ActiveEnergy', // Gas Gen
       ...Object.keys(meterMap).map((m) => `${m}_Del_ActiveEnergy`),
     ];
 

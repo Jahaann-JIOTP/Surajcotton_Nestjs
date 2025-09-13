@@ -51,17 +51,17 @@ export async function calculateConsumptionCore(
     endISO = `${nextDay}T06:00:00.000+05:00`;
   }
 
-  console.log('📌 Querying range [start, end):', startISO, '->', endISO);
+  // console.log('📌 Querying range [start, end):', startISO, '->', endISO);
 
   const expectedSlots = generateTimeSlots(startISO, endISO);
-  console.log(`📌 Expected slots = ${expectedSlots.length}`);
+  // console.log(`📌 Expected slots = ${expectedSlots.length}`);
 
   const meters: any[] = [];
 
   for (const meter of metersConfig) {
     const { energy, power, powerFactor, voltage, metername, deptname, MCS, installedLoad } = meter;
 
-    console.log(`\n================= Meter: ${metername} (${energy}) =================`);
+    // console.log(`\n================= Meter: ${metername} (${energy}) =================`);
 
     // Fetch raw docs
     let rawDocs = await historicalModel.find(
@@ -78,7 +78,7 @@ export async function calculateConsumptionCore(
       .sort({ timestamp: 1 })
       .lean();
 
-    console.log(`   [RawDocs] fetched = ${rawDocs.length}`);
+    // console.log(`   [RawDocs] fetched = ${rawDocs.length}`);
 
     // Align slots
     const energyDocs = alignSlots(rawDocs, energy, expectedSlots);
@@ -86,7 +86,7 @@ export async function calculateConsumptionCore(
     const pfDocs     = alignSlots(rawDocs, powerFactor, expectedSlots);
     const voltDocs   = alignSlots(rawDocs, voltage, expectedSlots);
 
-    console.log(`   [Aligned] slots = ${energyDocs.length}`);
+    // console.log(`   [Aligned] slots = ${energyDocs.length}`);
 
     // Energy consumption
     const firstDoc = energyDocs.find(d => d[energy] !== null);
@@ -95,27 +95,27 @@ export async function calculateConsumptionCore(
     let consumption = 0;
     if (firstDoc && lastDoc) {
       consumption = parseFloat(((lastDoc[energy] || 0) - (firstDoc[energy] || 0)).toFixed(2));
-      console.log(`   [Energy] First=${firstDoc[energy]} (${firstDoc.timestamp})`);
-      console.log(`   [Energy] Last =${lastDoc[energy]} (${lastDoc.timestamp})`);
-      console.log(`   [Energy] Consumption = ${consumption}`);
+      // console.log(`   [Energy] First=${firstDoc[energy]} (${firstDoc.timestamp})`);
+      // console.log(`   [Energy] Last =${lastDoc[energy]} (${lastDoc.timestamp})`);
+      // console.log(`   [Energy] Consumption = ${consumption}`);
     } else {
-      console.log(`   [Energy] ❌ No data in range`);
+      // console.log(`   [Energy] ❌ No data in range`);
     }
 
     // Avg Power
     const powerVals = powerDocs.map(d => d[power]).filter(v => v !== null);
     const avgPower = powerVals.length ? parseFloat((powerVals.reduce((a,b)=>a+b,0) / powerVals.length).toFixed(2)) : 0;
-    console.log(`   [Power] Count=${powerVals.length}, Avg=${avgPower}`);
+    // console.log(`   [Power] Count=${powerVals.length}, Avg=${avgPower}`);
 
     // Avg PF
     const pfVals = pfDocs.map(d => d[powerFactor]).filter(v => v !== null);
     const avgPF  = pfVals.length ? parseFloat((pfVals.reduce((a,b)=>a+b,0) / pfVals.length).toFixed(2)) : 0;
-    console.log(`   [PF]    Count=${pfVals.length}, Avg=${avgPF}`);
+    // console.log(`   [PF]    Count=${pfVals.length}, Avg=${avgPF}`);
 
     // Avg Voltage
     const voltVals = voltDocs.map(d => d[voltage]).filter(v => v !== null);
     const avgVolt  = voltVals.length ? parseFloat((voltVals.reduce((a,b)=>a+b,0) / voltVals.length).toFixed(2)) : 0;
-    console.log(`   [Volt]  Count=${voltVals.length}, Avg=${avgVolt}`);
+    // console.log(`   [Volt]  Count=${voltVals.length}, Avg=${avgVolt}`);
 
     // Push result
     const baseName = energy.replace('_Del_ActiveEnergy', '');
@@ -134,7 +134,7 @@ export async function calculateConsumptionCore(
     };
 
     meters.push(result);
-    console.log('✅ Final Result:', result);
+    // console.log('✅ Final Result:', result);
   }
 
   return { startISO, endISO, meters };

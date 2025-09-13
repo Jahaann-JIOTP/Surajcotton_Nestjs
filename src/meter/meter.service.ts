@@ -85,7 +85,7 @@ private readonly fieldMeterProcessDataModel: Model<FieldMeterProcessData>,
       }
       return data;
     } catch (error) {
-      console.error('❌ Error fetching toggle data:', error.message);
+      // console.error('❌ Error fetching toggle data:', error.message);
       return { message: 'Something went wrong' };
     }
   }
@@ -103,7 +103,7 @@ async getLatestConfig() {
 
     return configs;
   } catch (err) {
-    console.error('❌ Error fetching config:', err.message);
+    // console.error('❌ Error fetching config:', err.message);
     return { message: 'Something went wrong' };
   }
 }
@@ -208,7 +208,7 @@ async storeEvery15Minutes() {
       { upsert: true, new: true }
     );
 
-    console.log(`✅ Cron insert complete for ${timestamp15.toISOString()}`);
+    // console.log(`✅ Cron insert complete for ${timestamp15.toISOString()}`);
 
     // After storing the real-time data, now call the calculateConsumption function
     await this.calculateConsumption(); // Calling calculateConsumption after storing data
@@ -216,7 +216,7 @@ async storeEvery15Minutes() {
     return newDoc;
 
   } catch (err) {
-    console.error('❌ Cron error:', err.message);
+    // console.error('❌ Cron error:', err.message);
   }
 }
 
@@ -242,7 +242,7 @@ async calculateConsumption() {
     .sort({ timestamp: -1 });
 
   if (!lastRawDoc) {
-    console.log("⏹ No raw data found in field_meter_raw_data");
+    // console.log("⏹ No raw data found in field_meter_raw_data");
     return { msg: "No raw data found" };
   }
 
@@ -296,7 +296,7 @@ if (lastRawDoc.source === "cron") {
     .lean();
 
   if (cronDocs.length < 2) {
-    console.log("⏹ Not enough cron docs for consumption calculation");
+    // console.log("⏹ Not enough cron docs for consumption calculation");
     return { msg: "Not enough cron docs" };
   }
 
@@ -377,7 +377,7 @@ for (const key in totals) {
     { upsert: true }
   );
 
-  console.log("Cron upsert result:", JSON.stringify(flatMeters, null, 2));
+  // console.log("Cron upsert result:", JSON.stringify(flatMeters, null, 2));
   return { data: flatMeters, totals };
 }
 
@@ -469,8 +469,8 @@ for (const key in totals) {
     { upsert: true }
   );
 
-  console.log("💾 New processDoc inserted successfully");
-  console.log("📊 Final Consumption:", JSON.stringify(flatMeters, null, 2));
+  // console.log("💾 New processDoc inserted successfully");
+  // console.log("📊 Final Consumption:", JSON.stringify(flatMeters, null, 2));
 
   return { data: flatMeters, totals };
 }

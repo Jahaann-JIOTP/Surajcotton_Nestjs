@@ -143,8 +143,27 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   // -------------------------------
   // Time range & areas
   // -------------------------------
-  const startISO = moment.tz(start_date, 'YYYY-MM-DD', 'Asia/Karachi').startOf('day').toISOString(true);
-  const endISO = moment.tz(end_date, 'YYYY-MM-DD', 'Asia/Karachi').endOf('day').toISOString(true);
+ // ✅ Start 6 AM of start_date
+const startISO = moment
+  .tz(start_date, 'YYYY-MM-DD', 'Asia/Karachi')
+  .hour(6)
+  .minute(0)
+  .second(0)
+  .millisecond(0)
+  .toISOString(true);
+
+// ✅ End 6 AM of next day after end_date
+const endISO = moment
+  .tz(end_date, 'YYYY-MM-DD', 'Asia/Karachi')
+  .add(1, 'day')
+  .hour(6)
+  .minute(0)
+  .second(0)
+  .millisecond(0)
+  .toISOString(true);
+
+console.log('📌 Query Range:', startISO, '➡️', endISO);
+
   const areaKeys = area === 'ALL' ? ['Unit_4', 'Unit_5'] : [area];
 
   // -------------------------------
