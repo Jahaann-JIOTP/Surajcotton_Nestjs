@@ -19,9 +19,9 @@ export class DailyConsumptionService {
     { energy: 'U12_PLC_Del_ActiveEnergy', power: 'U12_PLC_ActivePower_Total', powerFactor: 'U12_PLC_PowerFactor_Avg', voltage: 'U12_PLC_Voltage_Avg', metername: 'Ring Db 03', deptname: 'Ring', MCS: '24', installedLoad: '80' },
     { energy: 'U17_PLC_Del_ActiveEnergy', power: 'U17_PLC_ActivePower_Total', powerFactor: 'U17_PLC_PowerFactor_Avg', voltage: 'U17_PLC_Voltage_Avg', metername: 'AC_Ring Db 01', deptname: 'AC_Ring', MCS: '0', installedLoad: '347.5' },
     { energy: 'U18_PLC_Del_ActiveEnergy', power: 'U18_PLC_ActivePower_Total', powerFactor: 'U18_PLC_PowerFactor_Avg', voltage: 'U18_PLC_Voltage_Avg', metername: 'AC_Ring Db 02', deptname: 'AC_Ring', MCS: '0', installedLoad: '347.5' },
-    { energy: 'U6_PLC_Del_ActiveEnergy',  power: 'U6_PLC_ActivePower_Total',  powerFactor: 'U6_PLC_PowerFactor_Avg',  voltage: 'U6_PLC_Voltage_Avg',  metername: 'Deep Well Turbine', deptname: 'Turbine', MCS: '1', installedLoad: '22' },
-     { energy: 'U14_PLC_Del_ActiveEnergy', power: 'U14_PLC_ActivePower_Total', powerFactor: 'U14_PLC_PowerFactor_Avg', voltage: 'U14_PLC_Voltage_Avg', metername: 'Air Compressor', deptname: 'Air Compressor', MCS: '3', installedLoad: '119' },
-    { energy: 'U16_PLC_Del_ActiveEnergy', power: 'U16_PLC_ActivePower_Total', powerFactor: 'U16_PLC_PowerFactor_Avg', voltage: 'U16_PLC_Voltage_Avg', metername: 'Air Compressor', deptname: 'Air Compressor', MCS: '3', installedLoad: '119' },
+    { energy: 'U6_PLC_Del_ActiveEnergy',  power: 'U6_PLC_ActivePower_Total',  powerFactor: 'U6_PLC_PowerFactor_Avg',  voltage: 'U6_PLC_Voltage_Avg',  metername: 'Deep Well turbine', deptname: 'Turbine', MCS: '1', installedLoad: '22' },
+     { energy: 'U14_PLC_Del_ActiveEnergy', power: 'U14_PLC_ActivePower_Total', powerFactor: 'U14_PLC_PowerFactor_Avg', voltage: 'U14_PLC_Voltage_Avg', metername: 'Air Compressor 1', deptname: 'Air Compressor', MCS: '3', installedLoad: '119' },
+    { energy: 'U16_PLC_Del_ActiveEnergy', power: 'U16_PLC_ActivePower_Total', powerFactor: 'U16_PLC_PowerFactor_Avg', voltage: 'U16_PLC_Voltage_Avg', metername: 'Air Compressor 2', deptname: 'Air Compressor', MCS: '3', installedLoad: '119' },
     { energy: 'U3_PLC_Del_ActiveEnergy',  power: 'U3_PLC_ActivePower_Total',  powerFactor: 'U3_PLC_PowerFactor_Avg',  voltage: 'U3_PLC_Voltage_Avg',  metername: 'Lighting internal', deptname: 'Mills lighting', MCS: '1', installedLoad: '60' },
     { energy: 'U4_PLC_Del_ActiveEnergy',  power: 'U4_PLC_ActivePower_Total',  powerFactor: 'U4_PLC_PowerFactor_Avg',  voltage: 'U4_PLC_Voltage_Avg',  metername: 'Lighting external', deptname: 'Mills lighting', MCS: '1', installedLoad: '60' },
     { energy: 'U15_PLC_Del_ActiveEnergy', power: 'U15_PLC_ActivePower_Total', powerFactor: 'U15_PLC_PowerFactor_Avg', voltage: 'U15_PLC_Voltage_Avg', metername: 'Simplex', deptname: 'Simplex', MCS: '6', installedLoad: '16.5' },
@@ -59,7 +59,7 @@ export class DailyConsumptionService {
     { energy: 'U7_GW02_Del_ActiveEnergy', power: 'U7_GW02_ActivePower_Total', powerFactor: 'U7_GW02_PowerFactor_Avg', voltage: 'U7_GW02_Voltage_Avg', metername: 'Ring 1 to 3', deptname: 'Ring Dept', MCS: '24', installedLoad: '80.0' },
     { energy: 'U18_GW02_Del_ActiveEnergy', power: 'U18_GW02_ActivePower_Total', powerFactor: 'U18_GW02_PowerFactor_Avg', voltage: 'U18_GW02_Voltage_Avg', metername: 'Auto Cone 1 to 9', deptname: 'Auto Cone', MCS: '8', installedLoad: '30.0' },
     { energy: 'U10_GW02_Del_ActiveEnergy', power: 'U10_GW02_ActivePower_Total', powerFactor: 'U10_GW02_PowerFactor_Avg', voltage: 'U10_GW02_Voltage_Avg', metername: 'Auto Cone 10 to 18', deptname: 'Auto Cone', MCS: '8', installedLoad: '30.0' },
-    { energy: 'U12_GW02_Del_ActiveEnergy', power: 'U12_GW02_ActivePower_Total', powerFactor: 'U12_GW02_PowerFactor_Avg', voltage: 'U12_GW02_Voltage_Avg', metername: 'B.R Card Comber Simplex Service Bay Road Lights', deptname: 'B/Card + comber filter', MCS: '0', installedLoad: '199.0' },
+    { energy: 'U12_GW02_Del_ActiveEnergy', power: 'U12_GW02_ActivePower_Total', powerFactor: 'U12_GW02_PowerFactor_Avg', voltage: 'U12_GW02_Voltage_Avg', metername: 'MLDB1 Blower Room Card', deptname: 'B/Card + comber filter', MCS: '0', installedLoad: '199.0' },
   ];
 
       private unit5Lt2Meters = [
@@ -68,7 +68,7 @@ export class DailyConsumptionService {
     { energy: 'U5_GW03_Del_ActiveEnergy', power: 'U5_GW03_ActivePower_Total', powerFactor: 'U5_GW03_PowerFactor_Avg', voltage: 'U5_GW03_Voltage_Avg', metername: 'Ring Frame 10 to 12', deptname: 'Ring Dept', MCS: '24', installedLoad: '80.0' },
     { energy: 'U9_GW03_Del_ActiveEnergy', power: 'U9_GW03_ActivePower_Total', powerFactor: 'U9_GW03_PowerFactor_Avg', voltage: 'U9_GW03_Voltage_Avg', metername: 'Ring Frame 13 to 15', deptname: 'Ring Dept', MCS: '24', installedLoad: '80.0' },
     { energy: 'U12_GW03_Del_ActiveEnergy', power: 'U12_GW03_ActivePower_Total', powerFactor: 'U12_GW03_PowerFactor_Avg', voltage: 'U12_GW03_Voltage_Avg', metername: 'Ring Frame 16 to 18', deptname: 'Ring Dept', MCS: '24', installedLoad: '80.0' },
-    { energy: 'U15_GW03_Del_ActiveEnergy', power: 'U15_GW03_ActivePower_Total', powerFactor: 'U15_GW03_PowerFactor_Avg', voltage: 'U15_GW03_Voltage_Avg', metername: 'Turbine', deptname: 'Deep Well Turbine', MCS: '1', installedLoad: '22.0' },
+    { energy: 'U15_GW03_Del_ActiveEnergy', power: 'U15_GW03_ActivePower_Total', powerFactor: 'U15_GW03_PowerFactor_Avg', voltage: 'U15_GW03_Voltage_Avg', metername: 'Turbine', deptname: 'Deep Well turbine', MCS: '1', installedLoad: '22.0' },
     { energy: 'U11_GW03_Del_ActiveEnergy', power: 'U11_GW03_ActivePower_Total', powerFactor: 'U11_GW03_PowerFactor_Avg', voltage: 'U11_GW03_Voltage_Avg', metername: 'Bailing Press', deptname: 'Bailing Press', MCS: '1', installedLoad: '15.0' },
   ];
 
