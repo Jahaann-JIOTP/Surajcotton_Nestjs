@@ -31,8 +31,8 @@ import { Unit5Lt4Module } from './unit5_lt4/unit5_lt4.module';
 import { PowerSummaryReportModule } from './power_summary_report/power_summary_report.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AlarmsModule } from './alarms/alarms.module';
-
 import { DailyConsumptionModule } from './daily_consumption/daily_consumption.module';
+import { PlantsTrendsModule } from './plants_trends/plants_trends.module';
 
 @Module({
   imports: [
@@ -70,6 +70,7 @@ import { DailyConsumptionModule } from './daily_consumption/daily_consumption.mo
     Unit5Lt4Module,
     PowerSummaryReportModule,
     DailyConsumptionModule,
+    PlantsTrendsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

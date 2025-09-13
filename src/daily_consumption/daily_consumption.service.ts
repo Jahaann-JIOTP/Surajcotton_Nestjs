@@ -70,13 +70,6 @@ export class DailyConsumptionService {
     { energy: 'U12_GW03_Del_ActiveEnergy', power: 'U12_GW03_ActivePower_Total', powerFactor: 'U12_GW03_PowerFactor_Avg', voltage: 'U12_GW03_Voltage_Avg', metername: 'Ring Frame 16 to 18', deptname: 'Ring Dept', MCS: '24', installedLoad: '80.0' },
     { energy: 'U15_GW03_Del_ActiveEnergy', power: 'U15_GW03_ActivePower_Total', powerFactor: 'U15_GW03_PowerFactor_Avg', voltage: 'U15_GW03_Voltage_Avg', metername: 'Turbine', deptname: 'Deep Velve Turbine', MCS: '1', installedLoad: '22.0' },
     { energy: 'U11_GW03_Del_ActiveEnergy', power: 'U11_GW03_ActivePower_Total', powerFactor: 'U11_GW03_PowerFactor_Avg', voltage: 'U11_GW03_Voltage_Avg', metername: 'Bailing Press', deptname: 'Bailing Press', MCS: '1', installedLoad: '15.0' },
-
-
-
-
-
-   
-
   ];
 
   // ✅ merged function

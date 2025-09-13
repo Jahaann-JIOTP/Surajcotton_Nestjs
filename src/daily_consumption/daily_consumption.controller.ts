@@ -2,7 +2,7 @@ import { Controller, Post, Body } from '@nestjs/common';
 import { DailyConsumptionService } from './daily_consumption.service';
 import { ConsumptionDto } from './dto/consumption.dto';
 
-@Controller() // No prefix here, URLs are fully defined in @Post()
+@Controller()
 export class DailyConsumptionController {
   constructor(private readonly service: DailyConsumptionService) {}
 
