@@ -71,6 +71,13 @@ async fetchAndStoreRealTime(@Body() body: { unit: string; meterIds: string[] }) 
   async getConsumption() {
     return this.meterService.calculateConsumption();
   }
+  @UseGuards(JwtAuthGuard)
+
+ @Get('meter-wise-consumption')
+async getMeterWiseConsumption() {
+  return this.meterService.getMeterWiseConsumption();
+}
+
 
 
 

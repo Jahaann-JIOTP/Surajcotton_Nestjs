@@ -1,3 +1,4 @@
+
 import { Injectable} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectModel } from '@nestjs/mongoose';
@@ -231,156 +232,238 @@ async calculateConsumption() {
     "U4_GW02_Del_ActiveEnergy",
   ];
 
-  // 🔹 Last processed doc
+  // 🔹 Last processDoc (for previous state of flatMeters)
   const prevProcessDoc = await this.fieldMeterProcessDataModel
     .findOne({})
     .sort({ timestamp: -1 });
 
-  // 🔹 Latest rawDoc
+  // 🔹 Latest rawDoc (toggle OR cron)
   const lastRawDoc = await this.fieldMeterRawDataModel
     .findOne({})
     .sort({ timestamp: -1 });
 
   if (!lastRawDoc) {
+    console.log("⏹ No raw data found in field_meter_raw_data");
     return { msg: "No raw data found" };
   }
 
-  // ===========================================================
-  // 🔹 CORE LOGIC FUNCTION (toggle + cron)
-  // ===========================================================
-  const processMeters = (
-    rawDoc: any,
-    prevProcessDoc: any,
-    meterKeys: string[]
-  ) => {
-    const flatMeters: Record<string, any> = {};
+// const updateTotals = (
+//   flatMeters: Record<string, any>,
+//   prevProcessDoc: any,
+//   meterKeys: string[],
+// ) => {
+//   const totals: Record<string, number> = {};
 
-    for (const meterId of meterKeys) {
-      const meterObj = rawDoc[meterId];
-      if (!meterObj) continue;
+//   let unit4Total = 0;
+//   let unit5Total = 0;
 
-      const currentArea = meterObj.area; // "Unit_4" / "Unit_5"
-      const currentValue = meterObj.value;
+//   for (const meterId of meterKeys) {
+//     const u4 = flatMeters[`U4_${meterId}`];
+//     const u5 = flatMeters[`U5_${meterId}`];
 
-      const prevFlatU4 = prevProcessDoc?.[`U4_${meterId}`];
-      const prevFlatU5 = prevProcessDoc?.[`U5_${meterId}`];
+//     // --- Unit 4 total (per meter) ---
+//     const prevU4 = prevProcessDoc?.[`total_U4_${meterId}`] || 0;
+//     const newU4 = prevU4 + (u4?.CONS || 0);
+//     totals[`total_U4_${meterId}`] = newU4;
+//     unit4Total += (u4?.CONS || 0);
 
-      let u4 = prevFlatU4 ? { ...prevFlatU4 } : { fV: 0, lV: 0, CONS: 0 };
-      let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0 };
+//     // --- Unit 5 total (per meter) ---
+//     const prevU5 = prevProcessDoc?.[`total_U5_${meterId}`] || 0;
+//     const newU5 = prevU5 + (u5?.CONS || 0);
+//     totals[`total_U5_${meterId}`] = newU5;
+//     unit5Total += (u5?.CONS || 0);
+//   }
 
-      // First time initialize
-      if (!prevProcessDoc) {
+//   // --- 🔥 Grand totals per Unit (all meters combined) ---
+//   const prevU4Total = prevProcessDoc?.total_U4_AllMeters || 0;
+//   const prevU5Total = prevProcessDoc?.total_U5_AllMeters || 0;
+
+//   totals["total_U4_AllMeters"] = prevU4Total + unit4Total;
+//   totals["total_U5_AllMeters"] = prevU5Total + unit5Total;
+
+//   return totals;
+// };
+
+
+
+ 
+// --- CRON CASE ---
+
+if (lastRawDoc.source === "cron") {
+  const latestCron = await this.fieldMeterRawDataModel
+    .findOne({ source: "cron" })
+    .sort({ timestamp: -1 })
+    .lean();
+
+  if (!latestCron) {
+    return { msg: "No cron doc found" };
+  }
+
+  const flatMeters: Record<string, any> = {};
+
+  for (const meterId of meterKeys) {
+    const latestMeter = latestCron[meterId];
+    if (!latestMeter) continue;
+
+    const currentArea = latestMeter.area;
+    const currentValue = latestMeter.value;
+
+    const prevFlatU4 = prevProcessDoc?.[`U4_${meterId}`];
+    const prevFlatU5 = prevProcessDoc?.[`U5_${meterId}`];
+    const prevLastArea = prevProcessDoc?.[`lastArea_${meterId}`];
+
+    let u4 = prevFlatU4 ? { ...prevFlatU4 } : { fV: 0, lV: 0, CONS: 0 };
+    let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0 };
+
+    if (!prevProcessDoc) {
+      // First time init
+      if (currentArea === "Unit_4") {
+        u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
+      } else {
+        u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
+      }
+    } else {
+      // Toggle detection
+      if (prevLastArea && prevLastArea !== currentArea) {
         if (currentArea === "Unit_4") {
+          // finalize Unit_5
+          u5.lV = currentValue;
+          u5.CONS = u5.lV - u5.fV;
+
+          // reset Unit_4
           u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
         } else {
+          // finalize Unit_4
+          u4.lV = currentValue;
+          u4.CONS = u4.lV - u4.fV;
+
+          // reset Unit_5
           u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
         }
       } else {
-        // Toggle logic
+        // Same area update
         if (currentArea === "Unit_4") {
-          // Unit_4 freeze, Unit_5 update
-          if (u5.fV === 0) u5.fV = currentValue;
-          u5.lV = currentValue;
-          u5.CONS = u5.lV - u5.fV;
-          u4 = { ...u4 }; // freeze
-        } else {
-          // Unit_5 freeze, Unit_4 update
-          if (u4.fV === 0) u4.fV = currentValue;
           u4.lV = currentValue;
-          u4.CONS = u4.lV - u4.fV;
-          u5 = { ...u5 }; // freeze
+          u4.CONS = currentValue - u4.fV;
+        } else {
+          u5.lV = currentValue;
+          u5.CONS = currentValue - u5.fV;
         }
       }
-
-      flatMeters[`U4_${meterId}`] = u4;
-      flatMeters[`U5_${meterId}`] = u5;
-      flatMeters[`lastArea_${meterId}`] = currentArea;
     }
 
-    return flatMeters;
-  };
-
-  // ===========================================================
-  // 🔹 Totals with aggregation (no more double increment!)
-  // ===========================================================
-  const calculateTotals = async () => {
-    const pipeline: any[] = [
-      {
-        $group: {
-          _id: null,
-          ...meterKeys.reduce((acc, meterId) => {
-            acc[`total_U4_${meterId}`] = { $sum: `$U4_${meterId}.CONS` };
-            acc[`total_U5_${meterId}`] = { $sum: `$U5_${meterId}.CONS` };
-            return acc;
-          }, {} as Record<string, any>),
-        },
-      },
-    ];
-
-    const result = await this.fieldMeterProcessDataModel.aggregate(pipeline);
-    const totals = result[0] || {};
-
-    // AllMeters sum
-    totals["total_U4_AllMeters"] = Object.keys(totals)
-      .filter((k) => k.startsWith("total_U4_") && k !== "total_U4_AllMeters")
-      .reduce((acc, k) => acc + (totals[k] || 0), 0);
-
-    totals["total_U5_AllMeters"] = Object.keys(totals)
-      .filter((k) => k.startsWith("total_U5_") && k !== "total_U5_AllMeters")
-      .reduce((acc, k) => acc + (totals[k] || 0), 0);
-
-    return totals;
-  };
-
-  // ===========================================================
-  // 🔹 CRON CASE
-  // ===========================================================
-  if (lastRawDoc.source === "cron") {
-    const cronDocs = await this.fieldMeterRawDataModel
-      .find({ source: "cron" })
-      .sort({ timestamp: -1 })
-      .limit(1)
-      .lean();
-
-    const latestCron = cronDocs[0];
-    const flatMeters = processMeters(latestCron, prevProcessDoc, meterKeys);
-
-    const orderedDoc: Record<string, any> = {
-      timestamp: latestCron.timestamp,
-      source: "cron",
-    };
-    for (const meterId of meterKeys) {
-      orderedDoc[`U4_${meterId}`] = flatMeters[`U4_${meterId}`];
-      orderedDoc[`U5_${meterId}`] = flatMeters[`U5_${meterId}`];
-      orderedDoc[`lastArea_${meterId}`] = flatMeters[`lastArea_${meterId}`];
-    }
-
-    const totals = await calculateTotals();
-    for (const key in totals) orderedDoc[key] = totals[key];
-
-    await this.fieldMeterProcessDataModel.updateOne(
-      { timestamp: latestCron.timestamp },
-      { $set: orderedDoc },
-      { upsert: true }
-    );
-
-    return { data: flatMeters, totals };
+    flatMeters[`U4_${meterId}`] = u4;
+    flatMeters[`U5_${meterId}`] = u5;
+    flatMeters[`lastArea_${meterId}`] = currentArea;
   }
 
-  // ===========================================================
-  // 🔹 TOGGLE CASE
-  // ===========================================================
-  const flatMeters = processMeters(lastRawDoc, prevProcessDoc, meterKeys);
+  // ✅ Save ordered doc
+  const orderedDoc: Record<string, any> = {
+    timestamp: latestCron.timestamp,
+    source: "cron",
+  };
 
-  const orderedDoc: Record<string, any> = { timestamp: lastRawDoc.timestamp };
   for (const meterId of meterKeys) {
+    if (!flatMeters[`U4_${meterId}`]) continue;
     orderedDoc[`U4_${meterId}`] = flatMeters[`U4_${meterId}`];
     orderedDoc[`U5_${meterId}`] = flatMeters[`U5_${meterId}`];
     orderedDoc[`lastArea_${meterId}`] = flatMeters[`lastArea_${meterId}`];
   }
 
-  const totals = await calculateTotals();
-  for (const key in totals) orderedDoc[key] = totals[key];
+  await this.fieldMeterProcessDataModel.updateOne(
+    { timestamp: latestCron.timestamp },
+    { $set: orderedDoc },
+    { upsert: true }
+  );
+
+  console.log("💾 Cron processDoc inserted successfully");
+  console.log("📊 Final Consumption (cron):", JSON.stringify(flatMeters, null, 2));
+
+  return { data: flatMeters };
+}
+
+
+
+  // --- TOGGLE CASE ---
+  let processDoc = new this.fieldMeterProcessDataModel({});
+  const flatMeters: Record<string, { fV: number; lV: number; CONS: number }> = {};
+
+  for (const meterId of meterKeys) {
+    const meterObj = lastRawDoc[meterId];
+    if (!meterObj) continue;
+
+    const currentArea = meterObj.area; // "Unit_4" / "Unit_5"
+    const currentValue = meterObj.value;
+
+    // Fetch previous values
+    const prevFlatU4 = prevProcessDoc?.[`U4_${meterId}`];
+    const prevFlatU5 = prevProcessDoc?.[`U5_${meterId}`];
+    const prevLastArea = prevProcessDoc?.[`lastArea_${meterId}`];
+
+    let u4 = prevFlatU4 ? { ...prevFlatU4 } : { fV: 0, lV: 0, CONS: 0 };
+    let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0 };
+
+    // First-time init
+    if (!prevProcessDoc) {
+      if (currentArea === "Unit_4") {
+        u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
+      } else {
+        u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
+      }
+    } else {
+      // 🔄 Toggle event
+      if (prevLastArea && prevLastArea !== currentArea) {
+        if (currentArea === "Unit_4") {
+          // finalize Unit_5
+          u5.lV = currentValue;
+          u5.CONS = u5.lV - u5.fV;
+
+          // reset Unit_4
+          u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
+        } else {
+          // finalize Unit_4
+          u4.lV = currentValue;
+          u4.CONS = u4.lV - u4.fV;
+
+          // reset Unit_5
+          u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
+        }
+      }
+
+      // ➡ Same area update
+      else {
+        if (currentArea === "Unit_4") {
+          u4.lV = currentValue;
+          u4.CONS = currentValue - u4.fV;
+        } else {
+          u5.lV = currentValue;
+          u5.CONS = currentValue - u5.fV;
+        }
+      }
+    }
+
+    // Save into flatMeters
+    flatMeters[`U4_${meterId}`] = u4;
+    flatMeters[`U5_${meterId}`] = u5;
+    flatMeters[`lastArea_${meterId}`] = currentArea;
+  }
+
+  // ✅ Save ordered doc
+  const orderedDoc: Record<string, any> = { timestamp: lastRawDoc.timestamp };
+
+  for (const meterId of meterKeys) {
+    if (!flatMeters[`U4_${meterId}`]) continue;
+
+    orderedDoc[`U4_${meterId}`] = flatMeters[`U4_${meterId}`];
+    orderedDoc[`U5_${meterId}`] = flatMeters[`U5_${meterId}`];
+    orderedDoc[`lastArea_${meterId}`] = flatMeters[`lastArea_${meterId}`];
+  }
+  // ✨ ADD THIS after orderedDoc is filled in TOGGLE case
+// const totals = updateTotals(flatMeters, prevProcessDoc, meterKeys);
+// for (const key in totals) {
+//   orderedDoc[key] = totals[key];
+// }
+
 
   await this.fieldMeterProcessDataModel.updateOne(
     { timestamp: lastRawDoc.timestamp },
@@ -388,8 +471,73 @@ async calculateConsumption() {
     { upsert: true }
   );
 
-  return { data: flatMeters, totals };
+  console.log("💾 New processDoc inserted successfully");
+  console.log("📊 Final Consumption:", JSON.stringify(flatMeters, null, 2));
+
+  return { data: flatMeters };
 }
+
+
+// Get total consumption sum (U4, U5, grand total)
+// Get per-meter total consumption sum
+async getMeterWiseConsumption() {
+  try {
+    const pipeline = [
+      {
+        $group: {
+          _id: null,
+          U4_U1_GW02_Del_ActiveEnergy: {
+            $sum: { $ifNull: ["$U4_U1_GW02_Del_ActiveEnergy.CONS", 0] },
+          },
+          U4_U22_GW03_Del_ActiveEnergy: {
+            $sum: { $ifNull: ["$U4_U22_GW03_Del_ActiveEnergy.CONS", 0] },
+          },
+          U4_U23_GW03_Del_ActiveEnergy: {
+            $sum: { $ifNull: ["$U4_U23_GW03_Del_ActiveEnergy.CONS", 0] },
+          },
+          U4_U2_GW02_Del_ActiveEnergy: {
+            $sum: { $ifNull: ["$U4_U2_GW02_Del_ActiveEnergy.CONS", 0] },
+          },
+          U4_U3_GW02_Del_ActiveEnergy: {
+            $sum: { $ifNull: ["$U4_U3_GW02_Del_ActiveEnergy.CONS", 0] },
+          },
+          U4_U4_GW02_Del_ActiveEnergy: {
+            $sum: { $ifNull: ["$U4_U4_GW02_Del_ActiveEnergy.CONS", 0] },
+          },
+          U5_U1_GW02_Del_ActiveEnergy: {
+            $sum: { $ifNull: ["$U5_U1_GW02_Del_ActiveEnergy.CONS", 0] },
+          },
+          U5_U22_GW03_Del_ActiveEnergy: {
+            $sum: { $ifNull: ["$U5_U22_GW03_Del_ActiveEnergy.CONS", 0] },
+          },
+          U5_U23_GW03_Del_ActiveEnergy: {
+            $sum: { $ifNull: ["$U5_U23_GW03_Del_ActiveEnergy.CONS", 0] },
+          },
+          U5_U2_GW02_Del_ActiveEnergy: {
+            $sum: { $ifNull: ["$U5_U2_GW02_Del_ActiveEnergy.CONS", 0] },
+          },
+          U5_U3_GW02_Del_ActiveEnergy: {
+            $sum: { $ifNull: ["$U5_U3_GW02_Del_ActiveEnergy.CONS", 0] },
+          },
+          U5_U4_GW02_Del_ActiveEnergy: {
+            $sum: { $ifNull: ["$U5_U4_GW02_Del_ActiveEnergy.CONS", 0] },
+          },
+        },
+      },
+      {
+        $project: { _id: 0 },
+      },
+    ];
+
+    const result = await this.fieldMeterProcessDataModel.aggregate(pipeline);
+    return result.length ? result[0] : {};
+  } catch (err) {
+    console.error("❌ Error in getMeterWiseConsumption:", err.message);
+    return {};
+  }
+}
+
+
 
 
 
