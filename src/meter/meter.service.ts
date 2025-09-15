@@ -11,8 +11,6 @@ import {
   FieldMeterProcessData,FieldMeterProcessDataSchema} from './schemas/field_meter_process_data';
 import axios from 'axios';
 import { Cron, CronExpression } from '@nestjs/schedule'; 
-import * as moment from 'moment-timezone';
-
 
 @Injectable()
 export class MeterService {
@@ -90,80 +88,6 @@ private readonly fieldMeterProcessDataModel: Model<FieldMeterProcessData>,
     }
   }
 
-async getToggleBasedRealTime() {
-  try {
-    const toggles = await this.toggleModel.find().lean();
-    if (!toggles.length) {
-      return { message: 'No toggle data found.' };
-    }
-
-    // 🔹 External API call
-    const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
-    const apiData = apiRes.data || {};
-
-    // 🔹 Timestamp unique by minute
-    const timestampNow = new Date();
-    timestampNow.setSeconds(0, 0);
-
-    // 🔹 Base doc (ensure exists)
-    let doc = await this.fieldMeterRawDataModel.findOne({
-      timestamp: timestampNow,
-      source: 'toggle',
-    });
-
-    if (!doc) {
-      doc = await this.fieldMeterRawDataModel.create({
-        timestamp: timestampNow,
-        source: 'toggle',
-      });
-    }
-
-    // 🔹 Update each meter individually
-    for (const toggle of toggles) {
-      const meterId = toggle.meterId;
-      const fullId = `${meterId}_Del_ActiveEnergy`;
-
-      const apiValue =
-        apiData[fullId] ??
-        apiData[meterId] ??
-        0;
-
-      const roundedValue = Math.round(apiValue * 100) / 100;
-
-      // ✅ Update only this meter key in existing doc
-      await this.fieldMeterRawDataModel.updateOne(
-        { _id: doc._id },
-        {
-          $set: {
-            [`${fullId}`]: {
-              area: toggle.area,
-              value: roundedValue,
-            },
-          },
-        }
-      );
-    }
-
-    // 🔹 Return fresh doc
-    return await this.fieldMeterRawDataModel.findById(doc._id).lean();
-  } catch (error) {
-    console.error('❌ Error fetching toggle based real time:', error.message);
-    return { message: 'Something went wrong' };
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
 async getLatestConfig() {
   try {
     const configs = await this.configModel
@@ -238,7 +162,67 @@ private readonly METER_UNIT_MAP: Record<string, string[]> = {
 
 // return newDoc;
 // }
+async getToggleBasedRealTime() {
+  try {
+    const toggles = await this.toggleModel.find().lean();
+    if (!toggles.length) {
+      return { message: 'No toggle data found.' };
+    }
 
+    // 🔹 External API call
+    const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
+    const apiData = apiRes.data || {};
+
+    // 🔹 Timestamp unique by minute
+    const timestampNow = new Date();
+    timestampNow.setSeconds(0, 0);
+
+    // 🔹 Base doc (ensure exists)
+    let doc = await this.fieldMeterRawDataModel.findOne({
+      timestamp: timestampNow,
+      source: 'toggle',
+    });
+
+    if (!doc) {
+      doc = await this.fieldMeterRawDataModel.create({
+        timestamp: timestampNow,
+        source: 'toggle',
+      });
+    }
+
+    // 🔹 Update each meter individually
+    for (const toggle of toggles) {
+      const meterId = toggle.meterId;
+      const fullId = `${meterId}_Del_ActiveEnergy`;
+
+      const apiValue =
+        apiData[fullId] ??
+        apiData[meterId] ??
+        0;
+
+      const roundedValue = Math.round(apiValue * 100) / 100;
+
+      // ✅ Update only this meter key in existing doc
+      await this.fieldMeterRawDataModel.updateOne(
+        { _id: doc._id },
+        {
+          $set: {
+            [`${fullId}`]: {
+              area: toggle.area,
+              value: roundedValue,
+            },
+          },
+        }
+      );
+    }
+
+    // 🔹 Return fresh doc
+    return await this.fieldMeterRawDataModel.findById(doc._id).lean();
+  } catch (error) {
+    console.error('❌ Error fetching toggle based real time:', error.message);
+    return { message: 'Something went wrong' };
+  }
+}
 
 
 // 🔹 har 15 min baad yeh cron job chalegi or doc db may jay ga //
@@ -319,44 +303,6 @@ async calculateConsumption() {
     console.log("⏹ No raw data found in field_meter_raw_data");
     return { msg: "No raw data found" };
   }
-
-// const updateTotals = (
-//   flatMeters: Record<string, any>,
-//   prevProcessDoc: any,
-//   meterKeys: string[],
-// ) => {
-//   const totals: Record<string, number> = {};
-
-//   let unit4Total = 0;
-//   let unit5Total = 0;
-
-//   for (const meterId of meterKeys) {
-//     const u4 = flatMeters[`U4_${meterId}`];
-//     const u5 = flatMeters[`U5_${meterId}`];
-
-//     // --- Unit 4 total (per meter) ---
-//     const prevU4 = prevProcessDoc?.[`total_U4_${meterId}`] || 0;
-//     const newU4 = prevU4 + (u4?.CONS || 0);
-//     totals[`total_U4_${meterId}`] = newU4;
-//     unit4Total += (u4?.CONS || 0);
-
-//     // --- Unit 5 total (per meter) ---
-//     const prevU5 = prevProcessDoc?.[`total_U5_${meterId}`] || 0;
-//     const newU5 = prevU5 + (u5?.CONS || 0);
-//     totals[`total_U5_${meterId}`] = newU5;
-//     unit5Total += (u5?.CONS || 0);
-//   }
-
-//   // --- 🔥 Grand totals per Unit (all meters combined) ---
-//   const prevU4Total = prevProcessDoc?.total_U4_AllMeters || 0;
-//   const prevU5Total = prevProcessDoc?.total_U5_AllMeters || 0;
-
-//   totals["total_U4_AllMeters"] = prevU4Total + unit4Total;
-//   totals["total_U5_AllMeters"] = prevU5Total + unit5Total;
-
-//   return totals;
-// };
-
 
 
  
@@ -465,7 +411,7 @@ if (lastRawDoc.source === "cron") {
     const meterObj = lastRawDoc[meterId];
     if (!meterObj) continue;
 
-    const currentArea = meterObj.area; // "Unit_4" / "Unit_5"
+const currentArea = meterObj.area?.toLowerCase();// "Unit_4" / "Unit_5"
     const currentValue = meterObj.value;
 
     // Fetch previous values
@@ -478,30 +424,33 @@ if (lastRawDoc.source === "cron") {
 
     // First-time init
     if (!prevProcessDoc) {
-      if (currentArea === "Unit_4") {
-        u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
-      } else {
-        u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
-      }
-    } else {
+  if (currentArea === "unit4") {
+    u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
+    u5 = { fV: 0, lV: 0, CONS: 0 }; // ensure other side stays empty
+  } else if (currentArea === "unit5") {
+    u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
+    u4 = { fV: 0, lV: 0, CONS: 0 };
+  }
+} else {
       // 🔄 Toggle event
-      if (prevLastArea && prevLastArea !== currentArea) {
-        if (currentArea === "Unit_4") {
-          // finalize Unit_5
-          u5.lV = currentValue;
-          u5.CONS = u5.lV - u5.fV;
+     if (prevLastArea && prevLastArea !== currentArea) {
+  if (currentArea === "unit4") {
+    // finalize Unit_5
+    u5.lV = currentValue;
+    u5.CONS = u5.lV - u5.fV;
 
-          // reset Unit_4
-          u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
-        } else {
-          // finalize Unit_4
-          u4.lV = currentValue;
-          u4.CONS = u4.lV - u4.fV;
+    // reset Unit_4
+    u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
+  } else if (currentArea === "unit5") {
+    // finalize Unit_4
+    u4.lV = currentValue;
+    u4.CONS = u4.lV - u4.fV;
 
-          // reset Unit_5
-          u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
-        }
-      }
+    // reset Unit_5
+    u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
+  }
+}
+
 
       // ➡ Same area update
       else {
