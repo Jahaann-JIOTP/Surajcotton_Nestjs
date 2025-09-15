@@ -31,7 +31,7 @@ export class MeterController {
 
   // ✅ Get toggle-based realtime data
  @UseGuards(JwtAuthGuard)
-@Get('realtime')
+@Get('fetch-real-time')
 async getToggleBasedRealTime() {
   return this.meterService.getToggleBasedRealTime(); // ✅ FIXED
 }
