@@ -57,11 +57,12 @@ export async function getTrends({
   const meterValues: Record<string, any> = {};
   raw.forEach((doc) => {
     const ts = moment.tz(doc.timestamp as string, timezone);
-    const tsKey = ts
-      .minutes(Math.floor(ts.minutes() / 15) * 15)
-      .seconds(0)
-      .milliseconds(0)
-      .format('YYYY-MM-DD HH:mm');
+const tsKey = ts
+  .minutes(Math.floor(ts.minutes() / 15) * 15)
+  .seconds(0)
+  .milliseconds(0)
+  .toISOString(true);
+
 
     const meterData: Record<string, any> = {};
     meters.forEach((m) => {
@@ -96,7 +97,8 @@ export async function getTrends({
   const now = moment().tz(timezone);
 
   while (cursor.isBefore(end)) {
-    const bucket = cursor.format('YYYY-MM-DD HH:mm');
+    const bucket = cursor.toISOString(true);
+    
     if (cursor.isSame(now, 'day') && cursor.isAfter(now)) break;
 
     const values = meterValues[bucket] ?? {};

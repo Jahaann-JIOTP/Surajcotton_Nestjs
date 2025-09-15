@@ -24,7 +24,7 @@ export class EnergyUsageReportService {
   }
 
 async getConsumptionData(dto: GetEnergyCostDto) {
-  const { start_date, end_date, suffixes, area } = dto;
+  const { start_date, end_date, suffixes, area, start_time, end_time } = dto;
   const suffix = suffixes?.[0] || 'Del_ActiveEnergy';
 
   // -------------------------------
@@ -144,25 +144,36 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   // Time range & areas
   // -------------------------------
  // ✅ Start 6 AM of start_date
-const startISO = moment
+// ✅ Start ISO
+const startMoment = moment
   .tz(start_date, 'YYYY-MM-DD', 'Asia/Karachi')
-  .hour(6)
-  .minute(0)
+  .hour(start_time ? parseInt(start_time.split(':')[0]) : 6)
+  .minute(start_time ? parseInt(start_time.split(':')[1]) : 0)
   .second(0)
-  .millisecond(0)
-  .toISOString(true);
+  .millisecond(0);
 
-// ✅ End 6 AM of next day after end_date
-const endISO = moment
-  .tz(end_date, 'YYYY-MM-DD', 'Asia/Karachi')
-  .add(1, 'day')
-  .hour(6)
-  .minute(0)
-  .second(0)
-  .millisecond(0)
-  .toISOString(true);
+const startISO = startMoment.toISOString(true);
+
+// ✅ End ISO
+let endMoment = moment.tz(end_date, 'YYYY-MM-DD', 'Asia/Karachi');
+
+if (end_time) {
+  const [eh, em] = end_time.split(':').map(Number);
+  endMoment = endMoment.hour(eh).minute(em).second(59).millisecond(999);
+
+  // ⚡ Agar end <= start ho gaya, toh +1 day shift karna
+  if (endMoment.isSameOrBefore(startMoment)) {
+    endMoment.add(1, 'day');
+  }
+} else {
+  // Default → next day 06:00
+  endMoment = endMoment.add(1, 'day').hour(6).minute(0).second(0).millisecond(0);
+}
+
+const endISO = endMoment.toISOString(true);
 
 console.log('📌 Query Range:', startISO, '➡️', endISO);
+
 
   const areaKeys = area === 'ALL' ? ['Unit_4', 'Unit_5'] : [area];
 

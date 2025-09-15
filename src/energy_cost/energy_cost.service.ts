@@ -65,8 +65,8 @@ export class EnergyCostService {
 
 
   // 🔹 Main method
- async getConsumptionData(dto: GetEnergyCostDto) {
-  const { start_date, end_date, suffixes } = dto;
+async getConsumptionData(dto: GetEnergyCostDto) {
+  const { start_date, end_date, suffixes, start_time, end_time } = dto;
   let { meterIds } = dto;
 
   if ((!meterIds || meterIds.length === 0) && dto.area) {
@@ -77,8 +77,23 @@ export class EnergyCostService {
     throw new Error('Missing meterIds or suffixes');
   }
 
-  const start = moment.tz(start_date, 'Asia/Karachi').startOf('day');
-  const end = moment.tz(end_date, 'Asia/Karachi').endOf('day');
+  // ✅ Default start_time & end_time agar user na bheje
+  const startTime = start_time ? `${start_time}:00.000` : '00:00:00.000';
+  const endTime   = end_time   ? `${end_time}:59.999` : '23:59:59.999';
+
+  // ✅ Merge start_date + start_time
+  const start = moment.tz(
+    `${start_date} ${startTime}`,
+    'YYYY-MM-DD HH:mm:ss.SSS',
+    'Asia/Karachi'
+  );
+
+  // ✅ Merge end_date + end_time
+  const end = moment.tz(
+    `${end_date} ${endTime}`,
+    'YYYY-MM-DD HH:mm:ss.SSS',
+    'Asia/Karachi'
+  );
 
   const results: {
     date: string;
@@ -94,8 +109,17 @@ export class EnergyCostService {
   let current = start.clone();
 
   while (current.isSameOrBefore(end, 'day')) {
-    const dayStart = current.clone().startOf('day').toISOString(true);
-    const dayEnd = current.clone().endOf('day').toISOString(true);
+    // 🔹 Agar first day hai to dto se aaya hua start use karo
+    const dayStart =
+      current.isSame(start, 'day')
+        ? start.clone().toISOString(true)
+        : current.clone().startOf('day').toISOString(true);
+
+    // 🔹 Agar last day hai to dto se aaya hua end use karo
+    const dayEnd =
+      current.isSame(end, 'day')
+        ? end.clone().toISOString(true)
+        : current.clone().endOf('day').toISOString(true);
 
     for (let i = 0; i < meterIds.length; i++) {
       const meterId = meterIds[i];
@@ -149,6 +173,7 @@ export class EnergyCostService {
 
   return results;
 }
+
 
 
 }

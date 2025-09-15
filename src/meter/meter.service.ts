@@ -12,7 +12,6 @@ import {
 import axios from 'axios';
 import { Cron, CronExpression } from '@nestjs/schedule'; 
 
-
 @Injectable()
 export class MeterService {
   constructor(
@@ -23,9 +22,7 @@ export class MeterService {
   @InjectModel(FieldMeterRawData.name, 'surajcotton') private fieldMeterRawDataModel: Model<FieldMeterRawData>,
 @InjectModel(FieldMeterProcessData.name, 'surajcotton')
 private readonly fieldMeterProcessDataModel: Model<FieldMeterProcessData>,
-
 ) {}
-  
 
   async toggleMeter(dto: ToggleMeterDto) {
     const { meterId, area, email, username } = dto;

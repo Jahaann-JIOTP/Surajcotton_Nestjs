@@ -1,19 +1,24 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsIn } from 'class-validator';
 
 export class TrendsDto {
   @IsString()
   @IsNotEmpty()
-  startDate: string; // e.g. 2025-09-12
+  startDate: string;
 
   @IsString()
   @IsNotEmpty()
-  endDate: string; // e.g. 2025-09-12
+  endDate: string;
 
   @IsString()
   @IsNotEmpty()
-  meterIds: string; // e.g. "U21_PLC,U19_PLC"
+  meterIds: string;
 
   @IsString()
   @IsNotEmpty()
-  suffixes: string; // e.g. "Del_ActiveEnergy"
+  suffixes: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['energy', 'activePower', 'current', 'voltage', 'recEnergy', 'powerfactor', 'harmonics'])
+  type?: string;
 }
