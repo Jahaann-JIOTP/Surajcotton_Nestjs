@@ -11,6 +11,8 @@ import {
   FieldMeterProcessData,FieldMeterProcessDataSchema} from './schemas/field_meter_process_data';
 import axios from 'axios';
 import { Cron, CronExpression } from '@nestjs/schedule'; 
+import * as moment from 'moment-timezone';
+
 
 @Injectable()
 export class MeterService {
@@ -88,6 +90,80 @@ private readonly fieldMeterProcessDataModel: Model<FieldMeterProcessData>,
     }
   }
 
+async getToggleBasedRealTime() {
+  try {
+    const toggles = await this.toggleModel.find().lean();
+    if (!toggles.length) {
+      return { message: 'No toggle data found.' };
+    }
+
+    // 🔹 External API call
+    const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
+    const apiData = apiRes.data || {};
+
+    // 🔹 Timestamp unique by minute
+    const timestampNow = new Date();
+    timestampNow.setSeconds(0, 0);
+
+    // 🔹 Base doc (ensure exists)
+    let doc = await this.fieldMeterRawDataModel.findOne({
+      timestamp: timestampNow,
+      source: 'toggle',
+    });
+
+    if (!doc) {
+      doc = await this.fieldMeterRawDataModel.create({
+        timestamp: timestampNow,
+        source: 'toggle',
+      });
+    }
+
+    // 🔹 Update each meter individually
+    for (const toggle of toggles) {
+      const meterId = toggle.meterId;
+      const fullId = `${meterId}_Del_ActiveEnergy`;
+
+      const apiValue =
+        apiData[fullId] ??
+        apiData[meterId] ??
+        0;
+
+      const roundedValue = Math.round(apiValue * 100) / 100;
+
+      // ✅ Update only this meter key in existing doc
+      await this.fieldMeterRawDataModel.updateOne(
+        { _id: doc._id },
+        {
+          $set: {
+            [`${fullId}`]: {
+              area: toggle.area,
+              value: roundedValue,
+            },
+          },
+        }
+      );
+    }
+
+    // 🔹 Return fresh doc
+    return await this.fieldMeterRawDataModel.findById(doc._id).lean();
+  } catch (error) {
+    console.error('❌ Error fetching toggle based real time:', error.message);
+    return { message: 'Something went wrong' };
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 async getLatestConfig() {
   try {
     const configs = await this.configModel
@@ -120,48 +196,48 @@ private readonly METER_UNIT_MAP: Record<string, string[]> = {
 
 
 /////..... this one logic for toggle area from unit 4 to unit 5...../////
-async fetchAndStoreRealTime(body: { unit: string; meterIds: string[] }) {
-  const { unit, meterIds } = body;
+// async fetchAndStoreRealTime(body: { unit: string; meterIds: string[] }) {
+//   const { unit, meterIds } = body;
 
-  const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
-  const apiData = apiRes.data;
+//   const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
+//   const apiData = apiRes.data;
 
-  let realTimeValuesObj: Record<string, { area: string; value: number }> = {};
+//   let realTimeValuesObj: Record<string, { area: string; value: number }> = {};
 
-  for (const meterId of Object.keys(this.METER_UNIT_MAP)) {
-    const shortId = meterId.replace('_Del_ActiveEnergy', '');
-    const apiValue = apiData[meterId] ?? apiData[shortId] ?? 0;
+//   for (const meterId of Object.keys(this.METER_UNIT_MAP)) {
+//     const shortId = meterId.replace('_Del_ActiveEnergy', '');
+//     const apiValue = apiData[meterId] ?? apiData[shortId] ?? 0;
 
-    realTimeValuesObj[meterId] = {
-      area: meterIds.includes(shortId) ? unit : 'Unit_4',
-      value: Math.round(apiValue * 100) / 100,
-    };
-  }
+//     realTimeValuesObj[meterId] = {
+//       area: meterIds.includes(shortId) ? unit : 'Unit_4',
+//       value: Math.round(apiValue * 100) / 100,
+//     };
+//   }
 
-    // 🔹 Step 1: timestamp banaya
-  const timestampNow = new Date();
-  timestampNow.setSeconds(0, 0); // seconds & ms zero to avoid duplicates
+//     // 🔹 Step 1: timestamp banaya
+//   const timestampNow = new Date();
+//   timestampNow.setSeconds(0, 0); // seconds & ms zero to avoid duplicates
 
-  // 🔹 Step 2: agar toggle se aaya hai to +1 second shift kar diya
-  // if (body?.unit) {
-  //   timestampNow.setSeconds(timestampNow.getSeconds() + 1);
-  // }
+//   // 🔹 Step 2: agar toggle se aaya hai to +1 second shift kar diya
+//   // if (body?.unit) {
+//   //   timestampNow.setSeconds(timestampNow.getSeconds() + 1);
+//   // }
 
-  // ✅ Insert or update (upsert) toggle record
-const newDoc = await this.fieldMeterRawDataModel.findOneAndUpdate(
-  { timestamp: timestampNow, source: 'toggle' }, // unique condition
-  {
-    $setOnInsert: {
-      ...realTimeValuesObj,
-      timestamp: timestampNow,
-      source: 'toggle',
-    },
-  },
-  { upsert: true, new: true } // new: true => return the doc
-);
+//   // ✅ Insert or update (upsert) toggle record
+// const newDoc = await this.fieldMeterRawDataModel.findOneAndUpdate(
+//   { timestamp: timestampNow, source: 'toggle' }, // unique condition
+//   {
+//     $setOnInsert: {
+//       ...realTimeValuesObj,
+//       timestamp: timestampNow,
+//       source: 'toggle',
+//     },
+//   },
+//   { upsert: true, new: true } // new: true => return the doc
+// );
 
-return newDoc;
-}
+// return newDoc;
+// }
 
 
 
