@@ -35,15 +35,16 @@ export class PlantsTrendsService {
           timestamp: d.timestamp,
           sumVoltage: d.sumVoltage,
         }));
-      case 'recEnergy':
-        return data.map(d => ({
-          timestamp: d.timestamp,
-          sumRecEnergy: d.sumRecEnergy,
-        }));
+      // case 'recEnergy':
+      //   return data.map(d => ({
+      //     timestamp: d.timestamp,
+      //     sumRecEnergy: d.sumRecEnergy,
+      //   }));
       case 'powerfactor':
         return data.map(d => ({
           timestamp: d.timestamp,
           sumpowerfactor: d.sumpowerfactor,
+          sumRecEnergy: d.sumRecEnergy,
         }));
       case 'harmonics':
         return data.map(d => ({

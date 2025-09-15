@@ -103,13 +103,16 @@ const tsKey = ts
 
     const values = meterValues[bucket] ?? {};
 
-    let sumEnergy = 0,
+       let sumEnergy = 0,
       sumPower = 0,
       sumCurrent = 0,
       sumVoltage = 0,
       sumRecEnergy = 0,
       sumpowerfactor = 0,
-      sumHarmonics = 0;
+      sumHarmonics = 0,
+      voltageCount = 0, // ✅ declare with let
+      currentCount = 0; // ✅ naya counter
+
 
     meters.forEach((m) => {
       const v =
@@ -129,17 +132,23 @@ const tsKey = ts
       sumRecEnergy += v.recEnergy;
       sumpowerfactor += v.powerfactor;
       sumHarmonics += v.harmonicsAvg;
+       if (v.voltage > 0) {
+        voltageCount++; // ✅ sirf valid values count kare
+      }
+
+        if (v.current > 0) {
+        currentCount++; // ✅ current count kare
+      }
     });
 
     const consumption = Math.max(sumEnergy - prevSumEnergy, 0);
-
     result.push({
       timestamp: bucket,
       consumption,
       sumEnergy: +sumEnergy.toFixed(2),
       sumActivePower: +sumPower.toFixed(2),
-      sumCurrent: +sumCurrent.toFixed(2),
-      sumVoltage: +sumVoltage.toFixed(2),
+      sumCurrent: currentCount > 0 ? +(sumCurrent / currentCount).toFixed(2) : 0, // ✅ average current
+      sumVoltage: voltageCount > 0 ? +(sumVoltage / voltageCount).toFixed(2) : 0,
       sumRecEnergy: +sumRecEnergy.toFixed(2),
       sumpowerfactor: +sumpowerfactor.toFixed(2),
       sumHarmonics: +sumHarmonics.toFixed(3),
