@@ -14,9 +14,9 @@ export class Unit5LT4Service {
 
   async getSankeyData(startDate: string, endDate: string) {
     // Convert to ISO without timezone issues
-   const start = new Date(moment(startDate, 'YYYY-MM-DD').startOf('day').toDate());
-           const end   = new Date(moment(endDate, 'YYYY-MM-DD').endOf('day').toDate());
-           const TZ = 'Asia/Karachi';
+   const TZ = 'Asia/Karachi';
+      const start = moment.tz(startDate, "YYYY-MM-DD", TZ).startOf("day").toDate();
+      const end   = moment.tz(endDate, "YYYY-MM-DD", TZ).endOf("day").toDate();
 
         const meterMap: Record<string, string> = {
      U1_GW03: 'Ring Frame 7-9',

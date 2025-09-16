@@ -14,9 +14,9 @@ export class Unit4LT2Service {
 
   async getSankeyData(startDate: string, endDate: string) {
     // Convert to ISO without timezone issues
-    const start = new Date(moment(startDate, 'YYYY-MM-DD').startOf('day').toDate());
-    const end   = new Date(moment(endDate, 'YYYY-MM-DD').endOf('day').toDate());
-    const TZ = 'Asia/Karachi';
+   const TZ = 'Asia/Karachi';
+   const start = moment.tz(startDate, "YYYY-MM-DD", TZ).startOf("day").toDate();
+   const end   = moment.tz(endDate, "YYYY-MM-DD", TZ).endOf("day").toDate();
 
      const meterMap: Record<string, string> = {
      U1_GW01: 'Drying Simplex AC',
@@ -84,19 +84,19 @@ export class Unit4LT2Service {
 
     const results = await this.unitModel.aggregate(pipeline).exec();
 
-    // console.log('📅 Dates returned by aggregation:', results.map(r => r._id));
+    console.log('📅 Dates returned by aggregation:', results.map(r => r._id));
 
     // ----------------- Sum consumption for all selected dates -----------------
     const consumptionTotals: Record<string, number> = {};
     meterFields.forEach(field => consumptionTotals[field] = 0);
 
     for (const entry of results) {
-      // console.log(`\n🗓 Processing date: ${entry._id}`);
+      console.log(`\n🗓 Processing date: ${entry._id}`);
       for (const field of meterFields) {
         const first = entry[`first_${field}`] || 0;
         const last = entry[`last_${field}`] || 0;
         const consumption = last - first;
-        // console.log(`Meter: ${field}, First: ${first}, Last: ${last}, Consumption: ${consumption}`);
+        console.log(`Meter: ${field}, First: ${first}, Last: ${last}, Consumption: ${consumption}`);
         if (!isNaN(consumption) && consumption >= 0) {
           consumptionTotals[field] += parseFloat(consumption.toFixed(2));
         }
