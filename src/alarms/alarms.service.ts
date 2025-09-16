@@ -3542,7 +3542,7 @@ export class AlarmsService {
         alarms: relatedAlarms.map((a) => a.alarmName),
       });
     }
-    // console.log('alarms with type');
+    console.log('alarms with type');
     // 2. Check if any alarms reference this alarmType
     const alarmsWithType = await this.alarmsModel.findOne({ alarmTypeId: id });
     if (alarmsWithType) {
@@ -3568,7 +3568,7 @@ export class AlarmsService {
    * @returns The created alarm.
    */
   async addAlarm(dto: ConfigAlarmDto) {
-    // console.log(dto);
+    console.log(dto);
     // 1️⃣ Save ruleset separately
     const ruleset = new this.alarmsRulesSetModel(dto.alarmTriggerConfig);
     await ruleset.save();
@@ -3579,7 +3579,7 @@ export class AlarmsService {
       alarmTypeId: new Types.ObjectId(dto.alarmTypeId), // ✅ force ObjectId
       alarmTriggerConfig: ruleset._id, // ✅ ObjectId from saved ruleset
     });
-    // console.log(alarm);
+    console.log(alarm);
     await alarm.save();
 
     return {
@@ -3900,12 +3900,12 @@ export class AlarmsService {
    * @returns An array of triggered alarm events.
    */
   async processActiveAlarms() {
-    // console.log('Processing active alarms...');
+    console.log('Processing active alarms...');
     const resp = await firstValueFrom(
       this.httpService.get('http://13.234.241.103:1880/surajcotton'),
     );
     const payload = resp.data as Record<string, unknown>;
-    // console.log(payload);
+    console.log(payload);
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
       throw new BadRequestException('No data from Node-RED');
     }
@@ -3921,9 +3921,9 @@ export class AlarmsService {
 
     for (const alarm of alarms) {
       const key = Object.keys(payload).find((k) => {
-        // console.log('Checking key:', k);
+        console.log('Checking key:', k);
         const parts = k.toLowerCase();
-        // console.log('Parts:', parts);
+        console.log('Parts:', parts);
         return (
           parts === alarm.alarmParameter.toLowerCase() // exact parameter match
         );
@@ -3932,7 +3932,7 @@ export class AlarmsService {
       if (!key) continue;
 
       const value = Number(payload[key]);
-      // console.log(`Alarm check for ${key}: value=${value}`);
+      console.log(`Alarm check for ${key}: value=${value}`);
       const rules = alarm.alarmTriggerConfig;
       if (!rules || !rules.thresholds?.length) continue;
 
