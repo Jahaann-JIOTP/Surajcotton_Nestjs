@@ -84,19 +84,19 @@ export class Unit4LT2Service {
 
     const results = await this.unitModel.aggregate(pipeline).exec();
 
-    console.log('📅 Dates returned by aggregation:', results.map(r => r._id));
+    // console.log('📅 Dates returned by aggregation:', results.map(r => r._id));
 
     // ----------------- Sum consumption for all selected dates -----------------
     const consumptionTotals: Record<string, number> = {};
     meterFields.forEach(field => consumptionTotals[field] = 0);
 
     for (const entry of results) {
-      console.log(`\n🗓 Processing date: ${entry._id}`);
+      // console.log(`\n🗓 Processing date: ${entry._id}`);
       for (const field of meterFields) {
         const first = entry[`first_${field}`] || 0;
         const last = entry[`last_${field}`] || 0;
         const consumption = last - first;
-        console.log(`Meter: ${field}, First: ${first}, Last: ${last}, Consumption: ${consumption}`);
+        // console.log(`Meter: ${field}, First: ${first}, Last: ${last}, Consumption: ${consumption}`);
         if (!isNaN(consumption) && consumption >= 0) {
           consumptionTotals[field] += parseFloat(consumption.toFixed(2));
         }
