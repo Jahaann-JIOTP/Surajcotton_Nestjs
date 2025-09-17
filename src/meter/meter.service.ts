@@ -226,8 +226,8 @@ async getToggleBasedRealTime() {
 
 
 // 🔹 har 15 min baad yeh cron job chalegi or doc db may jay ga //
-@Cron('0 */2 * * * *') 
-async storeEvery2Minutes() {
+@Cron('0 */15 * * * *') 
+async storeEvery15Minutes() {
   try {
     // 1️⃣ API call
     const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
@@ -235,9 +235,9 @@ async storeEvery2Minutes() {
 
     // 2️⃣ Round current time to nearest 1-minute slot
     const now = new Date();
-    const roundedMinutes = Math.floor(now.getMinutes() / 2) * 2;
-    const timestamp2 = new Date(now);
-    timestamp2.setMinutes(roundedMinutes, 0, 0); // seconds & ms = 0
+    const roundedMinutes = Math.floor(now.getMinutes() / 15) * 15;
+    const timestamp15 = new Date(now);
+    timestamp15.setMinutes(roundedMinutes, 0, 0); // seconds & ms = 0
 
     // 3️⃣ Check last doc
     const lastDoc = await this.fieldMeterRawDataModel.findOne().sort({ timestamp: -1 });
@@ -255,18 +255,18 @@ async storeEvery2Minutes() {
 
     // 4️⃣ Insert with upsert (only one cron doc per minute)
     const newDoc = await this.fieldMeterRawDataModel.findOneAndUpdate(
-      { timestamp: timestamp2, source: 'cron' }, // unique condition
+      { timestamp: timestamp15, source: 'cron' }, // unique condition
       {
         $setOnInsert: {
           ...realTimeValuesObj,
-          timestamp: timestamp2,
+          timestamp: timestamp15,
           source: 'cron',
         },
       },
       { upsert: true, new: true }
     );
 
-    console.log(`✅ Cron insert complete for ${timestamp2.toISOString()}`);
+    console.log(`✅ Cron insert complete for ${timestamp15.toISOString()}`);
 
     // After storing the real-time data, now call the calculateConsumption function
     await this.calculateConsumption(); // Calling calculateConsumption after storing data
