@@ -226,8 +226,8 @@ async getToggleBasedRealTime() {
 
 
 // 🔹 har 15 min baad yeh cron job chalegi or doc db may jay ga //
-@Cron('0 */15 * * * *') 
-async storeEvery15Minutes() {
+@Cron('0 */2 * * * *') 
+async storeEvery2Minutes() {
   try {
     // 1️⃣ API call
     const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
@@ -235,9 +235,9 @@ async storeEvery15Minutes() {
 
     // 2️⃣ Round current time to nearest 1-minute slot
     const now = new Date();
-    const roundedMinutes = Math.floor(now.getMinutes() / 15) * 15;
-    const timestamp15 = new Date(now);
-    timestamp15.setMinutes(roundedMinutes, 0, 0); // seconds & ms = 0
+    const roundedMinutes = Math.floor(now.getMinutes() / 2) * 2;
+    const timestamp2 = new Date(now);
+    timestamp2.setMinutes(roundedMinutes, 0, 0); // seconds & ms = 0
 
     // 3️⃣ Check last doc
     const lastDoc = await this.fieldMeterRawDataModel.findOne().sort({ timestamp: -1 });
@@ -248,25 +248,25 @@ async storeEvery15Minutes() {
       const apiValue = apiData[meterId] ?? apiData[shortId] ?? 0;
 
       realTimeValuesObj[meterId] = {
-        area: lastDoc?.[meterId]?.area || 'Unit_4', // keep last area or default
+        area: lastDoc?.[meterId]?.area || 'unit4', // keep last area or default
         value: Math.round(apiValue * 100) / 100,
       };
     }
 
     // 4️⃣ Insert with upsert (only one cron doc per minute)
     const newDoc = await this.fieldMeterRawDataModel.findOneAndUpdate(
-      { timestamp: timestamp15, source: 'cron' }, // unique condition
+      { timestamp: timestamp2, source: 'cron' }, // unique condition
       {
         $setOnInsert: {
           ...realTimeValuesObj,
-          timestamp: timestamp15,
+          timestamp: timestamp2,
           source: 'cron',
         },
       },
       { upsert: true, new: true }
     );
 
-    console.log(`✅ Cron insert complete for ${timestamp15.toISOString()}`);
+    console.log(`✅ Cron insert complete for ${timestamp2.toISOString()}`);
 
     // After storing the real-time data, now call the calculateConsumption function
     await this.calculateConsumption(); // Calling calculateConsumption after storing data
@@ -318,70 +318,73 @@ if (lastRawDoc.source === "cron") {
     return { msg: "No cron doc found" };
   }
 
-  const flatMeters: Record<string, { fV: number; lV: number; CONS: number }> = {};
+  // ✅ Allow both meter objects + string for lastArea
+  const flatMeters: Record<string, { fV: number; lV: number; CONS: number } | string> = {};
 
   for (const meterId of meterKeys) {
-    const meterObj = latestCron[meterId];
-    if (!meterObj) continue;
+    const latestMeter = latestCron[meterId];
+    if (!latestMeter) {
+      console.log(`⚠️ No data found for meter=${meterId} in latestCron`);
+      continue;
+    }
 
-    const currentArea = meterObj.area?.toLowerCase(); // "unit4" / "unit5"
-    const currentValue = meterObj.value;
+    // ✅ Normalize to "U4"/"U5" for calc
+    const rawArea = latestMeter.area; // e.g. "unit4" / "unit5"
+    let currentArea: "U4" | "U5" | null = null;
 
-    // 🔹 Fetch previous values
-    const prevFlatU4 = prevProcessDoc?.[`U4_${meterId}`];
-    const prevFlatU5 = prevProcessDoc?.[`U5_${meterId}`];
-    const prevLastArea = prevProcessDoc?.[`lastArea_${meterId}`];
+    const norm = rawArea?.toLowerCase().replace("_", "");
+    if (norm === "unit4" || norm === "u4") currentArea = "U4";
+    else if (norm === "unit5" || norm === "u5") currentArea = "U5";
+    else {
+      console.log(`⚠️ Invalid area=${latestMeter.area} for meter=${meterId}`);
+      continue;
+    }
+
+    const currentValue = latestMeter.value ?? 0;
+    console.log(`🔹 Meter ${meterId} | area=${currentArea} | rawValue=${currentValue}`);
+
+    // 🔹 Fetch prev values
+    const prevFlatU4 = prevProcessDoc?.[`U4_${meterId}`] as { fV: number; lV: number; CONS: number } | undefined;
+    const prevFlatU5 = prevProcessDoc?.[`U5_${meterId}`] as { fV: number; lV: number; CONS: number } | undefined;
+    const prevLastArea = prevProcessDoc?.[`lastArea_${meterId}`] as string;
 
     let u4 = prevFlatU4 ? { ...prevFlatU4 } : { fV: 0, lV: 0, CONS: 0 };
     let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0 };
 
-    // 🔹 First-time init (no prevProcessDoc)
+    // 🆕 First-time init
     if (!prevProcessDoc) {
-      if (currentArea === "unit4") {
-        u4 = { fV: currentValue, lV: currentValue, CONS: 0 }; // ✅ fV=lV=currentValue
-        u5 = { fV: 0, lV: 0, CONS: 0 };
-      } else if (currentArea === "unit5") {
-        u5 = { fV: currentValue, lV: currentValue, CONS: 0 }; // ✅ fV=lV=currentValue
-        u4 = { fV: 0, lV: 0, CONS: 0 };
+      console.log(`🆕 First doc for meter=${meterId}, area=${currentArea}, value=${currentValue}`);
+      if (currentArea === "U4") {
+        u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
+      } else {
+        u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
       }
     } else {
-      // 🔄 Toggle detection
-      if (prevLastArea && prevLastArea !== currentArea) {
-        if (currentArea === "unit4") {
-          // finalize Unit_5
-          u5.lV = currentValue;
-          u5.CONS = u5.lV - u5.fV;
+      // ✅ Opposite-side consumption
+      if (currentArea === "U4") {
+        // U5 consumption
+        u5.lV = currentValue;
+        u5.CONS = u5.lV - u5.fV;
 
-          // reset Unit_4
-          u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
-        } else if (currentArea === "unit5") {
-          // finalize Unit_4
-          u4.lV = currentValue;
-          u4.CONS = u4.lV - u4.fV;
+        // U4 reset
+        u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
+      } else if (currentArea === "U5") {
+        // U4 consumption
+        u4.lV = currentValue;
+        u4.CONS = u4.lV - u4.fV;
 
-          // reset Unit_5
-          u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
-        }
-      }
-      // ➡ Same area update
-      else {
-        if (currentArea === "unit4") {
-          u4.lV = currentValue;
-          u4.CONS = currentValue - u4.fV;
-        } else {
-          u5.lV = currentValue;
-          u5.CONS = currentValue - u5.fV;
-        }
+        // U5 reset
+        u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
       }
     }
 
-    // 🔹 Save into flatMeters
+    // ✅ Save into flatMeters
     flatMeters[`U4_${meterId}`] = u4;
     flatMeters[`U5_${meterId}`] = u5;
-    flatMeters[`lastArea_${meterId}`] = currentArea;
+    flatMeters[`lastArea_${meterId}`] = rawArea; // save original "unit4"/"unit5"
   }
 
-  // ✅ Save ordered doc
+  // ✅ Final ordered doc
   const orderedDoc: Record<string, any> = {
     timestamp: latestCron.timestamp,
     source: "cron",
@@ -401,10 +404,15 @@ if (lastRawDoc.source === "cron") {
   );
 
   console.log("💾 Cron processDoc inserted successfully");
-  console.log("📊 Final Consumption (cron):", JSON.stringify(orderedDoc, null, 2));
+  console.log("📊 Final Consumption (cron):", JSON.stringify(flatMeters, null, 2));
 
-  return { data: orderedDoc };
+  return { data: flatMeters };
 }
+
+
+
+
+
 
 
 
@@ -418,10 +426,7 @@ if (lastRawDoc.source === "cron") {
     const meterObj = lastRawDoc[meterId];
     if (!meterObj) continue;
 
-    const currentArea = meterObj.area
-  ?.toLowerCase()
-  .replace(/[\s_]/g, ""); // "Unit_5" / "Unit 5" => "unit5"
-// "Unit_4" / "Unit_5"
+    const currentArea = meterObj.area?.toLowerCase();// "Unit_4" / "Unit_5"
     const currentValue = meterObj.value;
 
     // Fetch previous values
@@ -433,16 +438,14 @@ if (lastRawDoc.source === "cron") {
     let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0 };
 
     // First-time init
-  // First-time init
-if (!prevProcessDoc) {
+    if (!prevProcessDoc) {
   if (currentArea === "unit4") {
     u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
-    u5 = { fV: 0, lV: 0, CONS: 0 };
+    u5 = { fV: 0, lV: 0, CONS: 0 }; // ensure other side stays empty
   } else if (currentArea === "unit5") {
     u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
     u4 = { fV: 0, lV: 0, CONS: 0 };
   }
-
 } else {
       // 🔄 Toggle event
      if (prevLastArea && prevLastArea !== currentArea) {

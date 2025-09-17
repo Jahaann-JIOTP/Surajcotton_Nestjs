@@ -30,7 +30,7 @@ export class DailyConsumptionService {
     { energy: 'U2_PLC_Del_ActiveEnergy',  power: 'U2_PLC_ActivePower_Total',  powerFactor: 'U2_PLC_PowerFactor_Avg',  voltage: 'U2_PLC_Voltage_Avg',  metername: 'Unit 5 Lighting', deptname: 'Lighting', MCS: '1490', installedLoad: '30' },
     { energy: 'U5_PLC_Del_ActiveEnergy',  power: 'U5_PLC_ActivePower_Total',  powerFactor: 'U5_PLC_PowerFactor_Avg',  voltage: 'U5_PLC_Voltage_Avg',  metername: 'Power House', deptname: 'Power House', MCS: '1', installedLoad: '50' },
     { energy: 'U13_PLC_Del_ActiveEnergy',  power: 'U13_PLC_ActivePower_Total',  powerFactor: 'U13_PLC_PowerFactor_Avg',  voltage: 'U13_PLC_Voltage_Avg',  metername: 'Comber+Unilap', deptname: 'Comber', MCS: '12', installedLoad: '18' },
-    { energy: 'U8_PLC_Del_ActiveEnergy',  power: 'U8_PLC_ActivePower_Total',  powerFactor: 'U8_PLC_PowerFactor_Avg',  voltage: 'U8_PLC_Voltage_Avg',  metername: 'Drawing Finisher', deptname: 'Drawing Finisher', MCS: '6', installedLoad: '13' },
+    { energy: 'U8_PLC_Del_ActiveEnergy',  power: 'U8_PLC_ActivePower_Total',  powerFactor: 'U8_PLC_PowerFactor_Avg',  voltage: 'U8_PLC_Voltage_Avg',  metername: 'Drawing Finisher', deptname: 'Drawing Finisher', MCS: '8', installedLoad: '22' },
 
 
 
@@ -94,6 +94,8 @@ export class DailyConsumptionService {
     { energy: 'U13_GW03_Del_ActiveEnergy', power: 'U13_GW03_ActivePower_Total', powerFactor: 'U13_GW03_PowerFactor_Avg', voltage: 'U13_GW03_Voltage_Avg', metername: 'Fiber Deposit Plant', deptname: 'Fiber Deposit', MCS: '1', installedLoad: '160' },
     { energy: 'U15_GW03_Del_ActiveEnergy', power: 'U15_GW03_ActivePower_Total', powerFactor: 'U15_GW03_PowerFactor_Avg', voltage: 'U15_GW03_Voltage_Avg', metername: 'Turbine', deptname: 'Deep Well Turbine', MCS: '1', installedLoad: '22.0' },
     { energy: 'U11_GW03_Del_ActiveEnergy', power: 'U11_GW03_ActivePower_Total', powerFactor: 'U11_GW03_PowerFactor_Avg', voltage: 'U11_GW03_Voltage_Avg', metername: 'Bailing Press', deptname: 'Bailing Press', MCS: '1', installedLoad: '22.5' },
+    { energy: 'U10_GW03_Del_ActiveEnergy', power: 'U10_GW03_ActivePower_Total', powerFactor: 'U10_GW03_PowerFactor_Avg', voltage: 'U10_GW03_Voltage_Avg', metername: 'Autone Cone 10-18', deptname: 'Auto Cone', MCS: '9', installedLoad: '26.2' },
+
   ];
 
   // ✅ merged function
