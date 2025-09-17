@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import * as moment from 'moment-timezone';
 
-@Schema({ collection: 'field_meter_process_data1', timestamps: true })
+@Schema({ collection: 'field_meter_process_data', timestamps: true })
 export class FieldMeterProcess extends Document {
   @Prop({ required: true, index: true })
   meterId: string; // The identifier for the field meter (like U4_U23_GW03)
