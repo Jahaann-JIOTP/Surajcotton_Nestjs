@@ -90,8 +90,7 @@ async getPowerAverages(startDate: string, endDate: string) {
 
     return {
       date,
-      Trafo1: +Trafo1.toFixed(2),
-      Trafo2: +Trafo2.toFixed(2),
+      Trafo1and2: +(Trafo1 + Trafo2).toFixed(2),
       Trafo3: +Trafo3.toFixed(2),
       Trafo4: +Trafo4.toFixed(2),
     };

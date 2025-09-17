@@ -321,11 +321,11 @@ if (lastRawDoc.source === "cron") {
   const flatMeters: Record<string, { fV: number; lV: number; CONS: number }> = {};
 
   for (const meterId of meterKeys) {
-    const latestMeter = latestCron[meterId];
-    if (!latestMeter) continue;
+    const meterObj = latestCron[meterId];
+    if (!meterObj) continue;
 
-    const currentArea = latestMeter.area?.toLowerCase(); // ✅ normalize (unit4 / unit5)
-    const currentValue = latestMeter.value;
+    const currentArea = meterObj.area?.toLowerCase(); // "unit4" / "unit5"
+    const currentValue = meterObj.value;
 
     // 🔹 Fetch previous values
     const prevFlatU4 = prevProcessDoc?.[`U4_${meterId}`];
@@ -335,17 +335,17 @@ if (lastRawDoc.source === "cron") {
     let u4 = prevFlatU4 ? { ...prevFlatU4 } : { fV: 0, lV: 0, CONS: 0 };
     let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0 };
 
-    // 🔹 First-time init
+    // 🔹 First-time init (no prevProcessDoc)
     if (!prevProcessDoc) {
       if (currentArea === "unit4") {
-        u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
-        u5 = { fV: 0, lV: 0, CONS: 0 }; // keep other empty
+        u4 = { fV: currentValue, lV: currentValue, CONS: 0 }; // ✅ fV=lV=currentValue
+        u5 = { fV: 0, lV: 0, CONS: 0 };
       } else if (currentArea === "unit5") {
-        u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
+        u5 = { fV: currentValue, lV: currentValue, CONS: 0 }; // ✅ fV=lV=currentValue
         u4 = { fV: 0, lV: 0, CONS: 0 };
       }
     } else {
-      // 🔹 Toggle detection
+      // 🔄 Toggle detection
       if (prevLastArea && prevLastArea !== currentArea) {
         if (currentArea === "unit4") {
           // finalize Unit_5
@@ -362,12 +362,13 @@ if (lastRawDoc.source === "cron") {
           // reset Unit_5
           u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
         }
-      } else {
-        // 🔹 Same area update
+      }
+      // ➡ Same area update
+      else {
         if (currentArea === "unit4") {
           u4.lV = currentValue;
           u4.CONS = currentValue - u4.fV;
-        } else if (currentArea === "unit5") {
+        } else {
           u5.lV = currentValue;
           u5.CONS = currentValue - u5.fV;
         }
@@ -400,10 +401,11 @@ if (lastRawDoc.source === "cron") {
   );
 
   console.log("💾 Cron processDoc inserted successfully");
-  console.log("📊 Final Consumption (cron):", JSON.stringify(flatMeters, null, 2));
+  console.log("📊 Final Consumption (cron):", JSON.stringify(orderedDoc, null, 2));
 
-  return { data: flatMeters };
+  return { data: orderedDoc };
 }
+
 
 
 
@@ -416,7 +418,10 @@ if (lastRawDoc.source === "cron") {
     const meterObj = lastRawDoc[meterId];
     if (!meterObj) continue;
 
-    const currentArea = meterObj.area?.toLowerCase();// "Unit_4" / "Unit_5"
+    const currentArea = meterObj.area
+  ?.toLowerCase()
+  .replace(/[\s_]/g, ""); // "Unit_5" / "Unit 5" => "unit5"
+// "Unit_4" / "Unit_5"
     const currentValue = meterObj.value;
 
     // Fetch previous values
@@ -428,14 +433,16 @@ if (lastRawDoc.source === "cron") {
     let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0 };
 
     // First-time init
-    if (!prevProcessDoc) {
+  // First-time init
+if (!prevProcessDoc) {
   if (currentArea === "unit4") {
     u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
-    u5 = { fV: 0, lV: 0, CONS: 0 }; // ensure other side stays empty
+    u5 = { fV: 0, lV: 0, CONS: 0 };
   } else if (currentArea === "unit5") {
     u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
     u4 = { fV: 0, lV: 0, CONS: 0 };
   }
+
 } else {
       // 🔄 Toggle event
      if (prevLastArea && prevLastArea !== currentArea) {
