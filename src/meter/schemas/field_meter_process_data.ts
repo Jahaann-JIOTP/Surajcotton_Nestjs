@@ -3,8 +3,8 @@ import { Document } from 'mongoose';
 
 export type FieldMeterProcessDataDocument = FieldMeterProcessData & Document;
 
-@Schema({ timestamps: false, collection: 'field_meter_process_data1', strict: false })
-export class FieldMeterProcessData {
+@Schema({ timestamps: false, collection: 'FM_process_data', strict: false })
+export class FieldMeterProcessData{
   @Prop({ default: Date.now })
   timestamp: Date;
 

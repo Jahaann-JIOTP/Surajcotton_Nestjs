@@ -10,7 +10,7 @@ import { FieldMeterRawData } from './schemas/field-meter-raw-data.schema';
 import {
   FieldMeterProcessData,FieldMeterProcessDataSchema} from './schemas/field_meter_process_data';
 import axios from 'axios';
-import { Cron, CronExpression } from '@nestjs/schedule'; 
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class MeterService {
@@ -25,55 +25,59 @@ private readonly fieldMeterProcessDataModel: Model<FieldMeterProcessData>,
 ) {}
 
   async toggleMeter(dto: ToggleMeterDto) {
-    const { meterId, area, email, username } = dto;
-    const now = new Date();
+  const { meterId, area, email, username } = dto;
 
-    if (!['unit4', 'unit5'].includes(area)) {
-      return { message: `Invalid area: ${area}` };
-    }
+  // ⏰ Karachi timestamp ISO (+05:00)
+  const nowUtc = new Date();
+  const karachiISO = new Date(nowUtc.getTime() + 5 * 60 * 60 * 1000)
+    .toISOString()
+    .replace('Z', '+05:00');
 
-    const existing = await this.toggleModel.findOne({ meterId });
+  if (!['unit4', 'unit5'].includes(area)) {
+    return { message: `Invalid area: ${area}` };
+  }
 
-    if (!existing) {
-      // ✅ First time create
-      await this.toggleModel.create({
-        meterId,
-        area,
-        startDate: now,
-        endDate: now,
-      });
+  const existing = await this.toggleModel.findOne({ meterId });
 
-      await this.configModel.create({
-        meterId,
-        area,
-        email,
-        username,
-        assignedAt: now,
-      });
-
-      return { meterId, area, message: 'Initialized and activated.' };
-    }
-
-    if (existing.area === area) {
-      return { meterId, area, message: 'Already active in this area.' };
-    }
-
-    // ✅ Update existing and save config
-    existing.area = area;
-    existing.startDate = now;
-    existing.endDate = now;
-    await existing.save();
+  if (!existing) {
+    await this.toggleModel.create({
+      meterId,
+      area,
+      startDate: karachiISO,
+      endDate: karachiISO,
+    });
 
     await this.configModel.create({
       meterId,
       area,
       email,
       username,
-      assignedAt: now,
+      assignedAt: karachiISO,
     });
 
-    return { meterId, area, message: 'Toggled successfully.' };
+    return { meterId, area, message: 'Initialized and activated.' };
   }
+
+  if (existing.area === area) {
+    return { meterId, area, message: 'Already active in this area.' };
+  }
+
+  existing.area = area;
+  existing.startDate = karachiISO;
+  existing.endDate = karachiISO;
+  await existing.save();
+
+  await this.configModel.create({
+    meterId,
+    area,
+    email,
+    username,
+    assignedAt: karachiISO,
+  });
+
+  return { meterId, area, message: 'Toggled successfully.' };
+}
+
 
   async getAllToggleData() {
     try {
@@ -115,7 +119,6 @@ private readonly METER_UNIT_MAP: Record<string, string[]> = {
   'U2_GW02_Del_ActiveEnergy': ['Unit_4', 'Unit_5'],
   'U4_GW02_Del_ActiveEnergy': ['Unit_4', 'Unit_5'],
 };
-
 
 
 
@@ -174,8 +177,11 @@ async getToggleBasedRealTime() {
     const apiData = apiRes.data || {};
 
     // 🔹 Timestamp unique by minute
-    const timestampNow = new Date();
-    timestampNow.setSeconds(0, 0);
+    const utcNow = new Date();
+utcNow.setSeconds(0, 0);
+const timestampNow = new Date(utcNow.getTime() + 5 * 60 * 60 * 1000)
+  .toISOString()
+  .replace('Z', '+05:00');
 
     // 🔹 Base doc (ensure exists)
     let doc = await this.fieldMeterRawDataModel.findOne({
@@ -224,7 +230,6 @@ async getToggleBasedRealTime() {
   }
 }
 
-
 // 🔹 har 15 min baad yeh cron job chalegi or doc db may jay ga //
 @Cron('0 */15 * * * *') 
 async storeEvery15Minutes() {
@@ -234,10 +239,16 @@ async storeEvery15Minutes() {
     const apiData = apiRes.data;
 
     // 2️⃣ Round current time to nearest 1-minute slot
-    const now = new Date();
-    const roundedMinutes = Math.floor(now.getMinutes() / 15) * 15;
-    const timestamp15 = new Date(now);
-    timestamp15.setMinutes(roundedMinutes, 0, 0); // seconds & ms = 0
+  // 2️⃣ Round current time to nearest 15-minute slot in UTC
+const now = new Date();
+const roundedMinutes = Math.floor(now.getMinutes() / 15) * 15;
+const timestamp15UTC = new Date(now);
+timestamp15UTC.setMinutes(roundedMinutes, 0, 0);
+
+// 🔹 Convert UTC → Karachi (+05:00)
+const timestamp15 = new Date(timestamp15UTC.getTime() + 5 * 60 * 60 * 1000)
+  .toISOString()
+  .replace('Z', '+05:00');
 
     // 3️⃣ Check last doc
     const lastDoc = await this.fieldMeterRawDataModel.findOne().sort({ timestamp: -1 });
@@ -248,7 +259,7 @@ async storeEvery15Minutes() {
       const apiValue = apiData[meterId] ?? apiData[shortId] ?? 0;
 
       realTimeValuesObj[meterId] = {
-        area: lastDoc?.[meterId]?.area || 'Unit_4', // keep last area or default
+        area: lastDoc?.[meterId]?.area || 'unit4', // keep last area or default
         value: Math.round(apiValue * 100) / 100,
       };
     }
@@ -256,6 +267,7 @@ async storeEvery15Minutes() {
     // 4️⃣ Insert with upsert (only one cron doc per minute)
     const newDoc = await this.fieldMeterRawDataModel.findOneAndUpdate(
       { timestamp: timestamp15, source: 'cron' }, // unique condition
+     
       {
         $setOnInsert: {
           ...realTimeValuesObj,
@@ -266,7 +278,7 @@ async storeEvery15Minutes() {
       { upsert: true, new: true }
     );
 
-    console.log(`✅ Cron insert complete for ${timestamp15.toISOString()}`);
+    // console.log(`✅ Cron insert complete for ${timestamp15.toISOString()}`);
 
     // After storing the real-time data, now call the calculateConsumption function
     await this.calculateConsumption(); // Calling calculateConsumption after storing data
@@ -304,9 +316,9 @@ async calculateConsumption() {
     return { msg: "No raw data found" };
   }
 
-
  
 // --- CRON CASE ---
+
 if (lastRawDoc.source === "cron") {
   const latestCron = await this.fieldMeterRawDataModel
     .findOne({ source: "cron" })
@@ -330,28 +342,19 @@ if (lastRawDoc.source === "cron") {
     const prevFlatU4 = prevProcessDoc?.[`U4_${meterId}`];
     const prevFlatU5 = prevProcessDoc?.[`U5_${meterId}`];
     const prevLastArea = prevProcessDoc?.[`lastArea_${meterId}`];
+
     let u4 = prevFlatU4 ? { ...prevFlatU4 } : { fV: 0, lV: 0, CONS: 0 };
     let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0 };
 
-  if (currentArea === "unit4") {
-  if (u4.fV === 0) u4.fV = currentValue; // 🆕 ensure fv update
-  u4.lV = currentValue;
-  u4.CONS = u4.lV - u4.fV;
-} else if (currentArea === "unit5") {
-  if (u5.fV === 0) u5.fV = currentValue; // 🆕 ensure fv update
-  u5.lV = currentValue;
-  u5.CONS = u5.lV - u5.fV;
-}
-// 🔹 Same area update
-if (currentArea === "unit4") {
-  // 🆕 make fV = last lV from prevProcessDoc
-  if (prevFlatU4) u4.fV = prevFlatU4.lV;
-  u4.lV = currentValue;
-  u4.CONS = u4.lV - u4.fV;
-} else if (currentArea === "unit5") {
-  if (prevFlatU5) u5.fV = prevFlatU5.lV;
-  u5.lV = currentValue;
-  u5.CONS = u5.lV - u5.fV;
+    // 🔹 First-time init
+    if (!prevProcessDoc) {
+      if (currentArea === "unit4") {
+        u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
+        u5 = { fV: 0, lV: 0, CONS: 0 }; // keep other empty
+      } else if (currentArea === "unit5") {
+        u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
+        u4 = { fV: 0, lV: 0, CONS: 0 };
+      }
     } else {
       // 🔹 Toggle detection
       if (prevLastArea && prevLastArea !== currentArea) {
@@ -359,7 +362,6 @@ if (currentArea === "unit4") {
           // finalize Unit_5
           u5.lV = currentValue;
           u5.CONS = u5.lV - u5.fV;
-
           // reset Unit_4
           u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
         } else if (currentArea === "unit5") {
@@ -370,17 +372,17 @@ if (currentArea === "unit4") {
           // reset Unit_5
           u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
         }
-      }  else {
-        if (currentArea === "Unit_4") {
+      } else {
+        // 🔹 Same area update
+        if (currentArea === "unit4") {
           u4.lV = currentValue;
           u4.CONS = currentValue - u4.fV;
-        } else {
+        } else if (currentArea === "unit5") {
           u5.lV = currentValue;
           u5.CONS = currentValue - u5.fV;
         }
       }
     }
-      
 
     // 🔹 Save into flatMeters
     flatMeters[`U4_${meterId}`] = u4;
@@ -388,11 +390,14 @@ if (currentArea === "unit4") {
     flatMeters[`lastArea_${meterId}`] = currentArea;
   }
 
-  // ✅ Save ordered doc
-  const orderedDoc: Record<string, any> = {
-    timestamp: latestCron.timestamp,
-    source: "cron",
-  };
+ const adjustedTimestamp = new Date(
+  new Date(latestCron.timestamp).getTime() + 5 * 60 * 60 * 1000
+);
+
+const orderedDoc: Record<string, any> = {
+  timestamp: adjustedTimestamp,
+  source: "cron",
+};
 
   for (const meterId of meterKeys) {
     if (!flatMeters[`U4_${meterId}`]) continue;
@@ -401,18 +406,18 @@ if (currentArea === "unit4") {
     orderedDoc[`lastArea_${meterId}`] = flatMeters[`lastArea_${meterId}`];
   }
 
-  await this.fieldMeterProcessDataModel.updateOne(
-    { timestamp: latestCron.timestamp },
-    { $set: orderedDoc },
-    { upsert: true }
-  );
+ await this.fieldMeterProcessDataModel.updateOne(
+  { timestamp: adjustedTimestamp },   // ✅ yahan bhi
+  { $set: orderedDoc },
+  { upsert: true }
+);
+
 
   console.log("💾 Cron processDoc inserted successfully");
   console.log("📊 Final Consumption (cron):", JSON.stringify(flatMeters, null, 2));
 
   return { data: flatMeters };
 }
-
 
 
 
@@ -464,10 +469,9 @@ if (currentArea === "unit4") {
   }
 }
 
-
       // ➡ Same area update
       else {
-        if (currentArea === "Unit_4") {
+        if (currentArea === "unit4") {
           u4.lV = currentValue;
           u4.CONS = currentValue - u4.fV;
         } else {
@@ -484,7 +488,14 @@ if (currentArea === "unit4") {
   }
 
   // ✅ Save ordered doc
-  const orderedDoc: Record<string, any> = { timestamp: lastRawDoc.timestamp };
+  const adjustedTimestamp = new Date(
+  new Date(lastRawDoc.timestamp).getTime() + 5 * 60 * 60 * 1000
+);
+
+const orderedDoc: Record<string, any> = {
+  timestamp: adjustedTimestamp,
+};
+
 
   for (const meterId of meterKeys) {
     if (!flatMeters[`U4_${meterId}`]) continue;
@@ -499,19 +510,18 @@ if (currentArea === "unit4") {
 //   orderedDoc[key] = totals[key];
 // }
 
-
   await this.fieldMeterProcessDataModel.updateOne(
-    { timestamp: lastRawDoc.timestamp },
-    { $set: orderedDoc },
-    { upsert: true }
-  );
+  { timestamp: adjustedTimestamp },   // ✅ yahan bhi
+  { $set: orderedDoc },
+  { upsert: true }
+);
+
 
   console.log("💾 New processDoc inserted successfully");
   console.log("📊 Final Consumption:", JSON.stringify(flatMeters, null, 2));
 
   return { data: flatMeters };
 }
-
 
 // Get total consumption sum (U4, U5, grand total)
 // Get per-meter total consumption sum
@@ -609,8 +619,8 @@ async getMeterWiseConsumption() {
 
 
 
-
 }
+
 
 
 
