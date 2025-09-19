@@ -7,12 +7,17 @@ import { JwtAuthGuard } from 'src/auth/jwt.authguard';
 @Controller('meter-data')
 export class meter_dataController {
   constructor(private readonly meterDataService: meter_dataService) {}
- 
+
   @UseGuards(JwtAuthGuard)
-  @Post()
-  async getFilteredMeterData(@Body() dto: RealtimeDto) {
-    const { area, LT_selections, meterId } = dto;
-    const data = await this.meterDataService.getFilteredData(area, LT_selections, meterId);
-    return { message: 'Filtered data', data };
-  }
+ @Post()
+async getFilteredMeterData(@Body() dto: RealtimeDto) {
+  const { area, meterId } = dto;
+
+  // directly use area as groupKey
+  const groupKey = area.toLowerCase();
+
+  const data = await this.meterDataService.getFilteredData(groupKey, meterId);
+  return { message: 'Filtered data', data };
+}
+
 }

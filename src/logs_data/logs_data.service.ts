@@ -47,8 +47,18 @@ export class LogsDataService {
     const collection = db.collection("historical");
 
     // Same timestamp style you used (+05:00), so no schema change needed
-    const startISO = `${start_date}T00:00:00.000+05:00`;
-    const endISO   = `${end_date}T23:59:59.999+05:00`;
+// Start: given start_date ka 6 AM
+const startISO = moment.tz(start_date, "YYYY-MM-DD", "Asia/Karachi")
+  .hour(6).minute(0).second(0).millisecond(0)
+  .toISOString(true);
+
+// End: end_date ke agle din ka 6 AM
+const endISO = moment.tz(end_date, "YYYY-MM-DD", "Asia/Karachi")
+  .add(1, "day")   // next day
+  .hour(6).minute(0).second(0).millisecond(0)
+  .toISOString(true);
+
+
 
     const dbQuery = {
       timestamp: { $gte: startISO, $lte: endISO },
