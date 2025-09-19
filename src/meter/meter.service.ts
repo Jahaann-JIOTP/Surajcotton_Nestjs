@@ -247,7 +247,6 @@ const timestampNow = new Date(utcNow.getTime() + 5 * 60 * 60 * 1000)
 //   }
 // }
 
-
 // for 3 minutes interval 
 @Cron('0 */3 * * * *') 
 async storeEvery15Minutes() {
@@ -308,6 +307,7 @@ const timestamp15 = new Date(timestamp15UTC.getTime() + 5 * 60 * 60 * 1000)
   }
 }
 
+
 async calculateConsumption() {
   const meterKeys = [
     "U23_GW03_Del_ActiveEnergy",
@@ -333,8 +333,6 @@ async calculateConsumption() {
     return { msg: "No raw data found" };
   }
 
- 
-
   // --- CRON CASE ---
 
 if (lastRawDoc.source === "cron") {
@@ -347,7 +345,7 @@ if (lastRawDoc.source === "cron") {
     return { msg: "No cron doc found" };
   }
 
-  const flatMeters: Record<string, { fV: number; lV: number; CONS: number }> = {};
+  const flatMeters: Record<string, { fV: number; lV: number; CONS: number; cumulative_con: number }> = {};
 
     // Calculate adjusted timestamp once
   const adjustedTimestamp = new Date(
@@ -357,80 +355,69 @@ if (lastRawDoc.source === "cron") {
     const latestMeter = latestCron[meterId];
     if (!latestMeter) continue;
 
-    const currentArea = latestMeter.area?.toLowerCase(); // ✅ normalize (unit4 / unit5)
-    const currentValue = latestMeter.value;
+    const currentArea = latestMeter.area?.toLowerCase(); // normalize (unit4 / unit5)
+    let currentValue = latestMeter.value;
 
-    // 🔹 Fetch previous values
+    // Fetch previous values
     const prevFlatU4 = prevProcessDoc?.[`U4_${meterId}`];
     const prevFlatU5 = prevProcessDoc?.[`U5_${meterId}`];
     const prevLastArea = prevProcessDoc?.[`lastArea_${meterId}`];
 
-    let u4 = prevFlatU4 ? { ...prevFlatU4 } : { fV: 0, lV: 0, CONS: 0 };
-    let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0 };
+    let u4 = prevFlatU4 ? { ...prevFlatU4 } : { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 };
+    let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 };
 
-    // 🔹 First-time init
+    // // This is for negative/zero value check
+    // if (currentValue <= 0) {
+    //   currentValue = prevFlatU4?.lV || prevFlatU5?.lV || currentValue;  // Use last valid value
+    // }
+       // **Check for invalid currentValue (e.g., NaN, Infinity, non-numeric values)**
+      if (isNaN(currentValue) || currentValue === Infinity || currentValue === -Infinity || currentValue <= 0 || currentValue < (prevFlatU4?.lV || prevFlatU5?.lV)) {
+        console.log("@@@@@@@@@@@@  I am in the garbage value filter @@@@@@@@@@@@@@@@@@")
+        // If invalid, replace with previous valid value or 0
+        currentValue = prevFlatU4?.lV || prevFlatU5?.lV || 0;  
+        console.log(currentValue);
+      }
+
+// Calculate the consumption and cumulative consumption
     if (!prevProcessDoc) {
+      // Initialize first-time data
       if (currentArea === "unit4") {
-        u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
-        u5 = { fV: 0, lV: 0, CONS: 0 }; // keep other empty
+        u4 = { fV: currentValue, lV: currentValue, CONS: 0, cumulative_con: 0 };
+        u5 = { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 }; // keep other empty
       } else if (currentArea === "unit5") {
-        u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
-        u4 = { fV: 0, lV: 0, CONS: 0 };
+        u5 = { fV: currentValue, lV: currentValue, CONS: 0, cumulative_con: 0 };
+        u4 = { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 };
       }
     } else {
-      // 🔹 Cron event handling: Correct initialization of fV
+      // Handle area toggle (change from unit4 to unit5 or vice versa)
       if (prevLastArea && prevLastArea !== currentArea) {
-        // If the area has changed, finalize the previous area’s consumption and reset FV for the new area
+        // Reset previous area and calculate new values
         if (currentArea === "unit4") {
               // Finalize Unit_5 consumption
             u5.fV = prevFlatU5?.lV ?? u5.lV;
             u5.lV = currentValue;
             u5.CONS = u5.lV - u5.fV;
-
-                // Store the previous consumption for Unit_5 before resetting
-            await this.fieldMeterProcessDataModel.updateOne(
-              { timestamp: adjustedTimestamp },
-              { $set: { [`U5_${meterId}`]: u5 } },
-              { upsert: true }
-            );
-
-        if(currentArea === "unit4" && prevLastArea === "unit4"){
-          // Now reset unit 5 values after consumption calculation
-          u5.fV = 0;
-          u5.lV = 0;
-          u5.CONS = u5.lV - u5.fV;
-        }
+            u5.cumulative_con += u5.CONS  // Update cumulative consumption
 
             // Set FV for Unit_4 from the last value of Unit_5 (not currentValue)
             u4.fV = currentValue; // Set unit5's fV from unit4's last value (lV)
             u4.lV = currentValue; // Set unit5's last value (lV) to the current value
             u4.CONS = u4.lV - u4.fV; // Calculate consumption for unit5
+            u4.cumulative_con += u4.CONS;
+
         } else if (currentArea === "unit5") {
-          console.log("finalizing unit 4 and i am toggle to unit5 now");
+            console.log("finalizing unit 4 and i am toggle to unit5 now");
             u4.fV = prevFlatU4?.lV ?? u4.lV; // Ensure fV for unit4 is the last value of unit4
             u4.lV = currentValue; // Set unit4's last value to current value
             u4.CONS = u4.lV - u4.fV; // Calculate consumption for unit4
-
-                // Store the previous consumption for Unit_4 before resetting
-            await this.fieldMeterProcessDataModel.updateOne(
-              { timestamp: adjustedTimestamp },
-              { $set: { [`U4_${meterId}`]: u4 } },
-              { upsert: true }
-            );
-
-
-          if(currentArea === "unit5" && prevLastArea === "unit5"){
-            // Now reset unit 4 values after consumption calculation
-            u4.fV = 0;
-            u4.lV = 0;
-            u4.CONS = u4.lV - u4.fV;
-          }
-
+            u4.cumulative_con += u4.CONS;
 
             // Set FV for Unit_5 from the last value of Unit_4 (not currentValue)
             u5.fV = currentValue; // Set unit5's fV from unit4's last value (lV)
             u5.lV = currentValue; // Set unit5's last value (lV) to the current value
             u5.CONS = u5.lV - u5.fV; // Calculate consumption for unit5
+            u5.cumulative_con += u5.CONS;
+
         }
       } else {
         // 🔹 Same area update
@@ -438,10 +425,13 @@ if (lastRawDoc.source === "cron") {
           u4.fV = prevFlatU4?.lV ?? u4.lV;
           u4.lV = currentValue;
           u4.CONS = currentValue - u4.fV;
+          u4.cumulative_con += u4.CONS;
+
         } else if (currentArea === "unit5") {
           u5.fV = prevFlatU5?.lV ?? u5.lV;
           u5.lV = currentValue;
           u5.CONS = currentValue - u5.fV;
+          u5.cumulative_con += u5.CONS;
         }
       }
     }
@@ -481,7 +471,7 @@ if (lastRawDoc.source === "cron") {
 
 // --- TOGGLE CASE ---
 let processDoc = new this.fieldMeterProcessDataModel({});
-const flatMeters: Record<string, { fV: number; lV: number; CONS: number }> = {};
+const flatMeters: Record<string, { fV: number; lV: number; CONS: number; cumulative_con: number}> = {};
  // ✅ Save ordered doc
 const adjustedTimestamp = new Date(
   new Date(lastRawDoc.timestamp).getTime() + 5 * 60 * 60 * 1000
@@ -492,7 +482,7 @@ for (const meterId of meterKeys) {
   if (!meterObj) continue;
 
   const currentArea = meterObj.area?.toLowerCase(); // "Unit_4" / "Unit_5"
-  const currentValue = meterObj.value;
+  let currentValue = meterObj.value;
 
   // Fetch previous values
   const prevFlatU4 = prevProcessDoc?.[`U4_${meterId}`];
@@ -502,14 +492,24 @@ for (const meterId of meterKeys) {
   let u4 = prevFlatU4 ? { ...prevFlatU4 } : { fV: 0, lV: 0, CONS: 0 };
   let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0 };
 
+  //  // Handle negative or zero values for currentValue
+  // if (currentValue <= 0) {
+  //   currentValue = prevFlatU4?.lV || prevFlatU5?.lV || currentValue;  // Use last valid value
+  // }
+     // **Check for invalid currentValue (e.g., NaN, Infinity, non-numeric values)**
+      if (isNaN(currentValue) || currentValue === Infinity || currentValue === -Infinity || currentValue <= 0 ||  currentValue < (prevFlatU4?.lV || prevFlatU5?.lV)) {
+        // If invalid, replace with previous valid value or 0
+        currentValue = prevFlatU4?.lV || prevFlatU5?.lV || 0;  
+      }
+
   // First-time init
   if (!prevProcessDoc) {
     if (currentArea === "unit4") {
-      u4 = { fV: currentValue, lV: currentValue, CONS: 0 };
-      u5 = { fV: 0, lV: 0, CONS: 0 }; // ensure other side stays empty
+      u4 = { fV: currentValue, lV: currentValue, CONS: 0 , cumulative_con: 0};
+      u5 = { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 }; // ensure other side stays empty
     } else if (currentArea === "unit5") {
-      u5 = { fV: currentValue, lV: currentValue, CONS: 0 };
-      u4 = { fV: 0, lV: 0, CONS: 0 };
+      u5 = { fV: currentValue, lV: currentValue, CONS: 0, cumulative_con: 0 };
+      u4 = { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 };
     }
   } else {
     // 🔄 Toggle event
@@ -520,25 +520,13 @@ for (const meterId of meterKeys) {
         u5.fV = prevFlatU5?.lV ?? u5.lV;
         u5.lV = currentValue;
         u5.CONS = u5.lV - u5.fV;
-
-                        // Store the previous consumption for Unit_5 before resetting
-        await this.fieldMeterProcessDataModel.updateOne(
-        { timestamp: adjustedTimestamp },
-        { $set: { [`U5_${meterId}`]: u5 } },
-        { upsert: true }
-        );
-
-      if(currentArea === "unit4" && prevLastArea === "unit4"){
-        // Now reset unit 5 values after consumption calculation
-        u5.fV = 0;
-        u5.lV = 0;
-        u5.CONS = u5.lV - u5.fV;
-        }
+        u5.cumulative_con += u5.CONS;  
 
         // Set FV for Unit_4 from the last value of Unit_5 (not currentValue)
         u4.fV = currentValue; // Set unit5's fV from unit4's last value (lV)
         u4.lV = currentValue; // Set unit5's last value (lV) to the current value
         u4.CONS = u4.lV - u4.fV; // Calculate consumption for unit5
+        u4.cumulative_con += u4.CONS;
 
       } else if (currentArea === "unit5") {
                 // Finalize Unit_4 consumption
@@ -546,29 +534,13 @@ for (const meterId of meterKeys) {
             u4.fV = prevFlatU4?.lV ?? u4.lV; // Ensure fV for unit4 is the last value of unit4
             u4.lV = currentValue; // Set unit4's last value to current value
             u4.CONS = u4.lV - u4.fV; // Calculate consumption for unit4
-            // console.log("ttttttttttttttttttttttttttttttttttttttttttt");
-            // console.log('Current Area:', currentArea);
-            // console.log('U4 fV:', prevFlatU4?.lV || prevFlatU5?.lV); // Log previous fV for unit4
-            // console.log('U4 LV:', currentValue); // Log current value for unit4
-            // console.log("ttttttttttttttttttttttttttttttttttttttttttt");
+            u4.cumulative_con += u4.CONS;
 
-            // Store the previous consumption for Unit_4 before resetting
-            await this.fieldMeterProcessDataModel.updateOne(
-              { timestamp: adjustedTimestamp },
-              { $set: { [`U4_${meterId}`]: u4 } },
-              { upsert: true }
-            );
-
-          if(currentArea === "unit5" && prevLastArea === "unit5"){
-            // Now reset unit 4 values after consumption calculation
-            u4.fV = 0;
-            u4.lV = 0;
-            u4.CONS = u4.lV - u4.fV;
-          }
             // Set FV for Unit_5 from the last value of Unit_4 (not currentValue)
             u5.fV = currentValue; // Set unit5's fV from unit4's last value (lV)
             u5.lV = currentValue; // Set unit5's last value (lV) to the current value
             u5.CONS = u5.lV - u5.fV; // Calculate consumption for unit5
+            u5.cumulative_con += u5.CONS; 
       }
     } else {
       // Same area update, calculate consumption as usual
@@ -576,10 +548,12 @@ for (const meterId of meterKeys) {
         u4.fV = prevFlatU4?.lV ?? u4.lV;
         u4.lV = currentValue;
         u4.CONS = currentValue - u4.fV;
+        u4.cumulative_con += u4.CONS;
       } else {
         u5.fV = prevFlatU5?.lV ?? u5.lV;
         u5.lV = currentValue;
         u5.CONS = currentValue - u5.fV;
+        u5.cumulative_con += u5.CONS; 
       }
     }
   }
@@ -609,7 +583,7 @@ await this.fieldMeterProcessDataModel.updateOne(
 );
 
 console.log("💾 New processDoc inserted successfully");
-console.log("📊 Final Consumption:", JSON.stringify(flatMeters, null, 2));
+console.log("📊 Final Consumption (toggle):", JSON.stringify(flatMeters, null, 2));
 
 return { data: flatMeters };
 }
@@ -618,183 +592,52 @@ return { data: flatMeters };
 // Get per-meter total consumption sum
 async getMeterWiseConsumption() {
   try {
-    // const pipeline = [
-    //   {
-    //     $group: {
-    //       _id: null,
-    //       U4_U1_GW02_Del_ActiveEnergy: {
-    //         $sum: { $ifNull: ["$U4_U1_GW02_Del_ActiveEnergy.CONS", 0] },
-    //       },
-    //       U4_U22_GW03_Del_ActiveEnergy: {
-    //         $sum: { $ifNull: ["$U4_U22_GW03_Del_ActiveEnergy.CONS", 0] },
-    //       },
-    //       U4_U23_GW03_Del_ActiveEnergy: {
-    //         $sum: { $ifNull: ["$U4_U23_GW03_Del_ActiveEnergy.CONS", 0] },
-    //       },
-    //       U4_U2_GW02_Del_ActiveEnergy: {
-    //         $sum: { $ifNull: ["$U4_U2_GW02_Del_ActiveEnergy.CONS", 0] },
-    //       },
-    //       U4_U3_GW02_Del_ActiveEnergy: {
-    //         $sum: { $ifNull: ["$U4_U3_GW02_Del_ActiveEnergy.CONS", 0] },
-    //       },
-    //       U4_U4_GW02_Del_ActiveEnergy: {
-    //         $sum: { $ifNull: ["$U4_U4_GW02_Del_ActiveEnergy.CONS", 0] },
-    //       },
-    //       U5_U1_GW02_Del_ActiveEnergy: {
-    //         $sum: { $ifNull: ["$U5_U1_GW02_Del_ActiveEnergy.CONS", 0] },
-    //       },
-    //       U5_U22_GW03_Del_ActiveEnergy: {
-    //         $sum: { $ifNull: ["$U5_U22_GW03_Del_ActiveEnergy.CONS", 0] },
-    //       },
-    //       U5_U23_GW03_Del_ActiveEnergy: {
-    //         $sum: { $ifNull: ["$U5_U23_GW03_Del_ActiveEnergy.CONS", 0] },
-    //       },
-    //       U5_U2_GW02_Del_ActiveEnergy: {
-    //         $sum: { $ifNull: ["$U5_U2_GW02_Del_ActiveEnergy.CONS", 0] },
-    //       },
-    //       U5_U3_GW02_Del_ActiveEnergy: {
-    //         $sum: { $ifNull: ["$U5_U3_GW02_Del_ActiveEnergy.CONS", 0] },
-    //       },
-    //       U5_U4_GW02_Del_ActiveEnergy: {
-    //         $sum: { $ifNull: ["$U5_U4_GW02_Del_ActiveEnergy.CONS", 0] },
-    //       },
-    //     },
-    //   },
-    //   {
-    //     $project: { _id: 0 },
-    //   },
-    // ];
+    
 
-    // const result = await this.fieldMeterProcessDataModel.aggregate(pipeline);
-    // return result.length ? result[0] : {};
- 
- const pipeline = [
-  {
-    $group: {
-      _id: null,
-      U4_U1_GW02_Del_ActiveEnergy: {
-        $sum: {
-          $cond: {
-            if: { $gt: ["$U4_U1_GW02_Del_ActiveEnergy.CONS", 0] },  // Only sum if positive
-            then: "$U4_U1_GW02_Del_ActiveEnergy.CONS",
-            else: 0
-          }
-        }
+    // Run the aggregation query on the collection
+    const result = await this.fieldMeterProcessDataModel.aggregate([
+      // Step 1: Sort by timestamp to get the latest document
+      {
+        $sort: { timestamp: -1 } // Sorting by timestamp in descending order
       },
-      U4_U22_GW03_Del_ActiveEnergy: {
-        $sum: {
-          $cond: {
-            if: { $gt: ["$U4_U22_GW03_Del_ActiveEnergy.CONS", 0] },
-            then: "$U4_U22_GW03_Del_ActiveEnergy.CONS",
-            else: 0
-          }
-        }
+      // Step 2: Limit to only the most recent document
+      {
+        $limit: 1 // Only the most recent document
       },
-      U4_U23_GW03_Del_ActiveEnergy: {
-        $sum: {
-          $cond: {
-            if: { $gt: ["$U4_U23_GW03_Del_ActiveEnergy.CONS", 0] },
-            then: "$U4_U23_GW03_Del_ActiveEnergy.CONS",
-            else: 0
-          }
+      // Step 3: Project the fields you want to include in the output (cumulative_con for each meter)
+      {
+        $project: {
+          _id: 0, // Exclude the _id field
+          U4_U1_GW02_Del_ActiveEnergy: "$U4_U1_GW02_Del_ActiveEnergy.cumulative_con",
+          U4_U22_GW03_Del_ActiveEnergy: "$U4_U22_GW03_Del_ActiveEnergy.cumulative_con",
+          U4_U23_GW03_Del_ActiveEnergy: "$U4_U23_GW03_Del_ActiveEnergy.cumulative_con",
+          U4_U2_GW02_Del_ActiveEnergy: "$U4_U2_GW02_Del_ActiveEnergy.cumulative_con",
+          U4_U3_GW02_Del_ActiveEnergy: "$U4_U3_GW02_Del_ActiveEnergy.cumulative_con",
+          U4_U4_GW02_Del_ActiveEnergy: "$U4_U4_GW02_Del_ActiveEnergy.cumulative_con",
+          U5_U1_GW02_Del_ActiveEnergy: "$U5_U1_GW02_Del_ActiveEnergy.cumulative_con",
+          U5_U22_GW03_Del_ActiveEnergy: "$U5_U22_GW03_Del_ActiveEnergy.cumulative_con",
+          U5_U23_GW03_Del_ActiveEnergy: "$U5_U23_GW03_Del_ActiveEnergy.cumulative_con",
+          U5_U2_GW02_Del_ActiveEnergy: "$U5_U2_GW02_Del_ActiveEnergy.cumulative_con",
+          U5_U3_GW02_Del_ActiveEnergy: "$U5_U3_GW02_Del_ActiveEnergy.cumulative_con",
+          U5_U4_GW02_Del_ActiveEnergy: "$U5_U4_GW02_Del_ActiveEnergy.cumulative_con"
         }
-      },
-      U4_U2_GW02_Del_ActiveEnergy: {
-        $sum: {
-          $cond: {
-            if: { $gt: ["$U4_U2_GW02_Del_ActiveEnergy.CONS", 0] },
-            then: "$U4_U2_GW02_Del_ActiveEnergy.CONS",
-            else: 0
-          }
-        }
-      },
-      U4_U3_GW02_Del_ActiveEnergy: {
-        $sum: {
-          $cond: {
-            if: { $gt: ["$U4_U3_GW02_Del_ActiveEnergy.CONS", 0] },
-            then: "$U4_U3_GW02_Del_ActiveEnergy.CONS",
-            else: 0
-          }
-        }
-      },
-      U4_U4_GW02_Del_ActiveEnergy: {
-        $sum: {
-          $cond: {
-            if: { $gt: ["$U4_U4_GW02_Del_ActiveEnergy.CONS", 0] },
-            then: "$U4_U4_GW02_Del_ActiveEnergy.CONS",
-            else: 0
-          }
-        }
-      },
-      U5_U1_GW02_Del_ActiveEnergy: {
-        $sum: {
-          $cond: {
-            if: { $gt: ["$U5_U1_GW02_Del_ActiveEnergy.CONS", 0] },
-            then: "$U5_U1_GW02_Del_ActiveEnergy.CONS",
-            else: 0
-          }
-        }
-      },
-      U5_U22_GW03_Del_ActiveEnergy: {
-        $sum: {
-          $cond: {
-            if: { $gt: ["$U5_U22_GW03_Del_ActiveEnergy.CONS", 0] },
-            then: "$U5_U22_GW03_Del_ActiveEnergy.CONS",
-            else: 0
-          }
-        }
-      },
-      U5_U23_GW03_Del_ActiveEnergy: {
-        $sum: {
-          $cond: {
-            if: { $gt: ["$U5_U23_GW03_Del_ActiveEnergy.CONS", 0] },
-            then: "$U5_U23_GW03_Del_ActiveEnergy.CONS",
-            else: 0
-          }
-        }
-      },
-      U5_U2_GW02_Del_ActiveEnergy: {
-        $sum: {
-          $cond: {
-            if: { $gt: ["$U5_U2_GW02_Del_ActiveEnergy.CONS", 0] },
-            then: "$U5_U2_GW02_Del_ActiveEnergy.CONS",
-            else: 0
-          }
-        }
-      },
-      U5_U3_GW02_Del_ActiveEnergy: {
-        $sum: {
-          $cond: {
-            if: { $gt: ["$U5_U3_GW02_Del_ActiveEnergy.CONS", 0] },
-            then: "$U5_U3_GW02_Del_ActiveEnergy.CONS",
-            else: 0
-          }
-        }
-      },
-      U5_U4_GW02_Del_ActiveEnergy: {
-        $sum: {
-          $cond: {
-            if: { $gt: ["$U5_U4_GW02_Del_ActiveEnergy.CONS", 0] },
-            then: "$U5_U4_GW02_Del_ActiveEnergy.CONS",
-            else: 0
-          }
-        }
-      },
-    },
-  },
-  {
-    $project: { _id: 0 },
-  },
-];
+      }
+    ]);
 
-const result = await this.fieldMeterProcessDataModel.aggregate(pipeline);
-return result.length ? result[0] : {};
+    // Check if we got any results
+    if (result.length > 0) {
+      return result[0]; // Return the first (and only) document as it's the most recent one
+    }
+
+    // If no results, return an empty object
+    return {};
 
   } catch (err) {
     console.error("❌ Error in getMeterWiseConsumption:", err.message);
     return {};
   }
 }
+
 
 
 
