@@ -13,15 +13,16 @@ export class meter_dataService {
   
      const mapping: Record<string, string[]> = {
   hfo: [
-    'U21_PLC','U22_PLC', 'U23_PLC', 'U24_PLC', 'U25_PLC', 'U26_PLC', 'U27_PLC'
+    'U22_PLC', 'U23_PLC', 'U24_PLC', 'U25_PLC', 'U26_PLC', 'U27_PLC'
   ],
 
-  ht:['U20_GW03','U19_GW03', 'U22_GW01', 'U23_GW01'],
+  ht:['U21_GW03','U20_GW03','U19_GW03', 'U22_GW01', 'U23_GW01'],
 
   'unit4_lt1': [
+    
     'U1_PLC', 'U2_PLC', 'U3_PLC', 'U03_PLC', 'U4_PLC', 'U5_PLC', 'U6_PLC', 'U7_PLC', 'U8_PLC',
         'U9_PLC', 'U10_PLC', 'U11_PLC', 'U12_PLC', 'U13_PLC', 'U14_PLC', 'U15_PLC', 'U16_PLC',
-        'U17_PLC', 'U18_PLC', 'U19_PLC', 'U20_PLC'
+        'U17_PLC', 'U18_PLC', 'U19_PLC', 'U20_PLC','U21_PLC',
   ],
 
   'unit4_lt2': [
@@ -41,7 +42,7 @@ export class meter_dataService {
   'unit5_lt2': [
   'U1_GW03', 'U2_GW03', 'U3_GW03', 'U4_GW03', 'U5_GW03', 'U6_GW03', 'U7_GW03',
         'U8_GW03', 'U9_GW03', 'U10_GW03', 'U11_GW03', 'U12_GW03', 'U13_GW03', 'U14_GW03',
-        'U15_GW03', 'U16_GW03', 'U17_GW03', 'U18_GW03', 'U21_GW03',
+        'U15_GW03', 'U16_GW03', 'U17_GW03', 'U18_GW03', 
         'U22_GW03', 'U23_GW03'],
 
       

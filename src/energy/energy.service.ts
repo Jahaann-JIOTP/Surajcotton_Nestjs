@@ -3,14 +3,18 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Energy, EnergyDocument } from './schemas/energy.schema';
+import * as moment from 'moment-timezone';
 
 @Injectable()
 export class EnergyService {
   constructor(
-    @InjectModel(Energy.name, 'surajcotton') private energyModel: Model<EnergyDocument>,
+    @InjectModel(Energy.name, 'surajcotton')
+    private energyModel: Model<EnergyDocument>,
   ) {}
 
-  async getConsumption(start: string, end: string) {
+
+
+    async getConsumption(start: string, end: string) {
     const meterIds = [ "U1_PLC", "U2_PLC", "U3_PLC", "U4_PLC", "U5_PLC", "U6_PLC", "U7_PLC", "U8_PLC", "U9_PLC",
        "U10_PLC", "U11_PLC", "U12_PLC", "U13_PLC", "U14_PLC", "U15_PLC", "U16_PLC", "U17_PLC","U18_PLC",
        "U19_PLC","U20_PLC", "U21_PLC","U22_PLC", "U23_PLC","U24_PLC","U25_PLC","U26_PLC","U27_PLC",
@@ -80,7 +84,7 @@ export class EnergyService {
 
     
     
-    const Aux_consumptionKeys = ['0'];
+    const Aux_consumptionKeys = ['U25_PLC_Del_ActiveEnergy'];
     const totalgeneration1Keys = [
       'U1_PLC_Del_ActiveEnergy', 'U2_PLC_Del_ActiveEnergy', 'U3_PLC_Del_ActiveEnergy', 'U4_PLC_Del_ActiveEnergy',
         'U5_PLC_Del_ActiveEnergy', 'U6_PLC_Del_ActiveEnergy', 'U7_PLC_Del_ActiveEnergy', 'U8_PLC_Del_ActiveEnergy', 'U9_PLC_Del_ActiveEnergy',
@@ -107,62 +111,91 @@ export class EnergyService {
 
     const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
     const U5_ConsumptionKeys=["U13_GW02_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U6_GW02_Del_ActiveEnergy","U17_GW03_Del_ActiveEnergy"]
+    // ✅ Time window
+ const startStr = moment
+  .tz(`${start} 06:00:00`, 'YYYY-MM-DD HH:mm:ss', 'Asia/Karachi')
+  .format('YYYY-MM-DDTHH:mm:ss.SSSZ'); // e.g. 2025-08-01T06:00:00.000+05:00
+
+const endStr = moment(startStr, 'YYYY-MM-DDTHH:mm:ss.SSSZ')
+  .add(1, 'day')
+  .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+
 const matchStage = {
   timestamp: {
-    $gte: `${start}T00:00:00.000+05:00`,
-    $lte: `${end}T23:59:59.999+05:00`,
+    $gte: startStr,
+    $lt: endStr,
   },
 };
 
-const projection: { [key: string]: number } = { timestamp: 1 };
 
-for (const id of meterIds) {
-  for (const suffix of suffixes) {
-    projection[`${id}_${suffix}`] = 1;
-  }
-}
 
-const result = await this.energyModel.aggregate([
-  { $match: matchStage },
-  { $project: projection },
-  { $sort: { timestamp: 1 } },
-]);
+    console.log("📌 Query Window:", { startStr, endStr });
 
-const firstValues: Record<string, number> = {};
-const lastValues: Record<string, number> = {};
+ 
 
-for (const doc of result) {
-  meterIds.forEach(id => {
-    suffixes.forEach(suffix => {
-      const key = `${id}_${suffix}`;
-      if (doc[key] !== undefined) {
-        if (!(key in firstValues)) firstValues[key] = doc[key];
-        lastValues[key] = doc[key];
+    // ✅ Projection build
+    const projection: { [key: string]: number } = { timestamp: 1 };
+    for (const id of meterIds) {
+      for (const suffix of suffixes) {
+        projection[`${id}_${suffix}`] = 1;
       }
+    }
+
+    console.log("📌 Projection Keys:", Object.keys(projection).length);
+
+    // ✅ Aggregate query
+    const result = await this.energyModel.aggregate([
+      { $match: matchStage },
+      { $project: projection },
+      { $sort: { timestamp: 1 } },
+    ]);
+
+    console.log("📌 Documents Fetched:", result.length);
+    if (result.length > 0) {
+      console.log("📌 First Doc:", result[0]);
+      console.log("📌 Last Doc:", result[result.length - 1]);
+    }
+
+    // ✅ First & Last values
+    const firstValues: Record<string, number> = {};
+    const lastValues: Record<string, number> = {};
+
+    for (const doc of result) {
+      meterIds.forEach(id => {
+        suffixes.forEach(suffix => {
+          const key = `${id}_${suffix}`;
+          if (doc[key] !== undefined) {
+            if (!(key in firstValues)) firstValues[key] = doc[key];
+            lastValues[key] = doc[key];
+          }
+        });
+      });
+    }
+
+    console.log("📌 First Values Found:", Object.keys(firstValues).length);
+    console.log("📌 Last Values Found:", Object.keys(lastValues).length);
+
+    // ✅ Consumption calculation
+    const consumption: Record<string, number> = {};
+    Object.keys(firstValues).forEach(key => {
+      let diff = (lastValues[key] ?? 0) - (firstValues[key] ?? 0);
+
+      if (
+        diff.toString().includes('e+') ||
+        diff.toString().includes('e-') ||
+        Math.abs(diff) > 1e10 ||
+        Math.abs(diff) < 1e-5
+      ) {
+        diff = 0;
+      }
+
+      consumption[key] = diff;
     });
-  });
-}
 
-// Final consumption calculation with scientific value filtering
-const consumption: Record<string, number> = {};
+    console.log("📌 Sample Consumption:", Object.entries(consumption).slice(0, 5));
 
-Object.keys(firstValues).forEach(key => {
-  let diff = lastValues[key] - firstValues[key];
-
-  // If value is extremely large, small, or in scientific notation — consider it as 0
-  if (
-    diff.toString().includes('e+') ||
-    diff.toString().includes('e-') ||
-    Math.abs(diff) > 1e+10 ||
-    Math.abs(diff) < 1e-5
-  ) {
-    diff = 0;
-  }
-
-  consumption[key] = diff;
-});
-
-// Utility function to group sums
+    // ✅ Group sums
+   // Utility function to group sums
 const sumGroup = (keys: string[]) =>
   keys.reduce((sum, key) => sum + (consumption[key] || 0), 0);
 
@@ -267,7 +300,7 @@ const sumGroup = (keys: string[]) =>
     // Unaccountable_Energy: unaccountable.toFixed(5),
   },
 };
+    }}
 
+  
 
-  }
-}

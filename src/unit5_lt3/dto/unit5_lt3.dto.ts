@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class Unit5LT3Dto {
   @IsString()
@@ -6,4 +6,12 @@ export class Unit5LT3Dto {
 
   @IsString()
   endDate: string;
+
+  @IsOptional()
+  @IsString()
+  startTime?: string;
+
+  @IsOptional()
+  @IsString()
+  endTime?: string;
 }

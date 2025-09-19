@@ -4,7 +4,6 @@ import { Model } from 'mongoose';
 import * as moment from 'moment';
 import { Unit4LT1 } from './schemas/unit4_LT1.schema';
 
-
 @Injectable()
 export class Unit4LT1Service {
   constructor(
@@ -12,14 +11,34 @@ export class Unit4LT1Service {
     private readonly unitModel: Model<Unit4LT1>,
   ) {}
 
-  async getSankeyData(startDate: string, endDate: string) {
-    // Convert to ISO without timezone issues
-const TZ = 'Asia/Karachi';
-const start = moment.tz(startDate, "YYYY-MM-DD", TZ).startOf("day").toDate();
-const end   = moment.tz(endDate, "YYYY-MM-DD", TZ).endOf("day").toDate();
+async getSankeyData(payload: { startDate: string; endDate: string; startTime?: string; endTime?: string }) {
+  const TZ = 'Asia/Karachi';
 
-// console.log('this is start',start)
-// console.log('this is end',end)
+  let start: Date;
+  let end: Date;
+
+  // If both startTime and endTime are provided, combine them with startDate and endDate
+  if (payload.startTime && payload.endTime) {
+    // Combine startDate and startTime for the exact start time
+    start = moment.tz(`${payload.startDate} ${payload.startTime}`, "YYYY-MM-DD HH:mm", TZ).startOf('minute').toDate();
+
+    // Combine endDate and endTime for the exact end time
+    end = moment.tz(`${payload.endDate} ${payload.endTime}`, "YYYY-MM-DD HH:mm", TZ).endOf('minute').toDate();
+
+    // Log the exact start and end times for debugging
+    // console.log("📌 Calculated Start Time:", moment(start).tz(TZ).format("YYYY-MM-DD HH:mm:ss"));
+    // console.log("📌 Calculated End Time:", moment(end).tz(TZ).format("YYYY-MM-DD HH:mm:ss"));
+  } else {
+    // Default to 6 AM to 6 AM next day if no startTime/endTime is provided
+    start = moment.tz(payload.startDate, "YYYY-MM-DD", TZ).set('hour', 6).set('minute', 0).set('second', 0).set('millisecond', 0).toDate();
+    end = moment.tz(payload.endDate, "YYYY-MM-DD", TZ).add(1, 'days').set('hour', 6).set('minute', 0).set('second', 0).set('millisecond', 0).toDate();
+  }
+
+  // Log the final calculated start and end times for debugging
+  // console.log("📌 Final Start Time (Karachi):", moment(start).tz(TZ).format("YYYY-MM-DD HH:mm:ss"));
+  // console.log("📌 Final End Time (Karachi):", moment(end).tz(TZ).format("YYYY-MM-DD HH:mm:ss"));
+
+    // Meter field mapping (unchanged)
     const meterMap: Record<string, string> = {
       U1_PLC: 'Transport',
       U2_PLC: 'Unit 05 Aux',
@@ -55,47 +74,31 @@ const end   = moment.tz(endDate, "YYYY-MM-DD", TZ).endOf("day").toDate();
       projection[`last_${field}`] = { $last: `$${field}` };
     });
 
-    // console.log(start,end)
-const pipeline: any[] = [
-  // 1) Normalize timestamp -> Date (works even if already Date)
-  { $addFields: { ts: { $toDate: "$timestamp" } } },
-
-  // 2) Filter on true Date objects (no string compare)
-  { $match: { ts: { $gte: start, $lte: end } } },
-
-  // 3) Build day bucket in Asia/Karachi (not UTC)
-  { $addFields: {
-      day: {
-        $dateToString: { format: "%Y-%m-%d", date: "$ts", timezone: TZ }
-      }
-    }
-  },
-
-  // 4) Ensure proper order so $first/$last are correct
-  { $sort: { ts: 1 } },
-
-  // 5) Group per local day
-  { $group: { _id: "$day", ...projection } },
-
-  // 6) Defensive re-filter by day string range (same format)
-  { $match: { _id: { $gte: startDate, $lte: endDate } } },
-];
+    const pipeline: any[] = [
+      { $addFields: { ts: { $toDate: "$timestamp" } } },
+      { $match: { ts: { $gte: start, $lte: end } } },
+      { $addFields: {
+          day: {
+            $dateToString: { format: "%Y-%m-%d", date: "$ts", timezone: TZ }
+          }
+        }
+      },
+      { $sort: { ts: 1 } },
+      { $group: { _id: "$day", ...projection } },
+      { $match: { _id: { $gte: payload.startDate, $lte: payload.endDate } } },
+    ];
 
     const results = await this.unitModel.aggregate(pipeline).exec();
-
-    // console.log('📅 Dates returned by aggregation:', results.map(r => r._id));
 
     // ----------------- Sum consumption for all selected dates -----------------
     const consumptionTotals: Record<string, number> = {};
     meterFields.forEach(field => consumptionTotals[field] = 0);
 
     for (const entry of results) {
-      // console.log(`\n🗓 Processing date: ${entry._id}`);
       for (const field of meterFields) {
         const first = entry[`first_${field}`] || 0;
         const last = entry[`last_${field}`] || 0;
         const consumption = last - first;
-        // console.log(`Meter: ${field}, First: ${first}, Last: ${last}, Consumption: ${consumption}`);
         if (!isNaN(consumption) && consumption >= 0) {
           consumptionTotals[field] += parseFloat(consumption.toFixed(2));
         }
@@ -103,8 +106,6 @@ const pipeline: any[] = [
     }
 
     // ----------------- Prepare Sankey Data -----------------
-   
-    // Step 4: Create Sankey format
     const tf1 = +consumptionTotals['U21_PLC_Del_ActiveEnergy'].toFixed(2);
     const ltGen = +consumptionTotals['U19_PLC_Del_ActiveEnergy'].toFixed(2);
     const totalLT1 = +(tf1 + ltGen).toFixed(2);

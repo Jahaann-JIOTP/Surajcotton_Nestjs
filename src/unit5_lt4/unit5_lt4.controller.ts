@@ -10,6 +10,6 @@ export class Unit5LT4Controller {
   @UseGuards(JwtAuthGuard)
   @Post()
   async getSankey(@Body() dto: Unit5LT4Dto) {
-    return this.unitService.getSankeyData(dto.startDate, dto.endDate);
+    return this.unitService.getSankeyData(dto);
   }
 }
