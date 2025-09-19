@@ -21,14 +21,14 @@ export class PieChartController {
       endTimestamp = new Date(end_date + 'T23:59:59Z').getTime() / 1000; // Convert milliseconds to seconds
 
       // Log the actual start and end dates (human-readable format)
-      console.log('Start Date:', start_date);
-      console.log('End Date:', end_date);
+      // console.log('Start Date:', start_date);
+      // console.log('End Date:', end_date);
     } else {
       throw new Error('Start date and end date must be provided.');
     }
 
-    console.log('Start Timestamp (seconds):', startTimestamp);
-    console.log('End Timestamp (seconds):', endTimestamp);
+    // console.log('Start Timestamp (seconds):', startTimestamp);
+    // console.log('End Timestamp (seconds):', endTimestamp);
 
     return await this.pieChartService.fetchData(startTimestamp, endTimestamp);
   }

@@ -31,12 +31,12 @@ export class ProductionController {
     @Query('date') date?: string,
     @Query('unit') unit?: string,
   ) {
-    console.log('Received query:', { unit, date });
+    // console.log('Received query:', { unit, date });
 
     if (unit && date) {
       const formattedDate = moment(date).format('YYYY-MM-DD');
       const result = await this.productionService.findByDateAndUnit(formattedDate, unit);
-      console.log('Result:', result);  // 👈 Debugging line
+      // console.log('Result:', result);  // 👈 Debugging line
       return result;
     }
 

@@ -52,7 +52,7 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   const DrawingMapping: Record<string, string[]> = {
     Unit_4: ['U8_PLC', 'U1_GW01'],
   };
-     const SimplexMapping: Record<string, string[]> = {
+    const SimplexMapping: Record<string, string[]> = {
     Unit_4: ['U15_PLC'],
     Unit_5: ['U21_GW02'],
   };
@@ -61,16 +61,16 @@ async getConsumptionData(dto: GetEnergyCostDto) {
     Unit_4: ['U1_PLC'],
 
   };
-     const RingMapping: Record<string, string[]> = {
+    const RingMapping: Record<string, string[]> = {
     Unit_4: ['U10_PLC', 'U11_PLC', 'U12_PLC', 'U17_PLC', 'U15_GW01', 'U17_GW01', 'U16_GW01'],
     Unit_5: ['U10_GW02', 'U7_GW02', 'U1_GW03','U5_GW03', 'U9_GW03', 'U12_GW03'],
   };
 
   const AirCompressorMapping: Record<string, string[]> = {
-     
+  
     Unit_4: ['U14_PLC', 'U16_PLC'],
   };
-   const TurbineMapping: Record<string, string[]> = {
+  const TurbineMapping: Record<string, string[]> = {
     Unit_4: ['U6_PLC'],
     Unit_5: ['U15_GW03'],
   };
@@ -79,12 +79,12 @@ async getConsumptionData(dto: GetEnergyCostDto) {
     Unit_5: ['U11_GW03'],
 
   };
-   const ResidentialcolonyMapping: Record<string, string[]> = {
+  const ResidentialcolonyMapping: Record<string, string[]> = {
     Unit_4: ['U4_GW01','U6_GW01'],
     Unit_5: ['U3_GW03'],
 
   };
-   const SpareMapping: Record<string, string[]> = {
+  const SpareMapping: Record<string, string[]> = {
     Unit_4: ['U7_PLC','U20_GW01','U21_GW01'],
     Unit_5: ['U22_GW02','U14_GW02','U7_GW03', 'U8_GW03'],
 
@@ -94,37 +94,37 @@ async getConsumptionData(dto: GetEnergyCostDto) {
     Unit_5: ['U20_GW02'],
 
   };
-   const BypassMapping: Record<string, string[]> = {
+  const BypassMapping: Record<string, string[]> = {
     Unit_4: ['U18_PLC','U12_GW01','U20_PLC']
     
   };
-   const PackingMapping: Record<string, string[]> = {
+  const PackingMapping: Record<string, string[]> = {
     Unit_4: ['U2_GW01'],
     Unit_5: ['U14_GW03'],
 
     
   };
-     const LabMapping: Record<string, string[]> = {
+    const LabMapping: Record<string, string[]> = {
     Unit_4: ['U19_GW01']
     
   };
-     const FrameFinisherMapping: Record<string, string[]> = {
+    const FrameFinisherMapping: Record<string, string[]> = {
     Unit_5: ['U23_GW02']
     
   };
-     const ACPlantMapping: Record<string, string[]> = {
+    const ACPlantMapping: Record<string, string[]> = {
     Unit_5: ['U15_GW02', 'U8_GW02']
     
   };
-     const FiberdepositMapping: Record<string, string[]> = {
+    const FiberdepositMapping: Record<string, string[]> = {
     Unit_5: ['U13_GW03']
     
   };
-     const YarnMapping: Record<string, string[]> = {
+    const YarnMapping: Record<string, string[]> = {
     Unit_5: ['U2_GW03']
     
   };
-     const WaterChillerMapping: Record<string, string[]> = {
+    const WaterChillerMapping: Record<string, string[]> = {
     Unit_5: ['U16_GW02']
     
   };
@@ -135,10 +135,10 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   const LightningMapping: Record<string, string[]> = {
     Unit_4: ['U4_PLC', 'U3_PLC']
   };
-   const AuxUnit5Mapping: Record<string, string[]> = {
+  const AuxUnit5Mapping: Record<string, string[]> = {
     Unit_4: ['U2_PLC']
   };
-     const CapacitorbankMapping: Record<string, string[]> = {
+  const CapacitorbankMapping: Record<string, string[]> = {
     Unit_5: ['U18_GW03', 'U5_GW02']
   };
 
@@ -279,7 +279,7 @@ console.log('📌 Query Range:', startISO, '➡️', endISO);
 // Calculate consumption with debug logs
 // -------------------------------
 for (const key of areaKeys) {
-  console.log(`\n--- Area: ${key} ---`);
+  // console.log(`\n--- Area: ${key} ---`);
 
   // --- AutoCone ---
   for (const meterId of AutoConeMapping[key] || []) {
@@ -291,19 +291,19 @@ for (const key of areaKeys) {
       const endVal = this.sanitizeValue(lastDoc[meterKey]);
       const consumption = this.sanitizeValue(endVal - startVal);
       AutoConeMap[key] += consumption;
-      console.log(`AutoCone Meter (cumulative): ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+      // console.log(`AutoCone Meter (cumulative): ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
     } else {
       // Normal AutoCone logic
       const meterVals = fieldMeterDocs.map((doc) => doc.toObject()[meterKey]?.CONS ?? 0);
       const sum = meterVals.reduce((sum, val) => sum + this.sanitizeValue(val), 0);
       AutoConeMap[key] += sum;
-      console.log(`AutoCone Meter: ${meterKey} | Values: ${meterVals} | Sum: ${sum}`);
+      // console.log(`AutoCone Meter: ${meterKey} | Values: ${meterVals} | Sum: ${sum}`);
     }
   }
 
   // --- Card ---
     for (const key of areaKeys) {
-      console.log(`\n--- Area: ${key} ---`);
+      // console.log(`\n--- Area: ${key} ---`);
 
   // --- Carding ---
   for (const meterId of CardMapping[key] || []) {
@@ -315,13 +315,13 @@ for (const key of areaKeys) {
       const endVal = this.sanitizeValue(lastDoc[meterKey]);
       const consumption = this.sanitizeValue(endVal - startVal);
       CardingMap[key] += consumption;
-      console.log(`Card Meter (cumulative): ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+      // console.log(`Card Meter (cumulative): ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
     } else {
       // Normal Carding logic
       const meterVals = fieldMeterDocs.map((doc) => doc.toObject()[meterKey]?.CONS ?? 0);
       const sum = meterVals.reduce((sum, val) => sum + this.sanitizeValue(val), 0);
       CardingMap[key] += sum;
-      console.log(`Card Meter: ${meterKey} | Values: ${meterVals} | Sum: ${sum}`);
+      // console.log(`Card Meter: ${meterKey} | Values: ${meterVals} | Sum: ${sum}`);
     }
   }}
 
@@ -335,13 +335,13 @@ for (const key of areaKeys) {
     const endVal = this.sanitizeValue(lastDoc[meterKey]);
     const consumption = this.sanitizeValue(endVal - startVal);
     ComberMap[key] += consumption;
-    console.log(`Comber Meter (cumulative): ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`Comber Meter (cumulative): ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   } else {
     // Normal Comber logic
     const meterVals = fieldMeterDocs.map((doc) => doc.toObject()[meterKey]?.CONS ?? 0);
     const sum = meterVals.reduce((sum, val) => sum + this.sanitizeValue(val), 0);
     ComberMap[key] += sum;
-    console.log(`Comber Meter: ${meterKey} | Values: ${meterVals} | Sum: ${sum}`);
+    // console.log(`Comber Meter: ${meterKey} | Values: ${meterVals} | Sum: ${sum}`);
   }
 }
 
@@ -354,7 +354,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
     BlowRoomMap[key] += consumption;
 
-    console.log(`BlowRoom Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`BlowRoom Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
 
@@ -366,7 +366,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
     DrawingMap[key] += consumption;
 
-    console.log(`Drawing Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`Drawing Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
    ///....Simplex (firstDoc & lastDoc direct values, no .CONS) ---
@@ -377,7 +377,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
     SimplexMap[key] += consumption;
 
-    console.log(`Simplex Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`Simplex Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
    ///....RTransportSystem (firstDoc & lastDoc direct values, no .CONS) ---
     for (const meterId of RTransportSystemMapping[key] || []) {
@@ -387,7 +387,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
    RTransportSystemMap[key] += consumption;
 
-    console.log(`RTransportSystem Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`RTransportSystem Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
      ///.... Ring(firstDoc & lastDoc direct values, no .CONS) ---
     for (const meterId of RingMapping[key] || []) {
@@ -397,7 +397,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
    RingMap[key] += consumption;
 
-    console.log(`Ring Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`Ring Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
      ///.... AirCompressor(firstDoc & lastDoc direct values, no .CONS) ---
 
@@ -408,7 +408,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
    AirCompressorMap[key] += consumption;
 
-    console.log(`AirCompressor Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`AirCompressor Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
        ///.... Turbine(firstDoc & lastDoc direct values, no .CONS) ---
 
@@ -419,7 +419,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
    TurbineMap[key] += consumption;
 
-    console.log(`Turbine Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`Turbine Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
          ///.... BailingPress(firstDoc & lastDoc direct values, no .CONS) ---
@@ -431,7 +431,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
    BailingPressMap[key] += consumption;
 
-    console.log(`BailingPress Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`BailingPress Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 ///.... BailingPress(firstDoc & lastDoc direct values, no .CONS) ---
     for (const meterId of ResidentialcolonyMapping[key] || []) {
@@ -441,7 +441,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
    ResidentialcolonyMap[key] += consumption;
 
-    console.log(`Residentialcolony Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`Residentialcolony Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
   ///.... Spare(firstDoc & lastDoc direct values, no .CONS) ---
@@ -452,7 +452,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
    SpareMap[key] += consumption;
 
-    console.log(`Spare Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`Spare Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
     ///.... Winding(firstDoc & lastDoc direct values, no .CONS) ---
@@ -463,7 +463,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
    WindingMap[key] += consumption;
 
-    console.log(`Winding Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`Winding Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
       ///.... Bypass(firstDoc & lastDoc direct values, no .CONS) ---
@@ -474,7 +474,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
    BypassMap[key] += consumption;
 
-    console.log(`Bypass Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`Bypass Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
         ///.... Packing(firstDoc & lastDoc direct values, no .CONS) ---
@@ -485,7 +485,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
    PackingMap[key] += consumption;
 
-    console.log(`Packing Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`Packing Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
           ///.... Lab(firstDoc & lastDoc direct values, no .CONS) ---
@@ -496,7 +496,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
    LabMap[key] += consumption;
 
-    console.log(`Lab Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`Lab Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
             ///.... FrameFinisher(firstDoc & lastDoc direct values, no .CONS) ---
@@ -507,7 +507,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
     FrameFinisherMap[key] += consumption;
 
-    console.log(`FrameFinisher Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`FrameFinisher Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
   
@@ -519,7 +519,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
     ACPlantMap[key] += consumption;
 
-    console.log(`ACPlant Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`ACPlant Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
    
@@ -531,7 +531,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
     FiberdepositMap[key] += consumption;
 
-    console.log(`Fiberdeposit Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`Fiberdeposit Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
               ///.... Yarn(firstDoc & lastDoc direct values, no .CONS) ---
@@ -542,7 +542,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
     YarnMap[key] += consumption;
 
-    console.log(`Yarn Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`Yarn Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
                 ///.... WaterChiller(firstDoc & lastDoc direct values, no .CONS) ---
@@ -553,7 +553,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
     WaterChillerMap[key] += consumption;
 
-    console.log(`WaterChiller Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`WaterChiller Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
   
@@ -565,7 +565,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
     HFO2ndSourceMap[key] += consumption;
 
-    console.log(`HFO2ndSource Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`HFO2ndSource Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
                   ///.... Lightning(firstDoc & lastDoc direct values, no .CONS) ---
@@ -576,7 +576,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
     LightningMap[key] += consumption;
 
-    console.log(`Lightning Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`Lightning Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
                     ///.... AuxUnit5(firstDoc & lastDoc direct values, no .CONS) ---
     for (const meterId of AuxUnit5Mapping[key] || []) {
@@ -586,7 +586,7 @@ for (const key of areaKeys) {
     const consumption = this.sanitizeValue(endVal - startVal);
     AuxUnit5Map[key] += consumption;
 
-    console.log(`AuxUnit5 Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
+    // console.log(`AuxUnit5 Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
 
       for (const meterId of  CapacitorbankMapping[key] || []) {

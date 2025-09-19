@@ -11,11 +11,20 @@ export class MeterToggle {
   @Prop({ required: true })
   area: string;
 
-  @Prop({ required: true })
-  startDate: string;
+  @Prop({ type: Date, required: true })   // added type date
+  startDate: Date;
 
-   @Prop({ required: true })
-  endDate: string;
+  @Prop({ type: Date, required: true })   // added type date
+  endDate: Date;
 }
 
 export const MeterToggleSchema = SchemaFactory.createForClass(MeterToggle);
+
+
+
+
+
+
+
+
+

@@ -84,7 +84,7 @@ export class Unit4LT2Service {
 
     const results = await this.unitModel.aggregate(pipeline).exec();
 
-    console.log('📅 Dates returned by aggregation:', results.map(r => r._id));
+    // console.log('📅 Dates returned by aggregation:', results.map(r => r._id));
 
     // ----------------- Sum consumption for all selected dates -----------------
     const consumptionTotals: Record<string, number> = {};

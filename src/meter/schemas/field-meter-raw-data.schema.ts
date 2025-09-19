@@ -8,7 +8,7 @@ export class FieldMeterRawData extends Document {
   [key: string]: any;
 
   @Prop()
-   timestamp: string;
+  timestamp: string;
 
 }
 

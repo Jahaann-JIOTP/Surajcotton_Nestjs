@@ -106,7 +106,7 @@ async getUnit5LT1Trends(startDate: string, endDate: string, type?: string) {
     meters,
     model: this.historicalModel,
   });
-  console.log("Raw Unit5-LT1 Data:", JSON.stringify(data, null, 2));
+  // console.log("Raw Unit5-LT1 Data:", JSON.stringify(data, null, 2));
   return this.formatData(data, type);
 }
 

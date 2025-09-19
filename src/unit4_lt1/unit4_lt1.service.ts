@@ -18,8 +18,8 @@ const TZ = 'Asia/Karachi';
 const start = moment.tz(startDate, "YYYY-MM-DD", TZ).startOf("day").toDate();
 const end   = moment.tz(endDate, "YYYY-MM-DD", TZ).endOf("day").toDate();
 
-console.log('this is start',start)
-console.log('this is end',end)
+// console.log('this is start',start)
+// console.log('this is end',end)
     const meterMap: Record<string, string> = {
       U1_PLC: 'Transport',
       U2_PLC: 'Unit 05 Aux',
@@ -55,7 +55,7 @@ console.log('this is end',end)
       projection[`last_${field}`] = { $last: `$${field}` };
     });
 
-    console.log(start,end)
+    // console.log(start,end)
 const pipeline: any[] = [
   // 1) Normalize timestamp -> Date (works even if already Date)
   { $addFields: { ts: { $toDate: "$timestamp" } } },

@@ -409,7 +409,7 @@ async calculateConsumption1(range: { start: string; end: string }): Promise<numb
   const endUTC = range.end;
 
   // Log: incoming range
-  console.log(`[CONSUMP] Query range (UTC): start=${startUTC} end=${endUTC}`);
+  // console.log(`[CONSUMP] Query range (UTC): start=${startUTC} end=${endUTC}`);
 
   // Build projection
   const projection: Record<string, number> = { timestamp: 1 };
@@ -433,14 +433,14 @@ async calculateConsumption1(range: { start: string; end: string }): Promise<numb
     { $sort: { timestamp: 1 } },
   ]);
 
-  console.log(`[CONSUMP] Docs found: ${data.length}`);
+  // console.log(`[CONSUMP] Docs found: ${data.length}`);
 
   if (data.length > 0) {
     const firstTs = data[0].timestamp instanceof Date ? data[0].timestamp.toISOString() : data[0].timestamp;
     const lastTs  = data[data.length - 1].timestamp instanceof Date ? data[data.length - 1].timestamp.toISOString() : data[data.length - 1].timestamp;
-    console.log(`[CONSUMP] First doc ts: ${firstTs} | Last doc ts: ${lastTs}`);
+    // console.log(`[CONSUMP] First doc ts: ${firstTs} | Last doc ts: ${lastTs}`);
   } else {
-    console.log(`[CONSUMP] No docs in range.`);
+    // console.log(`[CONSUMP] No docs in range.`);
   }
 
   const firstValues: Record<string, number | null> = {};
@@ -481,7 +481,7 @@ async calculateConsumption1(range: { start: string; end: string }): Promise<numb
       last: lastValues[k],
       delta: consumption[k]
     }));
-  console.log(`[CONSUMP] Non-zero sample (up to 10):`, nonZero);
+  // console.log(`[CONSUMP] Non-zero sample (up to 10):`, nonZero);
 
   // Group sums
   const sum = (keys: string[]) => keys.reduce((t, k) => t + (consumption[k] || 0), 0);
@@ -499,8 +499,8 @@ async calculateConsumption1(range: { start: string; end: string }): Promise<numb
   const totalConsumption1 = Solar1 + Transformer1LT1CB + Transformer2ACB + Solar2;
   const total = totalConsumption + totalConsumption1;
 
-  console.log(`[CONSUMP] Group sums => TR2:${TR2.toFixed(2)} TR1:${TR1.toFixed(2)} GasLT:${GasLTPanel.toFixed(2)} PH:${PowerHouse.toFixed(2)} | Solar1:${Solar1.toFixed(2)} T1LT1CB:${Transformer1LT1CB.toFixed(2)} T2ACB:${Transformer2ACB.toFixed(2)} Solar2:${Solar2.toFixed(2)}`);
-  console.log(`[CONSUMP] Totals => Import:${totalConsumption.toFixed(2)} Export:${totalConsumption1.toFixed(2)} Overall:${total.toFixed(2)}`);
+  // console.log(`[CONSUMP] Group sums => TR2:${TR2.toFixed(2)} TR1:${TR1.toFixed(2)} GasLT:${GasLTPanel.toFixed(2)} PH:${PowerHouse.toFixed(2)} | Solar1:${Solar1.toFixed(2)} T1LT1CB:${Transformer1LT1CB.toFixed(2)} T2ACB:${Transformer2ACB.toFixed(2)} Solar2:${Solar2.toFixed(2)}`);
+  // console.log(`[CONSUMP] Totals => Import:${totalConsumption.toFixed(2)} Export:${totalConsumption1.toFixed(2)} Overall:${total.toFixed(2)}`);
 
   return +total.toFixed(2);
 }
@@ -515,7 +515,7 @@ async getWeeklyGeneration() {
   const now = moment().tz('Asia/Karachi');
   const monday = now.clone().startOf('week').add(1, 'day'); // Monday in PKT
 
-  console.log(`[WEEKLY] Base week (PKT). Monday: ${monday.format()}`);
+  // console.log(`[WEEKLY] Base week (PKT). Monday: ${monday.format()}`);
 
   for (let i = 0; i < 7; i++) {
     const thisDayStart = monday.clone().add(i, 'days').startOf('day').toISOString(); // UTC Z
@@ -524,14 +524,14 @@ async getWeeklyGeneration() {
     const lastWeekStart = moment(thisDayStart).subtract(7, 'days').toISOString();
     const lastWeekEnd   = moment(thisDayEnd).subtract(7, 'days').toISOString();
 
-    console.log(`[WEEKLY] ${days[i]} | thisWeek: ${thisDayStart} -> ${thisDayEnd} | lastWeek: ${lastWeekStart} -> ${lastWeekEnd}`);
+    // console.log(`[WEEKLY] ${days[i]} | thisWeek: ${thisDayStart} -> ${thisDayEnd} | lastWeek: ${lastWeekStart} -> ${lastWeekEnd}`);
 
     const [thisWeek, lastWeek] = await Promise.all([
       this.calculateConsumption1({ start: thisDayStart, end: thisDayEnd }),
       this.calculateConsumption1({ start: lastWeekStart, end: lastWeekEnd }),
     ]);
 
-    console.log(`[WEEKLY] ${days[i]} => thisWeek:${thisWeek.toFixed(2)} lastWeek:${lastWeek.toFixed(2)}`);
+    // console.log(`[WEEKLY] ${days[i]} => thisWeek:${thisWeek.toFixed(2)} lastWeek:${lastWeek.toFixed(2)}`);
 
     result.push({
       Day: days[i],
