@@ -365,18 +365,28 @@ if (lastRawDoc.source === "cron") {
 
     let u4 = prevFlatU4 ? { ...prevFlatU4 } : { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 };
     let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 };
+    
+    const lastLV = prevLastArea === "unit4" ? prevFlatU4?.lV : prevFlatU5?.lV;
+  // ✅ Step 1: Garbage / invalid value filter
+    
+    if (
+      isNaN(currentValue) || 
+      currentValue === Infinity || 
+      currentValue === -Infinity || 
+      currentValue <= 0 || 
+      currentValue < lastLV || 
+      currentValue > 1e12
+    ) {
+      currentValue = lastLV || 0;
+    }
 
-    // // This is for negative/zero value check
-    // if (currentValue <= 0) {
-    //   currentValue = prevFlatU4?.lV || prevFlatU5?.lV || currentValue;  // Use last valid value
-    // }
-       // **Check for invalid currentValue (e.g., NaN, Infinity, non-numeric values)**
-      if (isNaN(currentValue) || currentValue === Infinity || currentValue === -Infinity || currentValue <= 0 || currentValue < (prevFlatU4?.lV || prevFlatU5?.lV)) {
-        console.log("@@@@@@@@@@@@  I am in the garbage value filter @@@@@@@@@@@@@@@@@@")
-        // If invalid, replace with previous valid value or 0
-        currentValue = prevFlatU4?.lV || prevFlatU5?.lV || 0;  
-        console.log(currentValue);
-      }
+    //  Step 2: Zero-to-first-value fix
+    if (currentArea === "unit4" && prevFlatU4?.lV === 0 && currentValue > 0) {
+        u4.fV = currentValue;
+    }
+    if (currentArea === "unit5" && prevFlatU5?.lV === 0 && currentValue > 0) {
+        u5.fV = currentValue;
+    }
 
 // Calculate the consumption and cumulative consumption
     if (!prevProcessDoc) {
@@ -492,16 +502,28 @@ for (const meterId of meterKeys) {
   let u4 = prevFlatU4 ? { ...prevFlatU4 } : { fV: 0, lV: 0, CONS: 0 };
   let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0 };
 
-  //  // Handle negative or zero values for currentValue
-  // if (currentValue <= 0) {
-  //   currentValue = prevFlatU4?.lV || prevFlatU5?.lV || currentValue;  // Use last valid value
-  // }
-     // **Check for invalid currentValue (e.g., NaN, Infinity, non-numeric values)**
-      if (isNaN(currentValue) || currentValue === Infinity || currentValue === -Infinity || currentValue <= 0 ||  currentValue < (prevFlatU4?.lV || prevFlatU5?.lV)) {
-        // If invalid, replace with previous valid value or 0
-        currentValue = prevFlatU4?.lV || prevFlatU5?.lV || 0;  
-      }
 
+  const lastLV = prevLastArea === "unit4" ? prevFlatU4?.lV : prevFlatU5?.lV;
+
+    // ✅ Step 1: Garbage / invalid value filter
+    if (
+      isNaN(currentValue) || 
+      currentValue === Infinity || 
+      currentValue === -Infinity || 
+      currentValue <= 0 || 
+      currentValue < lastLV || 
+      currentValue > 1e12
+    ) {
+      currentValue = lastLV || 0;
+    }
+
+    // ✅ Step 2: Zero-to-first-value fix
+    if (currentArea === "unit4" && prevFlatU4?.lV === 0 && currentValue > 0) {
+        u4.fV = currentValue;
+    }
+    if (currentArea === "unit5" && prevFlatU5?.lV === 0 && currentValue > 0) {
+        u5.fV = currentValue;
+    }
   // First-time init
   if (!prevProcessDoc) {
     if (currentArea === "unit4") {
@@ -593,7 +615,6 @@ return { data: flatMeters };
 async getMeterWiseConsumption() {
   try {
     
-
     // Run the aggregation query on the collection
     const result = await this.fieldMeterProcessDataModel.aggregate([
       // Step 1: Sort by timestamp to get the latest document
