@@ -317,6 +317,15 @@ async calculateConsumption() {
     "U2_GW02_Del_ActiveEnergy",
     "U4_GW02_Del_ActiveEnergy",
   ];
+  // Installed Load 
+  const installedLoad: Record<string, number> = {
+  'U23_GW03_Del_ActiveEnergy': 200,
+  'U22_GW03_Del_ActiveEnergy': 200,
+  'U3_GW02_Del_ActiveEnergy': 100,
+  'U1_GW02_Del_ActiveEnergy': 100,
+  'U2_GW02_Del_ActiveEnergy': 100,
+  'U4_GW02_Del_ActiveEnergy': 100,
+};
 
   // 🔹 Last processDoc (for previous state of flatMeters)
   const prevProcessDoc = await this.fieldMeterProcessDataModel
@@ -367,7 +376,8 @@ if (lastRawDoc.source === "cron") {
     let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 };
     
     const lastLV = prevLastArea === "unit4" ? prevFlatU4?.lV : prevFlatU5?.lV;
-  // ✅ Step 1: Garbage / invalid value filter
+
+       //  ----------------- Step 1: Garbage / invalid value filter ---------------------
     
     if (
       isNaN(currentValue) || 
@@ -380,13 +390,41 @@ if (lastRawDoc.source === "cron") {
       currentValue = lastLV || 0;
     }
 
-    //  Step 2: Zero-to-first-value fix
+//  ------------------ Step 2: Zero-to-first-value fix -------------------
+
     if (currentArea === "unit4" && prevFlatU4?.lV === 0 && currentValue > 0) {
         u4.fV = currentValue;
     }
     if (currentArea === "unit5" && prevFlatU5?.lV === 0 && currentValue > 0) {
         u5.fV = currentValue;
     }
+
+ // ----------------- Step 3: HIGH-SPIKE protection (add here) -------------
+
+//  Step 1: Find minutes since last non-zero consumption
+const lastNonZeroLV = prevLastArea === "unit4" ? prevFlatU4?.lV : prevFlatU5?.lV;
+const lastNonZeroTimestamp = prevLastArea === "unit4" ? prevFlatU4?.lastNonZeroTime : prevFlatU5?.lastNonZeroTime;
+
+// Compute minutes since last non-zero reading
+let minutesDiff = 3; // default 1 minute if no previous
+if (lastNonZeroTimestamp) {
+  console.log("--------- Last non Zero Value TimeStamp ------------")
+    minutesDiff = (adjustedTimestamp.getTime() - new Date(lastNonZeroTimestamp).getTime()) / (1000 * 60);
+}
+
+// Step 2: Calculate maximum spike and check
+const maxSpike = (installedLoad[meterId] / 60) * minutesDiff;
+
+if ((currentValue - lastNonZeroLV) > maxSpike) {
+    console.log(`High spike detected on ${meterId}, replacing value`);
+    currentValue = lastNonZeroLV || currentValue; // I WILL DISCUSS THIS WITH AUTOMATION / IF HIGH VALUE COME FIRST TIME AND THERE IS NO NORMAL VALUE THEN ? ACCEPT IT OR REPLACE IT WITH 0 
+}
+
+//Step 3: Update lastNonZeroTime
+if (currentValue > 0) {
+    if (currentArea === "unit4") u4.lastNonZeroTime = adjustedTimestamp;
+    if (currentArea === "unit5") u5.lastNonZeroTime = adjustedTimestamp;
+}
 
 // Calculate the consumption and cumulative consumption
     if (!prevProcessDoc) {
@@ -476,7 +514,6 @@ if (lastRawDoc.source === "cron") {
 
   return { data: flatMeters };
 }
-
 
 
 // --- TOGGLE CASE ---
