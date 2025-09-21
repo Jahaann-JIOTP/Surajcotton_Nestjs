@@ -55,7 +55,7 @@ export class AlarmsController {
 
   @Post('add-alarm')
   createAlarm(@Body() dto: ConfigAlarmDto) {
-    console.log('api hit', dto);
+    // console.log('api hit', dto);
     return this.alarmsService.addAlarm(dto);
   }
 

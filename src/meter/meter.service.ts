@@ -319,12 +319,12 @@ async calculateConsumption() {
   ];
   // Installed Load 
   const installedLoad: Record<string, number> = {
-  'U23_GW03_Del_ActiveEnergy': 200,
-  'U22_GW03_Del_ActiveEnergy': 200,
-  'U3_GW02_Del_ActiveEnergy': 100,
-  'U1_GW02_Del_ActiveEnergy': 100,
-  'U2_GW02_Del_ActiveEnergy': 100,
-  'U4_GW02_Del_ActiveEnergy': 100,
+  'U23_GW03_Del_ActiveEnergy': 300,
+  'U22_GW03_Del_ActiveEnergy': 300,
+  'U3_GW02_Del_ActiveEnergy': 300,
+  'U1_GW02_Del_ActiveEnergy': 300,
+  'U2_GW02_Del_ActiveEnergy': 300,
+  'U4_GW02_Del_ActiveEnergy': 300,
 };
 
   // 🔹 Last processDoc (for previous state of flatMeters)
@@ -416,6 +416,8 @@ if (lastNonZeroTimestamp) {
 const maxSpike = (installedLoad[meterId] / 60) * minutesDiff;
 
 if ((currentValue - lastNonZeroLV) > maxSpike) {
+    console.log("----------MAX SPIKE -----------------");
+    console.log(maxSpike);
     console.log(`High spike detected on ${meterId}, replacing value`);
     currentValue = lastNonZeroLV || currentValue; // I WILL DISCUSS THIS WITH AUTOMATION / IF HIGH VALUE COME FIRST TIME AND THERE IS NO NORMAL VALUE THEN ? ACCEPT IT OR REPLACE IT WITH 0 
 }
@@ -574,16 +576,20 @@ for (const meterId of meterKeys) {
     let minutesDiff = 3; // default 1 minute if no previous
     if (lastNonZeroTimestamp) {
       console.log("--------- Last non Zero Value TimeStamp ------------")
+      
         minutesDiff = (adjustedTimestamp.getTime() - new Date(lastNonZeroTimestamp).getTime()) / (1000 * 60);
+        console.log("minutesDiff");
     }
 
     // Step 2: Calculate maximum spike and check
     const maxSpike = (installedLoad[meterId] / 60) * minutesDiff;
-
-    if ((currentValue - lastNonZeroLV) > maxSpike) {
+    console.log("----------MAX SPIKE -----------------");
+    console.log(maxSpike);
+    if (currentValue  < (lastNonZeroLV + maxSpike)) {
         console.log(`High spike detected on ${meterId}, replacing value`);
         currentValue = lastNonZeroLV || currentValue; // I WILL DISCUSS THIS WITH AUTOMATION / IF HIGH VALUE COME FIRST TIME AND THERE IS NO NORMAL VALUE THEN ? ACCEPT IT OR REPLACE IT WITH 0 
-    }
+        
+      }
 
     //Step 3: Update lastNonZeroTime
     if (currentValue > 0) {
