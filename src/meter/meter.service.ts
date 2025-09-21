@@ -542,24 +542,53 @@ for (const meterId of meterKeys) {
 
   const lastLV = prevLastArea === "unit4" ? prevFlatU4?.lV : prevFlatU5?.lV;
 
-    // ✅ Step 1: Garbage / invalid value filter
-    if (
-      isNaN(currentValue) || 
-      currentValue === Infinity || 
-      currentValue === -Infinity || 
-      currentValue <= 0 || 
-      currentValue < lastLV || 
-      currentValue > 1e12
-    ) {
-      currentValue = lastLV || 0;
+         //  ----------------- Step 1: Garbage / invalid value filter ---------------------
+        
+        if (
+          isNaN(currentValue) || 
+          currentValue === Infinity || 
+          currentValue === -Infinity || 
+          currentValue <= 0 || 
+          currentValue < lastLV || 
+          currentValue > 1e12
+        ) {
+          currentValue = lastLV || 0;
+        }
+
+    //  ------------------ Step 2: Zero-to-first-value fix -------------------
+
+        if (currentArea === "unit4" && prevFlatU4?.lV === 0 && currentValue > 0) {
+            u4.fV = currentValue;
+        }
+        if (currentArea === "unit5" && prevFlatU5?.lV === 0 && currentValue > 0) {
+            u5.fV = currentValue;
+        }
+
+    // ----------------- Step 3: HIGH-SPIKE protection (add here) -------------
+
+    //  Step 1: Find minutes since last non-zero consumption
+    const lastNonZeroLV = prevLastArea === "unit4" ? prevFlatU4?.lV : prevFlatU5?.lV;
+    const lastNonZeroTimestamp = prevLastArea === "unit4" ? prevFlatU4?.lastNonZeroTime : prevFlatU5?.lastNonZeroTime;
+
+    // Compute minutes since last non-zero reading
+    let minutesDiff = 3; // default 1 minute if no previous
+    if (lastNonZeroTimestamp) {
+      console.log("--------- Last non Zero Value TimeStamp ------------")
+        minutesDiff = (adjustedTimestamp.getTime() - new Date(lastNonZeroTimestamp).getTime()) / (1000 * 60);
     }
 
-    // ✅ Step 2: Zero-to-first-value fix
-    if (currentArea === "unit4" && prevFlatU4?.lV === 0 && currentValue > 0) {
-        u4.fV = currentValue;
+    // Step 2: Calculate maximum spike and check
+    const maxSpike = (installedLoad[meterId] / 60) * minutesDiff;
+
+    if ((currentValue - lastNonZeroLV) > maxSpike) {
+        console.log(`High spike detected on ${meterId}, replacing value`);
+        currentValue = lastNonZeroLV || currentValue; // I WILL DISCUSS THIS WITH AUTOMATION / IF HIGH VALUE COME FIRST TIME AND THERE IS NO NORMAL VALUE THEN ? ACCEPT IT OR REPLACE IT WITH 0 
     }
-    if (currentArea === "unit5" && prevFlatU5?.lV === 0 && currentValue > 0) {
-        u5.fV = currentValue;
+
+    //Step 3: Update lastNonZeroTime
+    if (currentValue > 0) {
+        if (currentArea === "unit4") u4.lastNonZeroTime = adjustedTimestamp;
+        if (currentArea === "unit5") u5.lastNonZeroTime = adjustedTimestamp;
     }
   // First-time init
   if (!prevProcessDoc) {
