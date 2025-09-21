@@ -44,24 +44,24 @@ export class Unit4LT2Service {
 
      const meterMap: Record<string, string> = {
      U1_GW01: 'Drying Simplex AC',
-     U2_GW01: 'Weikel Conditioning Machine',
+     U2_GW01: 'Weikel Cond',
      U3_GW01: 'Winding AC',
      U4_GW01: 'Mills RES-CLNY& Workshop',
-     U5_GW01: 'Card 1',
+     U5_GW01: 'Card 1~8',
      U6_GW01: 'Colony',
-     U11_GW01: 'Power House and 2nd Source',
      U8_GW01: 'Blow Room',
-     U9_GW01: 'Card 2',
-     U10_GW01: 'Winding 01',
-     U12_GW01: 'Card  Filter (Bypass)',
+     U9_GW01: 'Card 9~14+1 Breaker',
+     U10_GW01: 'Winding 1~6',
+     U11_GW01: 'Power House 2nd Source',
+     U12_GW01: 'Card  Filter',
      U14_GW01: 'D/R Card Filter',
-     U15_GW01: 'Ring 02 (Auto Cone 10-18)',
-     U16_GW01: 'Ring 04',
-     U17_GW01: 'Ring 03',
+     U15_GW01: 'Ring 5~8',
+     U16_GW01: 'Ring 13~16',
+     U17_GW01: 'Ring 9~12',
      U18_GW01: 'Bale Press',
      U19_GW01: 'AC Lab',
-     U20_GW01: 'Spare 01',
-     U21_GW01: 'Spare-02',
+     U20_GW01: 'Spare',
+     U21_GW01: 'Spare 2',
     //  U22_GW01: 'HFO Incoming',
     //  U23_GW01: 'Wapda 1 Incoming',
 
@@ -124,8 +124,8 @@ export class Unit4LT2Service {
     const totalLT2 = +(tf2 + GasGen).toFixed(2);
 
     const sankeyData = [
-      { from: 'TF2', to: 'TotalLT2', value: tf2 },
-      { from: 'GasGen', to: 'TotalLT2', value: GasGen },
+      { from: 'WAPDA+HFO+JMS Incomming', to: 'TotalLT2', value: tf2 },
+      { from: 'Diesel+JGS Incomming', to: 'TotalLT2', value: GasGen },
       ...Object.entries(meterMap).map(([meter, label]) => {
         const key = `${meter}_Del_ActiveEnergy`;
         return {

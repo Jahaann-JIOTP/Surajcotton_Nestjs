@@ -27,6 +27,13 @@ function alignSlots(docs: any[], field: string, slots: string[]) {
   return slots.map(slot => seen.get(slot) || { timestamp: slot, [field]: null });
 }
 
+// ✅ Helper: Round huge / invalid numbers to 0
+function sanitizeValue(val: number | null): number {
+  if (val === null || !Number.isFinite(val) || val > 1e12 || val < -1e12) return 0;
+  return val;
+}
+
+
 // ✅ Core function (reusable for LT1 and LT2)
 export async function calculateConsumptionCore(
   dto: any,
@@ -86,6 +93,8 @@ export async function calculateConsumptionCore(
     const pfDocs     = alignSlots(rawDocs, powerFactor, expectedSlots);
     const voltDocs   = alignSlots(rawDocs, voltage, expectedSlots);
 
+    
+
     // console.log(`   [Aligned] slots = ${energyDocs.length}`);
 
     // Energy consumption
@@ -94,7 +103,8 @@ export async function calculateConsumptionCore(
 
     let consumption = 0;
     if (firstDoc && lastDoc) {
-      consumption = parseFloat(((lastDoc[energy] || 0) - (firstDoc[energy] || 0)).toFixed(2));
+     consumption = sanitizeValue(parseFloat(((lastDoc[energy] || 0) - (firstDoc[energy] || 0)).toFixed(2)));
+
       // console.log(`   [Energy] First=${firstDoc[energy]} (${firstDoc.timestamp})`);
       // console.log(`   [Energy] Last =${lastDoc[energy]} (${lastDoc.timestamp})`);
       // console.log(`   [Energy] Consumption = ${consumption}`);
@@ -104,17 +114,17 @@ export async function calculateConsumptionCore(
 
     // Avg Power
     const powerVals = powerDocs.map(d => d[power]).filter(v => v !== null);
-    const avgPower = powerVals.length ? parseFloat((powerVals.reduce((a,b)=>a+b,0) / powerVals.length).toFixed(2)) : 0;
+   const avgPower = sanitizeValue(powerVals.length ? parseFloat((powerVals.reduce((a,b)=>a+b,0)/powerVals.length).toFixed(2)) : 0);
     // console.log(`   [Power] Count=${powerVals.length}, Avg=${avgPower}`);
 
     // Avg PF
     const pfVals = pfDocs.map(d => d[powerFactor]).filter(v => v !== null);
-    const avgPF  = pfVals.length ? parseFloat((pfVals.reduce((a,b)=>a+b,0) / pfVals.length).toFixed(2)) : 0;
+   const avgPF = sanitizeValue(pfVals.length ? parseFloat((pfVals.reduce((a,b)=>a+b,0)/pfVals.length).toFixed(2)) : 0);
     // console.log(`   [PF]    Count=${pfVals.length}, Avg=${avgPF}`);
 
     // Avg Voltage
     const voltVals = voltDocs.map(d => d[voltage]).filter(v => v !== null);
-    const avgVolt  = voltVals.length ? parseFloat((voltVals.reduce((a,b)=>a+b,0) / voltVals.length).toFixed(2)) : 0;
+   const avgVolt = sanitizeValue(voltVals.length ? parseFloat((voltVals.reduce((a,b)=>a+b,0)/voltVals.length).toFixed(2)) : 0);
     // console.log(`   [Volt]  Count=${voltVals.length}, Avg=${avgVolt}`);
 
     // Push result

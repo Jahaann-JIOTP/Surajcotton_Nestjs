@@ -46,12 +46,12 @@ export class Unit5LT4Service {
      U3_GW03: 'MLDB3 Single room quarter',
      U4_GW03: 'Roving transport system',
      U5_GW03: 'ring Frame 10-12',
-     U6_GW03: 'Comber MCS 1-14',
-     U7_GW03: 'Spare',
-     U8_GW03: 'Spare2',
+     U6_GW03: 'Spare 3',
+     U7_GW03: 'Spare 1',
+     U8_GW03: 'Spare 2',
      U9_GW03: 'Ring Frame 13-15',
      U10_GW03: 'Auto Con-linker Conner M/S 10-12',
-     U11_GW03: 'Baling Press ',
+     U11_GW03: 'Baling Press',
      U12_GW03: 'Ring Frame 16-18',
      U13_GW03: 'Fiber Deposit Plant',
      U14_GW03: 'MLDB2 Ring Con',
@@ -60,8 +60,8 @@ export class Unit5LT4Service {
     //  U19_GW03: 'wapda + HFO + Gas Incoming',
     //  U20_GW03: 'WAPDA + HFO + Gas Outgoing T/F 3',
     //  U21_GW03: 'WAPDA + HFO + Gas Outgoing T/F 4',
-     U22_GW03: 'PDB 07',
-     U23_GW03: 'PDB 10',
+    //  U22_GW03: 'PDB 07',
+    //  U23_GW03: 'PDB 10',
 
 
     };
@@ -122,8 +122,8 @@ export class Unit5LT4Service {
     const totalLT4 = +(tf4 + solar2).toFixed(2);
 
     const sankeyData = [
-      { from: 'TF4', to: 'TotalLT4', value: tf4 },
-      { from: 'Solar2', to: 'TotalLT4', value: solar2 },
+      { from: 'TF #2', to: 'TotalLT4', value: tf4 },
+      { from: 'Solar 1017', to: 'TotalLT4', value: solar2 },
       ...Object.entries(meterMap).map(([meter, label]) => {
         const key = `${meter}_Del_ActiveEnergy`;
         return {

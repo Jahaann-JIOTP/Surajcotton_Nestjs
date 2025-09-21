@@ -19,8 +19,12 @@ export async function getTrends({
 }: TrendOptions) {
   // ✅ Time range banate hue +05:00 offset add karo
   const startISO = `${startDate}T06:00:00.000+05:00`;
+
   const nextDay = moment(endDate).add(1, 'day').format('YYYY-MM-DD');
-  const endISO = `${nextDay}T06:00:00.000+05:00`;
+  
+  // 👇 end ko thoda extend kar diya (59.999)
+  const endISO = `${nextDay}T06:00:59.999+05:00`;
+  
 
   // console.log('📌 Query range:', startISO, '➡️', endISO);
 

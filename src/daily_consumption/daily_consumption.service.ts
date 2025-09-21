@@ -48,7 +48,7 @@ export class DailyConsumptionService {
     { energy: 'U16_GW01_Del_ActiveEnergy', power: 'U16_GW01_ActivePower_Total', powerFactor: 'U16_GW01_PowerFactor_Avg', voltage: 'U16_GW01_Voltage_Avg', metername: 'Ring DB 04', deptname: 'Ring Dept', MCS: '4', installedLoad: '80' },
     { energy: 'U17_GW01_Del_ActiveEnergy', power: 'U17_GW01_ActivePower_Total', powerFactor: 'U17_GW01_PowerFactor_Avg', voltage: 'U17_GW01_Voltage_Avg', metername: 'Ring DB 03', deptname: 'Ring Dept', MCS: '4', installedLoad: '80' },
     { energy: 'U14_GW01_Del_ActiveEnergy', power: 'U14_GW01_ActivePower_Total', powerFactor: 'U14_GW01_PowerFactor_Avg', voltage: 'U14_GW01_Voltage_Avg', metername: 'Blow Room Card Filter', deptname: 'Blow Room Card Filter', MCS: '13', installedLoad: '199' },
-    { energy: 'U12_GW01_Del_ActiveEnergy', power: 'U12_GW01_ActivePower_Total', powerFactor: 'U12_GW01_PowerFactor_Avg', voltage: 'U12_GW01_Voltage_Avg', metername: 'Blow Room Card Filter', deptname: 'Blow Room Card Filter', MCS: '13', installedLoad: '199' },
+    { energy: 'U12_GW01_Del_ActiveEnergy', power: 'U12_GW01_ActivePower_Total', powerFactor: 'U12_GW01_PowerFactor_Avg', voltage: 'U12_GW01_Voltage_Avg', metername: 'Blow Room Card Filter Bypass', deptname: 'Blow Room Card Filter', MCS: '13', installedLoad: '199' },
     { energy: 'U18_GW01_Del_ActiveEnergy', power: 'U18_GW01_ActivePower_Total', powerFactor: 'U18_GW01_PowerFactor_Avg', voltage: 'U18_GW01_Voltage_Avg', metername: 'Bale Press', deptname: 'Bailing press', MCS: '1', installedLoad: '15' },
     { energy: 'U10_GW01_Del_ActiveEnergy', power: 'U10_GW01_ActivePower_Total', powerFactor: 'U10_GW01_PowerFactor_Avg', voltage: 'U10_GW01_Voltage_Avg', metername: 'Winding 1', deptname: 'Winding 1', MCS: '6', installedLoad: '30' },
 

@@ -112,20 +112,29 @@ export class EnergyService {
     const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
     const U5_ConsumptionKeys=["U13_GW02_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U6_GW02_Del_ActiveEnergy","U17_GW03_Del_ActiveEnergy"]
     // ✅ Time window
- const startStr = moment
-  .tz(`${start} 06:00:00`, 'YYYY-MM-DD HH:mm:ss', 'Asia/Karachi')
-  .format('YYYY-MM-DDTHH:mm:ss.SSSZ'); // e.g. 2025-08-01T06:00:00.000+05:00
+ const startMoment = moment.tz(`${start} 06:00:00`, "YYYY-MM-DD HH:mm:ss", "Asia/Karachi");
 
-const endStr = moment(startStr, 'YYYY-MM-DDTHH:mm:ss.SSSZ')
-  .add(1, 'day')
-  .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+const startStr = startMoment.format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+
+// 👇 end time ko 1 din add karke 06:00:59.999 set kar do
+const endStr = startMoment
+  .clone()
+  .add(1, "day")
+  .hour(6)
+  .minute(0)
+  .second(59)
+  .millisecond(999)
+  .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 
 const matchStage = {
   timestamp: {
     $gte: startStr,
-    $lt: endStr,
+    $lte: endStr,  // ab 06:00:xx docs bhi capture honge
   },
 };
+
+
+
 
 
 

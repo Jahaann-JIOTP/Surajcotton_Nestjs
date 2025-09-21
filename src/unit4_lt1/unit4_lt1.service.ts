@@ -41,24 +41,24 @@ async getSankeyData(payload: { startDate: string; endDate: string; startTime?: s
     // Meter field mapping (unchanged)
     const meterMap: Record<string, string> = {
       U1_PLC: 'Transport',
-      U2_PLC: 'Unit 05 Aux',
-      U3_PLC: 'Light External',
-      U4_PLC: 'Light Internal',
-      U5_PLC: 'Power House 2nd Source',
+      U2_PLC: 'Unit 05 Lighting',
+      U3_PLC: 'Light Outside',
+      U4_PLC: 'Light Inside',
+      U5_PLC: 'Power House',
       U6_PLC: 'Turbine',
-      U7_PLC: 'Spare',
-      U8_PLC: 'Drawing 01',
-      U9_PLC: 'Winding 01',
-      U10_PLC: 'Ring 01',
-      U11_PLC: 'Ring 5',
-      U12_PLC: 'Ring 6(Auto Cone 1-9)',
-      U13_PLC: 'Comber 1',
+      U7_PLC: 'Main Meter',
+      U8_PLC: 'Drawing Finisher 1~6+2 Breaker',
+      U9_PLC: 'Winding 7~9',
+      U10_PLC: 'Ring 1~4',
+      U11_PLC: 'Ring 16~20',
+      U12_PLC: 'Ring 21~24',
+      U13_PLC: 'Comber 1~10+ Uni Lap 1-2',
       U14_PLC: 'Compressor',
-      U15_PLC: 'Simplex 01',
-      U16_PLC: 'Compressor 02 (90kW)',
+      U15_PLC: 'Simplex 1~6',
+      U16_PLC: 'Compressor 2',
       U17_PLC: 'Ring AC',
       U18_PLC: 'Ring AC (Bypass)',
-      U20_PLC: 'Diesel + Gas Incoming',
+      U20_PLC: 'Compressor (Bypass)',
     };
 
     const meterFields = [
@@ -111,8 +111,8 @@ async getSankeyData(payload: { startDate: string; endDate: string; startTime?: s
     const totalLT1 = +(tf1 + ltGen).toFixed(2);
 
     const sankeyData = [
-      { from: 'TF1', to: 'TotalLT1', value: tf1 },
-      { from: 'LTGen', to: 'TotalLT1', value: ltGen },
+      { from: 'Wapda+HFO+JMS Incoming', to: 'TotalLT1', value: tf1 },
+      { from: 'Diesel+JGS Incomming', to: 'TotalLT1', value: ltGen },
       ...Object.entries(meterMap).map(([meter, label]) => {
         const key = `${meter}_Del_ActiveEnergy`;
         return {

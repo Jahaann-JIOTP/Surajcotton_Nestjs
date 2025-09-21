@@ -35,43 +35,31 @@ export class ConsumptionEnergyService {
   }
 
 private async calculateConsumption(range: { start: string; end: string }) {
- 
-const TR2Keys = ["U21_PLC_Del_ActiveEnergy"];
-// const TR1Keys = ["U21_PLC_Del_ActiveEnergy"];
-// const GasLTPanelKeys = ["U7_GW01_Del_ActiveEnergy"];
-// const PowerHouseKeys = ["U13_GW01_Del_ActiveEnergy"];
-// const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
-// const Transformer1LT1CBKeys = ["U13_GW02_Del_ActiveEnergy"];
-// const Transformer2ACBKeys = ["U16_GW03_Del_ActiveEnergy"];
-// const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
+  
+const TR2Keys = ["U19_PLC_Del_ActiveEnergy"];
+const TR1Keys = ["U21_PLC_Del_ActiveEnergy"];
+const GasLTPanelKeys = ["U7_GW01_Del_ActiveEnergy"];
+const PowerHouseKeys = ["U13_GW01_Del_ActiveEnergy"];
+const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
+const Transformer1LT1CBKeys = ["U13_GW02_Del_ActiveEnergy"];
+const Transformer2ACBKeys = ["U16_GW03_Del_ActiveEnergy"];
+const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
+  const allMeterKeys = [...TR2Keys, ...TR1Keys, ...GasLTPanelKeys, ...PowerHouseKeys, ...Solar1Keys, ...Transformer1LT1CBKeys, ...Transformer2ACBKeys, ...Solar2Keys];
 
+  // console.log(`\n🔍 Calculating Consumption for Range: ${range.start} -> ${range.end}`);
+  // console.log(`📌 Meters: ${allMeterKeys.join(", ")}`);
 
-
-
-
-
-
-
-
-// const allMeterKeys = [...TR2Keys, ...TR1Keys, ...GasLTPanelKeys, ...PowerHouseKeys, ...Solar1Keys, ...Transformer1LT1CBKeys, ...Transformer2ACBKeys, ...Solar2Keys];
-const allMeterKeys = [...TR2Keys];
-// , ...TR1Keys, ...GasLTPanelKeys, ...PowerHouseKeys, ...Solar1Keys, ...Transformer1LT1CBKeys, ...Transformer2ACBKeys, ...Solar2Keys];
- 
-
-  // ✅ Dynamically build meterSuffixMap from meter keys
   const meterSuffixMap: Record<string, string> = {};
   allMeterKeys.forEach(fullKey => {
     const [meterId, ...suffixParts] = fullKey.split("_");
     meterSuffixMap[meterId] = suffixParts.join("_");
   });
 
-  // ✅ Build projection
   const projection: Record<string, number> = { timestamp: 1 };
   Object.entries(meterSuffixMap).forEach(([meterId, suffix]) => {
     projection[`${meterId}_${suffix}`] = 1;
   });
 
-  // ✅ Fetch data from DB
   const data = await this.generationModel.aggregate([
     {
       $match: {
@@ -85,7 +73,12 @@ const allMeterKeys = [...TR2Keys];
     { $sort: { timestamp: 1 } },
   ]);
 
-  // ✅ Initialize first & last values
+  // console.log(`📦 Docs Found: ${data.length}`);
+  if (data.length === 0) {
+    // console.log("⚠️ No data found for this range!");
+    return 0;
+  }
+
   const firstValues: Record<string, number | null> = {};
   const lastValues: Record<string, number | null> = {};
   Object.entries(meterSuffixMap).forEach(([meterId, suffix]) => {
@@ -94,33 +87,38 @@ const allMeterKeys = [...TR2Keys];
     lastValues[key] = null;
   });
 
-  // ✅ Populate first/last values
+  // ✅ Step-by-step log
   for (const doc of data) {
+    // console.log(`   ⏰ Doc Timestamp: ${doc.timestamp}`);
     Object.entries(meterSuffixMap).forEach(([meterId, suffix]) => {
       const key = `${meterId}_${suffix}`;
       const val = doc[key];
+
       if (typeof val === "number") {
-        if (firstValues[key] === null) firstValues[key] = val;
+        if (firstValues[key] === null) {
+          firstValues[key] = val;
+          // console.log(`      🟢 First Value for ${key}: ${val} (from ${doc.timestamp})`);
+        }
         lastValues[key] = val;
+        // console.log(`      🔵 Last Value Updated for ${key}: ${val} (from ${doc.timestamp})`);
       }
     });
   }
 
-  // ✅ Compute consumption
   const consumption: Record<string, number> = {};
   Object.keys(firstValues).forEach(key => {
     if (firstValues[key] !== null && lastValues[key] !== null) {
       let diff = lastValues[key]! - firstValues[key]!;
       diff = diff >= 0 ? diff : 0; // no negative
-      // Filter invalid (scientific notation / extreme) values
-      if (diff > 1e12 || diff < 1e-6) diff = 0;
+      if (diff > 1e12 || diff < 1e-6) diff = 0; // filter invalid
       consumption[key] = diff;
+      // console.log(`   ⚡ Consumption for ${key}: ${lastValues[key]} - ${firstValues[key]} = ${diff}`);
     } else {
       consumption[key] = 0;
+      // console.log(`   ⚠️ No valid values for ${key}, consumption = 0`);
     }
   });
 
-  // ✅ Sum by group
   const sumByMeterGroup = (meterKeys: string[]) =>
     meterKeys.reduce((sum, fullKey) => {
       const [meterId, ...suffixParts] = fullKey.split("_");
@@ -129,34 +127,26 @@ const allMeterKeys = [...TR2Keys];
       return sum + (Number.isFinite(value) ? value : 0);
     }, 0);
 
- 
   const TR2 = sumByMeterGroup(TR2Keys);
-  // const TR1 = sumByMeterGroup(TR1Keys);
-  // const GasLTPanel = sumByMeterGroup(GasLTPanelKeys);
-  // const PowerHouse = sumByMeterGroup(PowerHouseKeys);
-  // const Solar1 = sumByMeterGroup(Solar1Keys);
-  // const Transformer1LT1CB = sumByMeterGroup(Transformer1LT1CBKeys);
-  // const Transformer2ACB = sumByMeterGroup(Transformer2ACBKeys);
-  // const Solar2 = sumByMeterGroup(Solar2Keys);
+  const TR1 = sumByMeterGroup(TR1Keys);
+  const GasLTPanel = sumByMeterGroup(GasLTPanelKeys);
+  const PowerHouse = sumByMeterGroup(PowerHouseKeys);
+  const Solar1 = sumByMeterGroup(Solar1Keys);
+  const Transformer1LT1CB = sumByMeterGroup(Transformer1LT1CBKeys);
+  const Transformer2ACB = sumByMeterGroup(Transformer2ACBKeys);
+  const Solar2 = sumByMeterGroup(Solar2Keys);
 
+  const totalConsumption = TR2 + TR1 + GasLTPanel + PowerHouse 
+  const totalConsumption1= Solar1 + Transformer1LT1CB +Transformer2ACB + Solar2
+  const total= totalConsumption + totalConsumption1
+ 
 
-
-
-
-  // ✅ Final totals
-//  const totalConsumption = TR2 + TR1 + GasLTPanel + PowerHouse 
- const totalConsumption = TR2 
-
-
-
-// const totalConsumption1= Solar1 + Transformer1LT1CB +Transformer2ACB + Solar2
-
-// const total= totalConsumption + totalConsumption1
-const total= totalConsumption
-
-
+  // console.log(`\n✅ Final Total Consumption for Range: ${total.toFixed(2)}\n`);
   return +total.toFixed(2);
 }
+
+
+
 
 
 
@@ -174,8 +164,7 @@ async calculateConsumption1(range: { start: string; end: string }): Promise<numb
   const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
 
   const allKeys = [
-    ...TR2Keys,
-     ...TR1Keys, ...GasLTPanelKeys, ...PowerHouseKeys,
+    ...TR1Keys, ...TR2Keys, ...GasLTPanelKeys, ...PowerHouseKeys,
     ...Solar1Keys, ...Transformer1LT1CBKeys, ...Transformer2ACBKeys, ...Solar2Keys
   ];
 
@@ -261,8 +250,8 @@ async calculateConsumption1(range: { start: string; end: string }): Promise<numb
   // Group sums
   const sum = (keys: string[]) => keys.reduce((t, k) => t + (consumption[k] || 0), 0);
 
-  const TR2 = sum(TR2Keys);
   const TR1 = sum(TR1Keys);
+  const TR2= sum(TR2Keys);
   const GasLTPanel = sum(GasLTPanelKeys);
   const PowerHouse = sum(PowerHouseKeys);
   const Solar1 = sum(Solar1Keys);
@@ -272,7 +261,7 @@ async calculateConsumption1(range: { start: string; end: string }): Promise<numb
   
   
 
-  const totalConsumption = TR2 + TR1 + GasLTPanel + PowerHouse;
+  const totalConsumption = TR1+ TR1 + GasLTPanel + PowerHouse;
   const totalConsumption1 = Solar1 + Transformer1LT1CB + Transformer2ACB + Solar2;
   const total = totalConsumption + totalConsumption1;
   
@@ -294,33 +283,33 @@ async getWeeklyGeneration() {
   const now = moment().tz('Asia/Karachi');
   const monday = now.clone().startOf('week').add(1, 'day'); // Monday in PKT
 
-  // console.log(`[WEEKLY] Base week (PKT). Monday: ${monday.format()}`);
+  console.log(`[WEEKLY] Base week Monday (PKT): ${monday.format("YYYY-MM-DD HH:mm:ss Z")}`);
 
   for (let i = 0; i < 7; i++) {
     const thisDayStart = monday.clone()
       .add(i, 'days')
       .hour(6).minute(0).second(0).millisecond(0)
-      .toISOString();
+      .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 
     const thisDayEnd = monday.clone()
       .add(i + 1, 'days')
       .hour(6).minute(0).second(0).millisecond(0)
-      .toISOString();
+      .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 
-    const lastWeekStart = moment(thisDayStart).subtract(7, 'days').toISOString();
-    const lastWeekEnd   = moment(thisDayEnd).subtract(7, 'days').toISOString();
+    const lastWeekStart = moment(thisDayStart).subtract(7, 'days').format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+    const lastWeekEnd   = moment(thisDayEnd).subtract(7, 'days').format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 
-    // 🔎 Debug logs
-    // console.log(`[WEEKLY] ${days[i]} window:`);
-    // console.log(`   This Week => ${thisDayStart} -> ${thisDayEnd}`);
-    // console.log(`   Last Week => ${lastWeekStart} -> ${lastWeekEnd}`);
+    // 🔎 Debug logs for weekly ranges
+    console.log(`[WEEKLY][${days[i]}] Windows:`);
+    console.log(`   This Week => ${thisDayStart} → ${thisDayEnd}`);
+    console.log(`   Last Week => ${lastWeekStart} → ${lastWeekEnd}`);
 
     const [thisWeek, lastWeek] = await Promise.all([
       this.calculateConsumption1({ start: thisDayStart, end: thisDayEnd }),
       this.calculateConsumption1({ start: lastWeekStart, end: lastWeekEnd }),
     ]);
 
-    // console.log(`[WEEKLY] ${days[i]} result => ThisWeek: ${thisWeek}, LastWeek: ${lastWeek}`);
+    console.log(`[WEEKLY][${days[i]}] Result => ThisWeek: ${thisWeek}, LastWeek: ${lastWeek}`);
 
     result.push({
       Day: days[i],
@@ -331,6 +320,7 @@ async getWeeklyGeneration() {
 
   return result;
 }
+
 
 
 
@@ -494,22 +484,51 @@ async getMonthlyGeneration() {
   const weekLabels = ["Week1", "Week2", "Week3", "Week4"];
   const result: { Weeks: string; [key: string]: number | string }[] = [];
 
+  // ✅ Helper function: Date ko Asia/Karachi ISO string me convert karega
+  function toKarachiISO(date: Date): string {
+    // Karachi offset = +05:00
+    const offset = "+05:00";
+    const pad = (n: number) => String(n).padStart(2, "0");
+
+    return (
+      date.getFullYear() +
+      "-" +
+      pad(date.getMonth() + 1) +
+      "-" +
+      pad(date.getDate()) +
+      "T" +
+      pad(date.getHours()) +
+      ":" +
+      pad(date.getMinutes()) +
+      ":" +
+      pad(date.getSeconds()) +
+      offset
+    );
+  }
+
   const getWeekRanges = (month: number, year: number) => {
     const weeks: [string, string][] = [];
-    const startDate = new Date(year, month - 1, 1); // first day of month
+    const startDate = new Date(year, month - 1, 1); // Month ka pehla din
     const firstMonday = new Date(startDate);
+
+    // ✅ First Monday dhoondo
     while (firstMonday.getDay() !== 1) {
       firstMonday.setDate(firstMonday.getDate() + 1);
     }
 
+    // ✅ 4 weeks banao
     for (let i = 0; i < 4; i++) {
       const weekStart = new Date(firstMonday);
       weekStart.setDate(firstMonday.getDate() + i * 7);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 7); // full 7 days complete
+      weekStart.setHours(6, 0, 0, 0); // 6 AM start
 
-      const startISO = new Date(weekStart.setHours(6, 0, 0, 0)).toISOString(); // Start = 6 AM
-      const endISO = new Date(weekEnd.setHours(6, 0, 0, 0)).toISOString();     // End = next Monday 6 AM
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 7); // Next Monday
+      weekEnd.setHours(6, 0, 0, 0); // 6 AM end
+
+      // ✅ Karachi offset ke sath ISO strings
+      const startISO = toKarachiISO(weekStart);
+      const endISO = toKarachiISO(weekEnd);
 
       weeks.push([startISO, endISO]);
     }
@@ -517,6 +536,7 @@ async getMonthlyGeneration() {
     return weeks;
   };
 
+  // ✅ Abhi ka month aur pichla month nikalo
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
@@ -530,6 +550,7 @@ async getMonthlyGeneration() {
   console.log("🟢 Weeks This Month:", weeksThisMonth);
   console.log("🟡 Weeks Last Month:", weeksLastMonth);
 
+  // ✅ Consumption calculate karo
   for (let i = 0; i < 4; i++) {
     console.log(`\n📅 ${weekLabels[i]}:`);
     console.log("   🔹 This Month Range:", weeksThisMonth[i][0], "->", weeksThisMonth[i][1]);
@@ -556,37 +577,74 @@ async getMonthlyGeneration() {
   }
 
   console.log("📊 Final Monthly Data:", result);
-
   return result;
 }
 
 
-  private getMonthDateRange(year: number, month: number): { start: string; end: string } {
-    const start = new Date(Date.UTC(year, month, 1, 0, 0, 0));
-    const end = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999)); // last day of month
+
+  // private getMonthDateRange(year: number, month: number): { start: string; end: string } {
+  //   const start = new Date(Date.UTC(year, month, 1, 0, 0, 0));
+  //   const end = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999)); // last day of month
   
-    return {
-      start: start.toISOString(),
-      end: end.toISOString(),
-    };
-  }
+  //   return {
+  //     start: start.toISOString(),
+  //     end: end.toISOString(),
+  //   };
+  // }
   
 
-  async getYearlyGeneration(): Promise<
-  { Month: string; [key: string]: number | string }[]
-> {
+async getYearlyGeneration(): Promise<{ Month: string; [key: string]: number | string }[]> {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const currentYear = new Date().getFullYear();
   const previousYear = currentYear - 1;
 
   const result: { Month: string; [key: string]: number | string }[] = [];
 
-  for (let month = 0; month < 12; month++) {
-    const currentYearRange = this.getMonthDateRange(currentYear, month);
-    const previousYearRange = this.getMonthDateRange(previousYear, month);
+  // ✅ Helper: Convert Date to ISO string with +05:00 (Karachi)
+  function toKarachiISO(date: Date): string {
+    const offset = "+05:00";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return (
+      date.getFullYear() + "-" +
+      pad(date.getMonth() + 1) + "-" +
+      pad(date.getDate()) +
+      "T" +
+      pad(date.getHours()) + ":" +
+      pad(date.getMinutes()) + ":" +
+      pad(date.getSeconds()) +
+      offset
+    );
+  }
 
-    const currentYearConsumption = Number(await this.calculateConsumption(currentYearRange)) || 0;
-    const previousYearConsumption = Number(await this.calculateConsumption(previousYearRange)) || 0;
+  // ✅ Helper: Get 6 AM - 6 AM range for a month
+  function getMonth6to6Range(year: number, month: number) {
+    const start = new Date(year, month, 1, 6, 0, 0); // 1st day 6 AM
+    const end = new Date(year, month + 1, 1, 6, 0, 0); // 1st day of next month 6 AM
+    return { start: toKarachiISO(start), end: toKarachiISO(end) };
+  }
+
+  // 🔹 Loop through all months (0 = Jan, 11 = Dec)
+  for (let month = 0; month < 12; month++) {
+    const currentYearRange = getMonth6to6Range(currentYear, month);
+    const previousYearRange = getMonth6to6Range(previousYear, month);
+
+    // console.log(`\n📅 Month: ${months[month]}`);
+    // console.log("   🔹 Current Year Range:", currentYearRange.start, "->", currentYearRange.end);
+    // console.log("   🔹 Previous Year Range:", previousYearRange.start, "->", previousYearRange.end);
+
+    // ✅ Call calculateConsumption with detailed logs
+    const currentYearConsumption = await this.calculateConsumption({
+      start: currentYearRange.start,
+      end: currentYearRange.end,
+    });
+
+    const previousYearConsumption = await this.calculateConsumption({
+      start: previousYearRange.start,
+      end: previousYearRange.end,
+    });
+
+    // console.log(`   ⚡ Current Year Consumption: ${currentYearConsumption.toFixed(2)}`);
+    // console.log(`   ⚡ Previous Year Consumption: ${previousYearConsumption.toFixed(2)}`);
 
     result.push({
       Month: months[month],
@@ -595,8 +653,11 @@ async getMonthlyGeneration() {
     });
   }
 
+  // console.log("\n📊 Full Year Data:", result);
   return result;
 }
+
+
 
 
 }

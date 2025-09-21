@@ -4,6 +4,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CSNew } from './schemas/CS-new.schema';
+import * as moment from 'moment-timezone';
+
 
 @Injectable()
 export class TrendsService {
@@ -66,9 +68,14 @@ export class TrendsService {
   meterIdsStr: string,
   suffixesStr: string,
   area: string,
+  timezone = 'Asia/Karachi',
 ) {
-  const start = `${startDate}T00:00:00.000+05:00`;
-  const end = `${endDate}T23:59:59.999+05:00`;
+  const startISO = `${startDate}T06:00:00.000+05:00`;
+
+const nextDay = moment(endDate).add(1, 'day').format('YYYY-MM-DD');
+
+// 👇 end ko thoda extend kar diya (59.999)
+const endISO = `${nextDay}T06:00:59.999+05:00`;
 
   const { unit, lt } = this.parseArea(area);
 
@@ -94,7 +101,7 @@ export class TrendsService {
   });
 
   const rawData = await this.csNewModel.find(
-    { timestamp: { $gte: start, $lte: end } },
+    { timestamp: { $gte: startISO, $lte: endISO } },
     projection,
   ).lean();
 

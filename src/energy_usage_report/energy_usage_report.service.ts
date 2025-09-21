@@ -31,10 +31,10 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   // Mappings
   // -------------------------------
   const AutoConeMapping: Record<string, string[]> = {
-    Unit_4: ['U4_U23_GW03', 'U4_U22_GW03'],
-    Unit_5: ['U5_U23_GW03', 'U5_U22_GW03', 'U18_GW02', 'U10_GW03'],
-    // Unit_4: ['U4_U23_GW03'],
-    // Unit_5: ['U5_U23_GW03'],
+    // Unit_4: ['U4_U23_GW03', 'U4_U22_GW03'],
+    // Unit_5: ['U5_U23_GW03', 'U5_U22_GW03', 'U18_GW02', 'U10_GW03'],
+    Unit_4: ['U4_U23_GW03'],
+    Unit_5: ['U5_U23_GW03'],
   };
   const CardMapping: Record<string, string[]> = {
     Unit_4: ['U5_GW01', 'U9_GW01', 'U4_U3_GW02', 'U4_U1_GW02', 'U4_U2_GW02'],

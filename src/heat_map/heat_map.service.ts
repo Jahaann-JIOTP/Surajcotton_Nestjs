@@ -27,8 +27,29 @@ export class HeatMapService  {
 async getPowerAverages(startDate: string, endDate: string) {
   const collection = this.conModel.collection;
 
-  const startDateTime = moment.tz(startDate, "YYYY-MM-DD", "Asia/Karachi").startOf('day').toDate();
-  const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi").endOf('day').toDate();
+  // ✅ StartDate always 6 AM
+  const startDateTime = moment.tz(startDate, "YYYY-MM-DD", "Asia/Karachi")
+    .hour(6).minute(0).second(0).millisecond(0)
+    .toDate();
+
+  // ✅ EndDate handle (same date vs multiple dates)
+ let endDateTime: Date;
+if (startDate === endDate) {
+  // 👉 same date → usi din raat 23:59 tak
+  endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
+    .hour(23).minute(59).second(59).millisecond(999)
+    .toDate();
+} else {
+  // 👉 multiple days → endDate ka 6 AM
+  
+  // 👉 multiple days → endDate ka 6 AM hour poora include ho
+  endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
+    .hour(6).minute(59).second(59).millisecond(999)
+    .toDate();
+
+
+}
+
 
   const Trafo1Tags = ["U21_PLC_ActivePower_Total"];
   const Trafo2Tags = ["U13_GW01_ActivePower_Total"];
@@ -37,6 +58,7 @@ async getPowerAverages(startDate: string, endDate: string) {
 
   const allTags = [...Trafo1Tags, ...Trafo2Tags, ...Trafo3Tags, ...Trafo4Tags];
 
+  // 🔹 STEP 1: Aggregation
   const pipeline = [
     {
       $addFields: {
@@ -45,10 +67,7 @@ async getPowerAverages(startDate: string, endDate: string) {
     },
     {
       $match: {
-        timestampDate: {
-          $gte: startDateTime,
-          $lte: endDateTime,
-        }
+        timestampDate: { $gte: startDateTime, $lte: endDateTime }
       }
     },
     {
@@ -65,37 +84,57 @@ async getPowerAverages(startDate: string, endDate: string) {
     {
       $group: {
         _id: "$hourBin",
+        count: { $sum: 1 },
         ...Object.fromEntries(
           allTags.map(tag => [
             `avg_${tag}`,
-            { $avg: { $ifNull: [`$${tag}`, 0] } },
+            { $avg: { $ifNull: [`$${tag}`, 0] } }
           ])
         )
       }
     },
-    {
-      $sort: { _id: 1 }
-    }
+    { $sort: { _id: 1 } }
   ];
 
   const rawData = await collection.aggregate(pipeline).toArray();
 
-  return rawData.map(entry => {
-    const date = moment(entry._id).tz("Asia/Karachi").format("YYYY-MM-DD HH:mm");
+  // 🔹 STEP 2: Fill missing hours
+  const results: any[] = [];
+let current = moment(startDateTime);
+const end = moment(endDateTime);
 
-    const Trafo1 = Trafo1Tags.reduce((sum, tag) => sum + +(entry[`avg_${tag}`] || 0), 0);
-    const Trafo2 = Trafo2Tags.reduce((sum, tag) => sum + +(entry[`avg_${tag}`] || 0), 0);
-    const Trafo3 = Trafo3Tags.reduce((sum, tag) => sum + +(entry[`avg_${tag}`] || 0), 0);
-    const Trafo4 = Trafo4Tags.reduce((sum, tag) => sum + +(entry[`avg_${tag}`] || 0), 0);
+while (current.isSameOrBefore(end)) {   // 👈 fix
+  const hourStr = current.format("YYYY-MM-DD HH:00");
 
-    return {
-      date,
-      Trafo1and2: +(Trafo1 + Trafo2).toFixed(2),
-      Trafo3: +Trafo3.toFixed(2),
-      Trafo4: +Trafo4.toFixed(2),
-    };
+  const found = rawData.find(
+    (d) => moment(d._id).tz("Asia/Karachi").format("YYYY-MM-DD HH:00") === hourStr
+  );
+
+  let Trafo1 = 0, Trafo2 = 0, Trafo3 = 0, Trafo4 = 0;
+
+  if (found) {
+    Trafo1 = Trafo1Tags.reduce((sum, tag) => sum + +(found[`avg_${tag}`] || 0), 0);
+    Trafo2 = Trafo2Tags.reduce((sum, tag) => sum + +(found[`avg_${tag}`] || 0), 0);
+    Trafo3 = Trafo3Tags.reduce((sum, tag) => sum + +(found[`avg_${tag}`] || 0), 0);
+    Trafo4 = Trafo4Tags.reduce((sum, tag) => sum + +(found[`avg_${tag}`] || 0), 0);
+  }
+
+  results.push({
+    date: hourStr,
+    Trafo1and2: +(Trafo1 + Trafo2).toFixed(2),
+    Trafo3: +Trafo3.toFixed(2),
+    Trafo4: +Trafo4.toFixed(2)
   });
+
+  current.add(1, "hour");
 }
+
+
+  return results;
+}
+
+
+
 
 async create(dto: CreateTransformerInputDto) {
   if (!['T1', 'T2', 'T3', 'T4'].includes(dto.transformerName)) {

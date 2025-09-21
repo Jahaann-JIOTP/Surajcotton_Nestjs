@@ -5,6 +5,7 @@ import { MongoClient } from 'mongodb';
 // import * as moment from 'moment-timezone';
 import * as moment from 'moment';
 import { powercomparisonHistoricalDataDocument } from './schemas/power_comparison.schema';
+// import * as moment from 'moment-timezone';
 
 
 @Injectable()
@@ -19,14 +20,25 @@ export class powercomparisonService {
 async getPowerAverages(startDate: string, endDate: string) {
   const collection = this.conModel.collection;
 
-  const startDateTime = moment.tz(startDate, "YYYY-MM-DD", "Asia/Karachi").startOf('day').utc().toDate();
-  const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi").endOf('day').utc().toDate();
+ const startDateTime = moment.tz(startDate, "YYYY-MM-DD", "Asia/Karachi")
+  .hour(6).minute(0).second(0).millisecond(0)
+  .toDate();  // 👈 .utc() hata do
+
+const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
+  .add(1, "day")
+  .hour(6).minute(0).second(59).millisecond(999) // ✅ 06:00:59.999
+  .toDate();
+
+
+
 
   // Define tags
   const htTags = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];
   const ltTags = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
-  const wapdaTags = ['U22_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
-  const solarTags = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
+  const wapdaTags = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
+  // const solarTags = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
+  const solarTags = ['U6_GW02_Del_ActiveEnergy'];
+
   const unit4Tags = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy'];
   const unit5Tags = ['U6_GW02_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
   const Trafo1IncomingTags = ['U23_GW01_Del_ActiveEnergy'];
@@ -54,7 +66,8 @@ async getPowerAverages(startDate: string, endDate: string) {
         date: { $gte: startDateTime, $lte: endDateTime }
       }
     },
-    {
+  
+ {
       $addFields: {
         hourStart: {
           $dateTrunc: {
@@ -65,6 +78,7 @@ async getPowerAverages(startDate: string, endDate: string) {
         }
       }
     },
+
     { $sort: { date: 1 } },
     {
       $group: {
@@ -300,6 +314,8 @@ async getPowerAverages(startDate: string, endDate: string) {
 
 
 
+
+
 async getDailyPowerAverages(start: string, end: string) {
   const collection = this.conModel.collection;
 
@@ -307,8 +323,10 @@ async getDailyPowerAverages(start: string, end: string) {
   const meterGroups = {
     HT: ['U22_PLC', 'U26_PLC'],
     LT: ['U19_PLC', 'U11_GW01'],
-    wapda: ['U22_GW01', 'U27_PLC'],
+    wapda: ['U23_GW01', 'U27_PLC'],
+    // solar: ['U6_GW02', 'U17_GW03'],
     solar: ['U6_GW02', 'U17_GW03'],
+
     unit4: ['U19_PLC', 'U21_PLC', 'U11_GW01', 'U13_GW01'],
     unit5: ['U6_GW02', 'U13_GW02', 'U16_GW03', 'U17_GW03'],
     Trafo1Incoming: ['U23_GW01'],
@@ -327,7 +345,6 @@ async getDailyPowerAverages(start: string, end: string) {
 
   const suffix = 'Del_ActiveEnergy';
 
-  // Generate all meter keys and categorize them
   const meterGroupKeys: Record<string, string[]> = {};
   const allKeys: string[] = [];
 
@@ -336,61 +353,45 @@ async getDailyPowerAverages(start: string, end: string) {
     allKeys.push(...meterGroupKeys[group]);
   }
 
-  // Projection
   const projection = allKeys.reduce((acc, key) => ({ ...acc, [key]: 1 }), { timestamp: 1 });
 
+  // 6AM to 6AM match stage
   const matchStage = {
     timestamp: {
-      $gte: `${start}T00:00:00.000+05:00`,
-      $lte: `${end}T23:59:59.999+05:00`,
+      $gte: moment(`${start}T06:00:00`).tz('Asia/Karachi').format(),
+      $lt: moment(`${end}T06:00:00`).tz('Asia/Karachi').add(1, 'day').format(),
     },
   };
 
+  // console.log('📌 Query Match Stage:', matchStage);
+
   const docs = await collection.find(matchStage).project(projection).sort({ timestamp: 1 }).toArray();
 
-  // Group by date
+  // console.log('📦 Docs Found:', docs.length);
+
+  // Group docs by 6AM–6AM date
   const groupedByDate = docs.reduce((acc, doc) => {
-    const date = doc.timestamp.substring(0, 10);
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(doc);
+    const docTime = moment(doc.timestamp).tz('Asia/Karachi');
+    const dateKey = docTime.hour() < 6
+      ? docTime.subtract(1, 'day').format('YYYY-MM-DD')
+      : docTime.format('YYYY-MM-DD');
+
+    if (!acc[dateKey]) acc[dateKey] = [];
+    acc[dateKey].push(doc);
     return acc;
   }, {} as Record<string, any[]>);
 
-  type DailyResult = {
-    date: string;
-    HT: number;
-    LT: number;
-    wapda: number;
-    solar: number;
-    unit4: number;
-    unit5: number;
-    // Trafo1Incoming: number;
-    // Trafo2Incoming: number;
-    // Trafo3Incoming: number;
-    // Trafo4Incoming: number;
-    // Trafo1outgoing: number;
-    // Trafo2outgoing: number;
-    // Trafo3outgoing: number;
-    // Trafo4outgoing: number;
-    // Wapda2: number;
-    // Niigata: number;
-    // JMS: number;
-    // PH_IC: number;
-    losses: number;
-    totalConsumption: number;
-    totalgeneration: number;
-    unaccountable_energy: number;
-    efficiency: number;
-  };
-
-  const dailyResults: DailyResult[] = [];
-
-  // Helper to check for invalid values
-  const isInvalid = (val: number) => Math.abs(val) < 1e-5 || Math.abs(val) > 1e8;
+  const dailyResults: any[] = [];
+  const isInvalid = (val: number) => Math.abs(val) < 1e-5 || Math.abs(val) > 1e28;
 
   for (const date in groupedByDate) {
-    const [firstDoc, ...rest] = groupedByDate[date];
-    const lastDoc = groupedByDate[date][groupedByDate[date].length - 1];
+    const docsOfDay = groupedByDate[date];
+    const firstDoc = docsOfDay[0];
+    const lastDoc = docsOfDay[docsOfDay.length - 1];
+
+    // console.log(`\n📅 Date: ${date}`);
+    // console.log(`   🔹 First doc timestamp: ${firstDoc.timestamp}`);
+    // console.log(`   🔹 Last doc timestamp:  ${lastDoc.timestamp}`);
 
     const consumption: Record<string, number> = {};
 
@@ -398,15 +399,14 @@ async getDailyPowerAverages(start: string, end: string) {
       let first = firstDoc[key] ?? 0;
       let last = lastDoc[key] ?? 0;
 
-      // Skip if data is invalid or missing
       if (isInvalid(first)) first = 0;
       if (isInvalid(last)) last = 0;
 
       const diff = last - first;
-      consumption[key] = isInvalid(diff) ? 0 : diff;
+      consumption[key] = isInvalid(diff) || isNaN(diff) ? 0 : diff;
     }
 
-    const sum = (keys: string[]) => keys.reduce((sum, key) => sum + (consumption[key] || 0), 0);
+    const sum = (keys: string[]) => keys.reduce((total, key) => total + (consumption[key] || 0), 0);
 
     const ht = sum(meterGroupKeys.HT);
     const lt = sum(meterGroupKeys.LT);
@@ -427,22 +427,18 @@ async getDailyPowerAverages(start: string, end: string) {
     const JMS = sum(meterGroupKeys.JMS);
     const PH_IC = sum(meterGroupKeys.PH_IC);
 
-    // Losses calculations
-    const t1andt2incoming = Trafo1Incoming + Trafo2Incoming;
-    const t1andt2outgoing = Trafo1outgoing + Trafo2outgoing;
-    const t1and2losses = t1andt2incoming - t1andt2outgoing;
-    const t3losses = Trafo3Incoming - Trafo3outgoing;
-    const t4losses = Trafo4Incoming - Trafo4outgoing;
-    const transformerlosses = t1and2losses + t3losses + t4losses;
-    const HT_Transmission_Losses = (Wapda2 + Niigata + JMS) - (Trafo3Incoming + Trafo4Incoming + PH_IC);
-    const losses = transformerlosses + HT_Transmission_Losses;
+    // Loss calculations
+    const transformerLosses = (Trafo1Incoming + Trafo2Incoming - Trafo1outgoing - Trafo2outgoing)
+                            + (Trafo3Incoming - Trafo3outgoing)
+                            + (Trafo4Incoming - Trafo4outgoing);
+    const HTTransmissionLosses = (Wapda2 + Niigata + JMS) - (Trafo3Incoming + Trafo4Incoming + PH_IC);
+    const losses = transformerLosses + HTTransmissionLosses;
 
     const totalConsumption = unit4 + unit5;
     const totalgeneration = ht + lt + wapda + solar;
     const unaccountable_energy = totalConsumption - totalgeneration;
-    const Efficiency = (totalConsumption / totalgeneration) * 100;
+    const efficiency = totalgeneration > 0 ? (totalConsumption / totalgeneration) * 100 : 0;
 
-    // Push the result into the dailyResults array
     dailyResults.push({
       date,
       HT: +ht.toFixed(2),
@@ -451,28 +447,18 @@ async getDailyPowerAverages(start: string, end: string) {
       solar: +solar.toFixed(2),
       unit4: +unit4.toFixed(2),
       unit5: +unit5.toFixed(2),
-      // Trafo1Incoming: +Trafo1Incoming.toFixed(2),
-      // Trafo2Incoming: +Trafo2Incoming.toFixed(2),
-      // Trafo3Incoming: +Trafo3Incoming.toFixed(2),
-      // Trafo4Incoming: +Trafo4Incoming.toFixed(2),
-      // Trafo1outgoing: +Trafo1outgoing.toFixed(2),
-      // Trafo2outgoing: +Trafo2outgoing.toFixed(2),
-      // Trafo3outgoing: +Trafo3outgoing.toFixed(2),
-      // Trafo4outgoing: +Trafo4outgoing.toFixed(2),
-      // Wapda2: +Wapda2.toFixed(2),
-      // Niigata: +Niigata.toFixed(2),
-      // JMS: +JMS.toFixed(2),
-      // PH_IC: +PH_IC.toFixed(2),
       losses: +losses.toFixed(2),
       totalConsumption: +totalConsumption.toFixed(2),
       totalgeneration: +totalgeneration.toFixed(2),
       unaccountable_energy: +unaccountable_energy.toFixed(2),
-      efficiency: +Efficiency.toFixed(2),
+      efficiency: +efficiency.toFixed(2),
     });
   }
 
+  // console.log('📊 Daily Results:', dailyResults);
   return dailyResults;
 }
+
 
 
 
@@ -483,21 +469,40 @@ async getDailyPowerAverages(start: string, end: string) {
 async getMonthlyAverages(startDate: string, endDate: string) {
   const collection = this.conModel.collection;
 
-  const startISO = new Date(startDate + 'T00:00:00.000Z');
-  const endISO = new Date(endDate + 'T23:59:59.999Z');
+  // ✅ Start aur End ISO log karo
+  const startISO = `${startDate}T06:00:00.000+05:00`;
 
-  type EnergyGroupKey = 'HT' | 'LT' | 'wapda' | 'solar' | 'unit4' | 'unit5' | 'Trafo1Incoming'| 'Trafo2Incoming'
-  | 'Trafo3Incoming' | 'Trafo4Incoming' | 'Trafo1outgoing' | 'Trafo2outgoing' | 'Trafo3outgoing' | 'Trafo4outgoing'
-  | 'Wapda2' | 'Niigata'| 'JMS'| 'PH_IC';
+const nextDay = moment(endDate).add(1, "day").format("YYYY-MM-DD");
+let endISO = `${nextDay}T06:00:59.999+05:00`; // ✅ tumhari original logic
+
+// 🔍 Ab check karte hain agar last day ka 6AM abhi future me hai
+const endMomentPlanned = moment.tz(endISO, "YYYY-MM-DDTHH:mm:ss.SSSZ", "Asia/Karachi");
+const now = moment.tz("Asia/Karachi");
+
+if (now.isBefore(endMomentPlanned)) {
+  // ✅ Agar abhi tak full 6AM window complete nahi hui,
+  // to real-time tak ka data le lo
+  endISO = now.toISOString();
+}
+
+console.log("📌 Start Window:", startISO);
+console.log("📌 End Window  :", endISO);
+
+
+  type EnergyGroupKey =
+    | 'HT' | 'LT' | 'wapda' | 'solar' | 'unit4' | 'unit5'
+    | 'Trafo1Incoming' | 'Trafo2Incoming' | 'Trafo3Incoming' | 'Trafo4Incoming'
+    | 'Trafo1outgoing' | 'Trafo2outgoing' | 'Trafo3outgoing' | 'Trafo4outgoing'
+    | 'Wapda2' | 'Niigata' | 'JMS' | 'PH_IC';
 
   const meterGroups: Record<EnergyGroupKey, string[]> = {
     HT: ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'],
     LT: ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'],
-    wapda: ['U22_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'],
+    wapda: ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'],
     solar: ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'],
     unit4: ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy'],
     unit5: ['U6_GW02_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'],
-    Trafo1Incoming:['U23_GW01_Del_ActiveEnergy'],
+    Trafo1Incoming: ['U23_GW01_Del_ActiveEnergy'],
     Trafo2Incoming: ['U22_GW01_Del_ActiveEnergy'],
     Trafo3Incoming: ['U20_GW03_Del_ActiveEnergy'],
     Trafo4Incoming: ['U19_GW03_Del_ActiveEnergy'],
@@ -509,46 +514,35 @@ async getMonthlyAverages(startDate: string, endDate: string) {
     Niigata: ['U22_PLC_Del_ActiveEnergy'],
     JMS: ['U26_PLC_Del_ActiveEnergy'],
     PH_IC: ['U23_GW01_Del_ActiveEnergy'],
-  
   };
 
   const results: Record<string, any> = {};
 
   for (const [groupName, fields] of Object.entries(meterGroups) as [EnergyGroupKey, string[]][]) {
-    const projectFields: Record<string, any> = {};
-    fields.forEach(f => {
-      projectFields[f] = 1;
-    });
-
     const pipeline = [
       {
         $match: {
           $expr: {
             $and: [
-              { $gte: [{ $toDate: "$timestamp" }, startISO] },
-              { $lte: [{ $toDate: "$timestamp" }, endISO] }
+              { $gte: [{ $toDate: "$timestamp" }, { $toDate: startISO }] },
+              { $lt: [{ $toDate: "$timestamp" }, { $toDate: endISO }] }
             ]
           }
         }
       },
-      {
-        $addFields: {
-          date: { $toDate: "$timestamp" }
-        }
-      },
+      { $addFields: { date: { $toDate: "$timestamp" } } },
       {
         $addFields: {
           month: {
             $dateTrunc: {
               date: "$date",
-              unit: "month"
+              unit: "month",
+              timezone: "Asia/Karachi",
             }
           }
         }
       },
-      {
-        $sort: { date: 1 }
-      },
+      { $sort: { date: 1 } },
       {
         $group: {
           _id: "$month",
@@ -566,12 +560,7 @@ async getMonthlyAverages(startDate: string, endDate: string) {
           value: {
             $sum: fields.map(f => ({
               $cond: [
-                {
-                  $gt: [
-                    { $abs: { $subtract: ["$" + f + "_last", "$" + f + "_first"] } },
-                    1e25
-                  ]
-                },
+                { $gt: [{ $abs: { $subtract: ["$" + f + "_last", "$" + f + "_first"] } }, 1e25] },
                 0,
                 { $subtract: ["$" + f + "_last", "$" + f + "_first"] }
               ]
@@ -582,57 +571,41 @@ async getMonthlyAverages(startDate: string, endDate: string) {
       { $sort: { month: 1 } }
     ];
 
+    console.log(`🚀 Pipeline for ${groupName}:`, JSON.stringify(pipeline, null, 2));
+
     const data = await collection.aggregate(pipeline).toArray();
+    console.log(`📊 Raw Data for ${groupName}:`, data);
 
     for (const item of data) {
-      const monthStr = item.month.toISOString().slice(0, 7);
+      const monthStr = moment(item.month).tz("Asia/Karachi").format("YYYY-MM");
       const val = Math.round(item.value * 100) / 100;
 
       if (!results[monthStr]) {
         results[monthStr] = {
           date: monthStr,
-          HT: 0,
-          LT: 0,
-          wapda: 0,
-          solar: 0,
-          unit4: 0,
-          unit5: 0,
-          Trafo1Incoming:0,
-          Trafo2Incoming:0,
-          Trafo3Incoming:0,
-          Trafo4Incoming:0,
-          Trafo1outgoing:0,
-          Trafo2outgoing:0,
-          Trafo3outgoing:0,
-          Trafo4outgoing:0,
-          Wapda2:0,
-          Niigata:0,
-          JMS:0,
-          PH_IC:0,
-          total_consumption: 0,
-          total_generation: 0,
-          unaccoutable_energy: 0,
-          efficiency: 0.00
+          HT: 0, LT: 0, wapda: 0, solar: 0, unit4: 0, unit5: 0,
+          Trafo1Incoming: 0, Trafo2Incoming: 0, Trafo3Incoming: 0, Trafo4Incoming: 0,
+          Trafo1outgoing: 0, Trafo2outgoing: 0, Trafo3outgoing: 0, Trafo4outgoing: 0,
+          Wapda2: 0, Niigata: 0, JMS: 0, PH_IC: 0,
+          total_consumption: 0, total_generation: 0, unaccoutable_energy: 0,
+          efficiency: 0.00, losses: 0
         };
       }
 
       results[monthStr][groupName] = val;
     }
+  
   }
 
-  // Final calculations
- for (const month of Object.values(results)) {
-    // Calculate total consumption and generation
-    month.total_consumption = Math.round((month.unit4 + month.unit5) * 100) / 100;
-    month.total_generation = Math.round((month.HT + month.LT + month.wapda + month.solar) * 100) / 100;
-    month.unaccountable_energy = Math.round((month.total_consumption - month.total_generation) * 100) / 100;
-  
-    // Calculate efficiency
+  // ✅ Final calculations
+  for (const month of Object.values(results)) {
+    month.total_consumption = +(month.unit4 + month.unit5).toFixed(2);
+    month.total_generation = +(month.HT + month.LT + month.wapda + month.solar).toFixed(2);
+    month.unaccountable_energy = +(month.total_consumption - month.total_generation).toFixed(2);
     month.efficiency = month.total_generation > 0
-      ? Math.round((month.total_consumption / month.total_generation) * 100 * 100) / 100
+      ? +((month.total_consumption / month.total_generation) * 100).toFixed(2)
       : 0;
-  
-    // Add transformer losses and HT transmission losses calculations
+
     const t1andt2incoming = month.Trafo1Incoming + month.Trafo2Incoming;
     const t1andt2outgoing = month.Trafo1outgoing + month.Trafo2outgoing;
     const t1and2losses = t1andt2incoming - t1andt2outgoing;
@@ -640,28 +613,19 @@ async getMonthlyAverages(startDate: string, endDate: string) {
     const t4losses = month.Trafo4Incoming - month.Trafo4outgoing;
     const transformerlosses = t1and2losses + t3losses + t4losses;
 
-    const HT_Transmission_Losses = (month.Wapda2 + month.Niigata + month.JMS) - (month.Trafo3Incoming + month.Trafo4Incoming + month.PH_IC);
-    
-    // Calculate total losses
-    const losses = transformerlosses + HT_Transmission_Losses;
+    const HT_Transmission_Losses =
+      (month.Wapda2 + month.Niigata + month.JMS) -
+      (month.Trafo3Incoming + month.Trafo4Incoming + month.PH_IC);
 
-    // Add the losses to the month object
-    month.losses = Math.round(losses * 100) / 100;
-}
-
+    month.losses = +(transformerlosses + HT_Transmission_Losses).toFixed(2);
+  }
 
   return Object.values(results).sort((a, b) => a.date.localeCompare(b.date));
-}
-
-
-
 
 }
 
-  
 
-
-  
+}
 
 
   

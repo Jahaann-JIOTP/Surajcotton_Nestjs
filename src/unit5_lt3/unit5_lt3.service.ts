@@ -41,18 +41,19 @@ export class Unit5LT3Service {
       
   
   const meterMap: Record<string, string> = {
-      U1_GW02: 'PDB CD1',
-      U2_GW02: 'PDB CD2',
-      U3_GW02: 'Card PDB 01',
-      U4_GW02: 'PDB 8',
-      U5_GW02: 'PF Panel',
+      // U1_GW02: 'PDB CD1',
+      // U2_GW02: 'PDB CD2',
+      // U3_GW02: 'Card PDB 01',
+      // U4_GW02: 'PDB 8',
+      
       U7_GW02: 'Ring 1-3',
       U8_GW02: 'A/C Plant spinning',
       U9_GW02: 'Blow Room L1',
       U10_GW02: 'Ring Frames 4-6',
       U11_GW02: 'A/C Plant Blowing',
       U12_GW02: 'MLDB1 Blower room card',
-      U14_GW02: 'Spare',
+      U5_GW02: 'PF Panel',
+      U14_GW02: 'Comber MCS 1-14',
       U15_GW02: 'AC Plant spinning',
       U16_GW02: 'Water Chiller',
       U17_GW02: 'Card M/C 8-14',
@@ -60,7 +61,7 @@ export class Unit5LT3Service {
       U19_GW02: 'Card M/C 1-7',
       U20_GW02: 'AC Plant winding',
       U21_GW02: 'Simplex M/C S1-5',
-      U22_GW02: 'Spare',
+      U22_GW02: 'Spare 2',
       U23_GW02: 'Draw Frame Finish',
     };
 
@@ -119,8 +120,8 @@ export class Unit5LT3Service {
     const solar = +consumptionTotals['U6_GW02_Del_ActiveEnergy'].toFixed(2);
 
     const sankeyData = [
-      { from: 'TF3', to: 'TotalLT3', value: tf3 },
-      { from: 'Solar', to: 'TotalLT3', value: solar },
+      { from: 'TF #1', to: 'TotalLT3', value: tf3 },
+      { from: 'Solar 1236.39 Kw', to: 'TotalLT3', value: solar },
       ...Object.entries(meterMap).map(([meter, label]) => ({
         from: 'TotalLT3',
         to: label,
