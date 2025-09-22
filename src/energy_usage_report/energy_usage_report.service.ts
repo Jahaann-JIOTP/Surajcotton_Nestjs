@@ -31,10 +31,10 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   // Mappings
   // -------------------------------
   const AutoConeMapping: Record<string, string[]> = {
-    // Unit_4: ['U4_U23_GW03', 'U4_U22_GW03'],
-    // Unit_5: ['U5_U23_GW03', 'U5_U22_GW03', 'U18_GW02', 'U10_GW03'],
-    Unit_4: ['U4_U23_GW03'],
-    Unit_5: ['U5_U23_GW03'],
+    Unit_4: ['U4_U23_GW03', 'U4_U22_GW03'],
+    Unit_5: ['U5_U23_GW03', 'U5_U22_GW03', 'U18_GW02', 'U10_GW03'],
+    // Unit_4: ['U4_U23_GW03'],
+    // Unit_5: ['U5_U22_GW03'],
   };
   const CardMapping: Record<string, string[]> = {
     Unit_4: ['U5_GW01', 'U9_GW01', 'U4_U3_GW02', 'U4_U1_GW02', 'U4_U2_GW02'],
@@ -109,7 +109,9 @@ async getConsumptionData(dto: GetEnergyCostDto) {
     
   };
     const FrameFinisherMapping: Record<string, string[]> = {
+    
     Unit_5: ['U23_GW02']
+
     
   };
     const ACPlantMapping: Record<string, string[]> = {
@@ -147,34 +149,10 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   // -------------------------------
  // ✅ Start 6 AM of start_date
 // ✅ Start ISO
-const startMoment = moment
-  .tz(start_date, 'YYYY-MM-DD', 'Asia/Karachi')
-  .hour(start_time ? parseInt(start_time.split(':')[0]) : 6)
-  .minute(start_time ? parseInt(start_time.split(':')[1]) : 0)
-  .second(0)
-  .millisecond(0);
+const startISO = `${start_date}T06:00:00.000+05:00`;
+const nextDay = moment(end_date).add(1, 'day').format('YYYY-MM-DD');
+const endISO = `${nextDay}T06:00:59.999+05:00`;
 
-const startISO = startMoment.toISOString(true);
-
-// ✅ End ISO
-let endMoment = moment.tz(end_date, 'YYYY-MM-DD', 'Asia/Karachi');
-
-if (end_time) {
-  const [eh, em] = end_time.split(':').map(Number);
-  endMoment = endMoment.hour(eh).minute(em).second(59).millisecond(999);
-
-  // ⚡ Agar end <= start ho gaya, toh +1 day shift karna
-  if (endMoment.isSameOrBefore(startMoment)) {
-    endMoment.add(1, 'day');
-  }
-} else {
-  // Default → next day 06:00
-  endMoment = endMoment.add(1, 'day').hour(6).minute(0).second(0).millisecond(0);
-}
-
-const endISO = endMoment.toISOString(true);
-
-console.log('📌 Query Range:', startISO, '➡️', endISO);
 
 
   const areaKeys = area === 'ALL' ? ['Unit_4', 'Unit_5'] : [area];

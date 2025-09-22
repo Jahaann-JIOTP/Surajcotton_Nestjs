@@ -46,7 +46,7 @@ async getSankeyData(payload: { startDate: string; endDate: string; startTime?: s
       U4_PLC: 'Light Inside',
       U5_PLC: 'Power House',
       U6_PLC: 'Turbine',
-      U7_PLC: 'Main Meter',
+      // U7_PLC: 'Main Meter',
       U8_PLC: 'Drawing Finisher 1~6+2 Breaker',
       U9_PLC: 'Winding 7~9',
       U10_PLC: 'Ring 1~4',

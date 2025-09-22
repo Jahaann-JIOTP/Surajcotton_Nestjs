@@ -22,12 +22,15 @@ async getPowerAverages(startDate: string, endDate: string) {
 
  const startDateTime = moment.tz(startDate, "YYYY-MM-DD", "Asia/Karachi")
   .hour(6).minute(0).second(0).millisecond(0)
-  .toDate();  // 👈 .utc() hata do
+  .toDate();
 
 const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
   .add(1, "day")
-  .hour(6).minute(0).second(59).millisecond(999) // ✅ 06:00:59.999
+  .hour(6).minute(59).second(59).millisecond(999)
   .toDate();
+
+
+
 
 
 

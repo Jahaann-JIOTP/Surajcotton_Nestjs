@@ -21,36 +21,7 @@ export class PowerSummaryReportService {
       Unit_4: ['U19_PLC', 'U21_PLC', 'U13_GW01', 'U11_GW01'],
       Unit_5:["U13_GW02", "U16_GW03", "U6_GW02","U17_GW03"],
       ALL:['U19_PLC', 'U21_PLC', 'U13_GW01', 'U11_GW01', "U13_GW02", "U16_GW03", "U6_GW02","U17_GW03"]
-      // Unit_4: [
-      //   'U1_PLC', 'U2_PLC', 'U3_PLC', 'U4_PLC', 'U5_PLC', 'U6_PLC', 'U7_PLC', 'U8_PLC',
-      //   'U9_PLC', 'U10_PLC', 'U11_PLC', 'U12_PLC', 'U13_PLC', 'U14_PLC', 'U15_PLC', 'U16_PLC',
-      //   'U17_PLC', 'U18_PLC', 'U19_PLC', 'U20_PLC', 'U21_PLC', 'U1_GW01', 'U2_GW01', 'U3_GW01',
-      //   'U4_GW01', 'U5_GW01', 'U6_GW01', 'U7_GW01', 'U8_GW01', 'U9_GW01', 'U10_GW01',
-      //   'U11_GW01', 'U12_GW01', 'U13_GW01', 'U14_GW01', 'U15_GW01', 'U16_GW01', 'U17_GW01',
-      //   'U18_GW01', 'U19_GW01', 'U20_GW01', 'U21_GW01', 'U23_GW01'
-      // ],
-      // Unit_5:[
-      //   'U1_GW02', 'U2_GW02', 'U3_GW02', 'U4_GW02', 'U5_GW02', 'U6_GW02', 'U7_GW02',
-      //   'U8_GW02', 'U9_GW02', 'U10_GW02', 'U11_GW02', 'U12_GW02', 'U13_GW02', 'U14_GW02',
-      //   'U15_GW02', 'U16_GW02', 'U17_GW02', 'U18_GW02', 'U19_GW02', 'U20_GW02', 'U21_GW02',
-      //   'U22_GW02', 'U23_GW02', 'U1_GW03', 'U2_GW03', 'U3_GW03', 'U4_GW03', 'U5_GW03', 'U6_GW03', 'U7_GW03',
-      //   'U8_GW03', 'U9_GW03', 'U10_GW03', 'U11_GW03', 'U12_GW03', 'U13_GW03', 'U14_GW03',
-      //   'U15_GW03', 'U16_GW03', 'U17_GW03', 'U18_GW03', 'U19_GW03', 'U20_GW03', 'U21_GW03',
-      //   'U22_GW03', 'U23_GW03'
-      // ],
-      //  ALL:['U1_PLC', 'U2_PLC', 'U3_PLC', 'U4_PLC', 'U5_PLC', 'U6_PLC', 'U7_PLC', 'U8_PLC',
-      //   'U9_PLC', 'U10_PLC', 'U11_PLC', 'U12_PLC', 'U13_PLC', 'U14_PLC', 'U15_PLC', 'U16_PLC',
-      //   'U17_PLC', 'U18_PLC', 'U19_PLC', 'U20_PLC', 'U1_GW01', 'U2_GW01', 'U3_GW01',
-      //   'U4_GW01', 'U5_GW01', 'U6_GW01', 'U7_GW01', 'U8_GW01', 'U9_GW01', 'U10_GW01',
-      //   'U11_GW01', 'U12_GW01', 'U14_GW01', 'U15_GW01', 'U16_GW01', 'U17_GW01',
-      //   'U18_GW01', 'U19_GW01', 'U20_GW01', 'U21_GW01',
-      //   'U1_GW02', 'U2_GW02', 'U3_GW02', 'U4_GW02', 'U5_GW02',  'U7_GW02',
-      //   'U8_GW02', 'U9_GW02', 'U10_GW02', 'U11_GW02', 'U12_GW02', 'U13_GW02', 'U14_GW02',
-      //   'U15_GW02', 'U16_GW02', 'U17_GW02', 'U18_GW02', 'U19_GW02', 'U20_GW02', 'U21_GW02',
-      //   'U22_GW02', 'U23_GW02', 'U1_GW03', 'U2_GW03', 'U3_GW03', 'U4_GW03', 'U5_GW03', 'U6_GW03', 'U7_GW03',
-      //   'U8_GW03', 'U9_GW03', 'U10_GW03', 'U11_GW03', 'U12_GW03', 'U13_GW03', 'U14_GW03',
-      //   'U15_GW03', 'U17_GW03', 'U18_GW03', 'U21_GW03',
-      //    'U23_GW03']
+    
     };
 
     return areaMapping[area] || [];
@@ -91,8 +62,17 @@ async getConsumptionData(dto: GetEnergyCostDto) {
     ],
   };
 
-  const start = moment.tz(start_date, 'Asia/Karachi').startOf('day');
-  const end = moment.tz(end_date, 'Asia/Karachi').endOf('day');
+ const start = moment.tz(start_date, 'Asia/Karachi').hour(6).minute(0).second(0).millisecond(0);
+const end = moment.tz(end_date, 'Asia/Karachi')
+  .add(1, 'day')
+  .hour(6)
+  .minute(0)
+  .second(59)
+  .millisecond(999);  // ✅ include all up to 6:00:00.999
+
+
+console.log('Start timestamp (6AM):', start.format('YYYY-MM-DDTHH:mm:ss'));
+console.log('End timestamp (6AM next day):', end.format('YYYY-MM-DDTHH:mm:ss'));
 
   const allMeterIds = new Set<string>();
   for (const areaKey of areasToProcess) {
@@ -180,7 +160,7 @@ async getConsumptionData(dto: GetEnergyCostDto) {
             const consumption = this.sanitizeValue(pair.last - pair.first);
             dailyTotal += consumption;
 
-            if (unitArea === 'Unit_4' && meterId === 'U22_GW01') {
+            if (unitArea === 'Unit_4' && meterId === 'U23_GW01') {
               if (suffix === 'ActiveEnergy_Exp_kWh') wapdaexport += consumption;
               else wapda1 += consumption;
             }
