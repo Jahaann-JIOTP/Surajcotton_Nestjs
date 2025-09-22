@@ -191,7 +191,7 @@ const total= totalConsumption
 async calculateConsumption1(range: { start: string; end: string }): Promise<number> {
 const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
     const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
-    const Wapda1Keys = ["U23_GW01_Del_ActiveEnergy", "'U27_PLC_Del_ActiveEnergy'"];
+    const Wapda1Keys = ["U23_GW01_Del_ActiveEnergy", 'U27_PLC_Del_ActiveEnergy'];
    const HTGenerationKeys = ['U20_GW03_Del_ActiveEnergy','U21_GW03_Del_ActiveEnergy','U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
    const allKeys = [
   ...LTGenerationKeys, ...SolarGenerationKeys, 
@@ -352,158 +352,145 @@ async getWeeklyGeneration() {
 }
 
 
+private getDayRange(offsetDays: number) {
+  const start = moment.tz("Asia/Karachi")
+    .startOf("day")
+    .add(offsetDays, "days")
+    .hour(6)
+    .minute(0)
+    .second(0)
+    .millisecond(0)
+    .toDate();
+
+  const end = moment.tz("Asia/Karachi")
+    .startOf("day")
+    .add(offsetDays + 1, "days")
+    .hour(7) // 🔹 Changed from 7 → 6
+    .minute(0)
+    .second(0)
+    .millisecond(0)
+    .toDate();
+
+  return { start, end };
+}
+
 async getTodayGeneration(): Promise<HourlyData[]> {
   const todayRange = this.getDayRange(0);
   const yesterdayRange = this.getDayRange(-1);
 
-   const meterKeys = [
+  const meterKeys = [
     "U19_PLC_Del_ActiveEnergy",
-    "U21_PLC_Del_ActiveEnergy",
-    "U7_GW01_Del_ActiveEnergy",
-    "U13_GW01_Del_ActiveEnergy",
+    'U11_GW01_Del_ActiveEnergy',
+    'U17_GW03_Del_ActiveEnergy',
     "U6_GW02_Del_ActiveEnergy",
-    "U13_GW02_Del_ActiveEnergy",
-    "U16_GW03_Del_ActiveEnergy",
-    "U17_GW03_Del_ActiveEnergy",
+    'U22_PLC_Del_ActiveEnergy',
+    'U26_PLC_Del_ActiveEnergy'
   ];
-  const projection: Record<string, number> = { timestamp: 1 };
-  meterKeys.forEach((key) => (projection[key] = 1));
 
+  const projection: Record<string, number> = { ts: 1, timestamp: 1 };
+  meterKeys.forEach(k => (projection[k] = 1));
+
+  // Fetch today & yesterday data
   const [todayData, yesterdayData] = await Promise.all([
     this.generationModel.aggregate([
-      {
-        $match: {
-          timestamp: { $gte: todayRange.start, $lte: todayRange.end },
-        },
-      },
+      { $addFields: { ts: { $toDate: "$timestamp" } } },
+      { $match: { ts: { $gte: todayRange.start, $lt: todayRange.end } } },
       { $project: projection },
-      { $sort: { timestamp: 1 } },
+      { $sort: { ts: 1 } },
     ]),
     this.generationModel.aggregate([
-      {
-        $match: {
-          timestamp: { $gte: yesterdayRange.start, $lte: yesterdayRange.end },
-        },
-      },
+      { $addFields: { ts: { $toDate: "$timestamp" } } },
+      { $match: { ts: { $gte: yesterdayRange.start, $lt: yesterdayRange.end } } },
       { $project: projection },
-      { $sort: { timestamp: 1 } },
+      { $sort: { ts: 1 } },
     ]),
   ]);
 
-  console.log("🔹 Today Range:", todayRange);
-  console.log("🔹 Yesterday Range:", yesterdayRange);
   console.log("🔹 Today Docs Found:", todayData.length);
   console.log("🔹 Yesterday Docs Found:", yesterdayData.length);
 
-const calculateHourly = (data: any[], hour: number, offset: number): number => {
-  // Base 6AM
-  const base = moment()
-    .tz("Asia/Karachi")
-    .startOf("day")
-    .add(offset, "days")
-    .hour(6);
+  const calculateHourly = (data: any[], baseStart: moment.Moment, hour: number): number => {
+    const hourStart = baseStart.clone().add(hour, "hours");
+    const hourEnd = hourStart.clone().add(1, "hour");
 
-  const hourStart = base.clone().add(hour, "hours");
-  const hourEnd = hourStart.clone().add(1, "hour");
+    const firstValues: Record<string, number | null> = {};
+    const lastValues: Record<string, number | null> = {};
 
-  console.log(`⏰ Checking Hour Slot: ${hourStart.format()} -> ${hourEnd.format()}`);
-
-  const firstValues: Record<string, number | null> = {};
-  const lastValues: Record<string, number | null> = {};
-
-  // ✅ First value → current slot ka pehla doc
-  for (const doc of data) {
-    const time = moment(doc.timestamp).tz("Asia/Karachi");
-    if (time.isBetween(hourStart, hourEnd, null, "[)")) {
-      meterKeys.forEach((key) => {
-        const val = doc[key];
-        if (typeof val === "number" && firstValues[key] == null) {
-          firstValues[key] = val;
+    // 1) First inside hour
+    for (const doc of data) {
+      const t = moment(doc.ts).tz("Asia/Karachi");
+      if (t.isBetween(hourStart, hourEnd, null, "[)")) {
+        for (const key of meterKeys) {
+          const v = doc[key];
+          if (typeof v === "number" && firstValues[key] == null) firstValues[key] = v;
         }
-      });
+      }
     }
-  }
 
-  // ✅ Last value → next slot ka pehla doc
-  for (const doc of data) {
-    const time = moment(doc.timestamp).tz("Asia/Karachi");
-    if (time.isSameOrAfter(hourEnd)) {
-      meterKeys.forEach((key) => {
-        const val = doc[key];
-        if (typeof val === "number" && lastValues[key] == null) {
-          lastValues[key] = val;
+    // 2) First after hourEnd
+    for (const doc of data) {
+      const t = moment(doc.ts).tz("Asia/Karachi");
+      if (t.isSameOrAfter(hourEnd)) {
+        for (const key of meterKeys) {
+          const v = doc[key];
+          if (typeof v === "number" && lastValues[key] == null) lastValues[key] = v;
         }
-      });
-      break; // sirf pehla doc lena hai
+        break;
+      }
     }
-  }
 
-  console.log(`   ➡ First Values:`, firstValues);
-  console.log(`   ➡ Last Values :`, lastValues);
-
-  let total = 0;
-  meterKeys.forEach((key) => {
-    const first = firstValues[key];
-    const last = lastValues[key];
-    if (
-      first !== null &&
-      last !== null &&
-      first !== undefined &&
-      last !== undefined
-    ) {
-      let diff = last - first;
-      if (diff < 0 || diff > 1e12 || diff < 1e-6) diff = 0;
-      total += diff;
+    // 3) Fallback: last doc inside the hour
+    if (Object.values(lastValues).every(v => v == null)) {
+      for (let i = data.length - 1; i >= 0; i--) {
+        const t = moment(data[i].ts).tz("Asia/Karachi");
+        if (t.isBetween(hourStart, hourEnd, null, "[)")) {
+          for (const key of meterKeys) {
+            const v = data[i][key];
+            if (typeof v === "number") lastValues[key] = v;
+          }
+          break;
+        }
+      }
     }
-  });
 
-  console.log(`   ⚡ Total Consumption = ${total.toFixed(2)}`);
-  return +total.toFixed(2);
-};
+    // 4) Safe delta
+    let total = 0;
+    for (const key of meterKeys) {
+      const first = firstValues[key];
+      const last = lastValues[key];
+      if (first != null && last != null) {
+        let diff = last - first;
+        if (diff < 0 || diff > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+        total += diff;
+      }
+    }
 
+    // Debug log per hour
+    console.log(`[${hourStart.format("HH:mm")} - ${hourEnd.format("HH:mm")}] Total:`, total);
+
+    return +total.toFixed(2);
+  };
+
+  const baseToday = moment.tz(todayRange.start, "Asia/Karachi");
+  const baseYesterday = moment.tz(yesterdayRange.start, "Asia/Karachi");
 
   const hourlyData: HourlyData[] = [];
+  for (let hour = 0; hour < 25; hour++) {
+    const todayVal = calculateHourly(todayData, baseToday, hour);
+    const yesterdayVal = calculateHourly(yesterdayData, baseYesterday, hour);
 
-  for (let hour = 0; hour < 24; hour++) {
-    const today = calculateHourly(todayData, hour, 0);
-    const yesterday = calculateHourly(yesterdayData, hour, -1);
-
-    // Time ko 6AM se shift kar diya
-    const displayHour = (hour + 6) % 24;
-
-    console.log(
-      `✅ Final Hour: ${displayHour.toString().padStart(2, "0")}:00 | Today=${today} | Yesterday=${yesterday}`
-    );
+      const displayDateTime = baseToday.clone().add(hour, "hours").format("YYYY-MM-DD HH:mm");
 
     hourlyData.push({
-      Time: `${displayHour.toString().padStart(2, "0")}:00`,
-      Today: today,
-      Yesterday: yesterday,
+      Time: displayDateTime,
+      Today: todayVal,
+      Yesterday: yesterdayVal,
     });
   }
 
   console.log("📊 Final Hourly Data:", hourlyData);
-
   return hourlyData;
 }
-
-
-  
-  private getDayRange(offset: number): { start: string; end: string } {
-    const date = new Date();
-    date.setDate(date.getDate() + offset);
-  
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
-  
-    const end = new Date(date);
-    end.setHours(23, 59, 59, 999);
-  
-    return {
-      start: start.toISOString(),
-      end: end.toISOString(),
-    };
-  }
   
 
 async getMonthlyGeneration() {

@@ -23,33 +23,21 @@ export class HeatMapService  {
     private readonly transformerModel: Model<TransformerInputDocument>,
   ) {}
 
-
 async getPowerAverages(startDate: string, endDate: string) {
   const collection = this.conModel.collection;
 
-  // ✅ StartDate always 6 AM
-  const startDateTime = moment.tz(startDate, "YYYY-MM-DD", "Asia/Karachi")
+  // ✅ StartDate always at 6 AM
+  const startDateTime = moment
+    .tz(startDate, "YYYY-MM-DD", "Asia/Karachi")
     .hour(6).minute(0).second(0).millisecond(0)
     .toDate();
 
-  // ✅ EndDate handle (same date vs multiple dates)
- let endDateTime: Date;
-if (startDate === endDate) {
-  // 👉 same date → usi din raat 23:59 tak
-  endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
-    .hour(23).minute(59).second(59).millisecond(999)
+  // ✅ EndDate always next day's 6 AM
+  const endDateTime = moment
+    .tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
+    .add(1, "day")
+    .hour(7).minute(0).second(0).millisecond(0)
     .toDate();
-} else {
-  // 👉 multiple days → endDate ka 6 AM
-  
-  // 👉 multiple days → endDate ka 6 AM hour poora include ho
-  endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
-    .hour(6).minute(59).second(59).millisecond(999)
-    .toDate();
-
-
-}
-
 
   const Trafo1Tags = ["U21_PLC_ActivePower_Total"];
   const Trafo2Tags = ["U13_GW01_ActivePower_Total"];
@@ -58,80 +46,110 @@ if (startDate === endDate) {
 
   const allTags = [...Trafo1Tags, ...Trafo2Tags, ...Trafo3Tags, ...Trafo4Tags];
 
-  // 🔹 STEP 1: Aggregation
-  const pipeline = [
-    {
-      $addFields: {
-        timestampDate: { $toDate: "$timestamp" }
-      }
-    },
-    {
-      $match: {
-        timestampDate: { $gte: startDateTime, $lte: endDateTime }
-      }
-    },
-    {
-      $addFields: {
-        hourBin: {
-          $dateTrunc: {
-            date: "$timestampDate",
-            unit: "hour",
-            timezone: "Asia/Karachi"
-          }
-        }
-      }
-    },
-    {
-      $group: {
-        _id: "$hourBin",
-        count: { $sum: 1 },
-        ...Object.fromEntries(
-          allTags.map(tag => [
-            `avg_${tag}`,
-            { $avg: { $ifNull: [`$${tag}`, 0] } }
-          ])
-        )
-      }
-    },
-    { $sort: { _id: 1 } }
-  ];
+  // 🔹 STEP 1: Fetch raw docs
+  const rawDocs = await collection
+    .aggregate([
+      {
+        $addFields: {
+          timestampDate: { $toDate: "$timestamp" },
+        },
+      },
+      {
+        $match: {
+          timestampDate: { $gte: startDateTime, $lte: endDateTime },
+        },
+      },
+      {
+        $project: {
+          timestampDate: 1,
+          ...Object.fromEntries(allTags.map((tag) => [tag, 1])),
+        },
+      },
+      { $sort: { timestampDate: 1 } },
+    ])
+    .toArray();
 
-  const rawData = await collection.aggregate(pipeline).toArray();
-
-  // 🔹 STEP 2: Fill missing hours
+  // 🔹 STEP 2: Grouping logic (include next hour’s :00 in current group)
   const results: any[] = [];
-let current = moment(startDateTime);
-const end = moment(endDateTime);
+  let current = moment(startDateTime);
+  const end = moment(endDateTime).subtract(1, "hour");
 
-while (current.isSameOrBefore(end)) {   // 👈 fix
-  const hourStr = current.format("YYYY-MM-DD HH:00");
+  while (current.isSameOrBefore(end)) {
+    const hourStart = current.clone();
+    const hourEnd = current.clone().add(1, "hour");
 
-  const found = rawData.find(
-    (d) => moment(d._id).tz("Asia/Karachi").format("YYYY-MM-DD HH:00") === hourStr
-  );
+    // 👉 Match docs between [hourStart, hourEnd] inclusive
+    let matchedDocs = rawDocs.filter((d) => {
+      const t = moment(d.timestampDate);
+      return t.isBetween(hourStart, hourEnd, null, "[]");
+    });
 
-  let Trafo1 = 0, Trafo2 = 0, Trafo3 = 0, Trafo4 = 0;
+    // ✅ Add next hour’s :00 doc also
+    const nextHourDoc = rawDocs.find(
+      (d) => moment(d.timestampDate).isSame(hourEnd, "minute")
+    );
+    if (nextHourDoc) {
+      matchedDocs.push(nextHourDoc);
+    }
 
-  if (found) {
-    Trafo1 = Trafo1Tags.reduce((sum, tag) => sum + +(found[`avg_${tag}`] || 0), 0);
-    Trafo2 = Trafo2Tags.reduce((sum, tag) => sum + +(found[`avg_${tag}`] || 0), 0);
-    Trafo3 = Trafo3Tags.reduce((sum, tag) => sum + +(found[`avg_${tag}`] || 0), 0);
-    Trafo4 = Trafo4Tags.reduce((sum, tag) => sum + +(found[`avg_${tag}`] || 0), 0);
+    console.log(
+      "Hour:",
+      hourStart.format("YYYY-MM-DD HH:00"),
+      "Docs:",
+      matchedDocs.map((d) => moment(d.timestampDate).format("HH:mm"))
+    );
+
+    let Trafo1 = 0,
+      Trafo2 = 0,
+      Trafo3 = 0,
+      Trafo4 = 0;
+
+    if (matchedDocs.length > 0) {
+      Trafo1 =
+        Trafo1Tags.reduce(
+          (sum, tag) =>
+            sum + matchedDocs.reduce((s, d) => s + +(d[tag] || 0), 0),
+          0
+        ) / matchedDocs.length;
+
+      Trafo2 =
+        Trafo2Tags.reduce(
+          (sum, tag) =>
+            sum + matchedDocs.reduce((s, d) => s + +(d[tag] || 0), 0),
+          0
+        ) / matchedDocs.length;
+
+      Trafo3 =
+        Trafo3Tags.reduce(
+          (sum, tag) =>
+            sum + matchedDocs.reduce((s, d) => s + +(d[tag] || 0), 0),
+          0
+        ) / matchedDocs.length;
+
+      Trafo4 =
+        Trafo4Tags.reduce(
+          (sum, tag) =>
+            sum + matchedDocs.reduce((s, d) => s + +(d[tag] || 0), 0),
+          0
+        ) / matchedDocs.length;
+    }
+
+    results.push({
+      date: hourStart.format("YYYY-MM-DD HH:00"),
+      Trafo1and2: +(Trafo1 + Trafo2).toFixed(2),
+      Trafo3: +Trafo3.toFixed(2),
+      Trafo4: +Trafo4.toFixed(2),
+    });
+
+    current.add(1, "hour");
   }
-
-  results.push({
-    date: hourStr,
-    Trafo1and2: +(Trafo1 + Trafo2).toFixed(2),
-    Trafo3: +Trafo3.toFixed(2),
-    Trafo4: +Trafo4.toFixed(2)
-  });
-
-  current.add(1, "hour");
-}
-
 
   return results;
 }
+
+
+
+
 
 
 

@@ -30,9 +30,20 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   // -------------------------------
   // Mappings
   // -------------------------------
+
+  //card: unit 5: u17_GWO2, u19_GW02
+  //comber+unilap unit 5 U14_GW02, U22_GW02
+  //Drawing breaker and Simplex +6 breaker for unit 5 
+  //B/ card + comber filter u13_GW03 unit 5
+  // ac back process u11_GW02 unit 5
+  //ac ring u8_GW02, u15_GW02 unit 5
+  //ac auto winding unit 5 u20_GW02
+  // condition ing machien unit 5 u2_GW03
+   //skip workshop lap +offices in unit 5 
+
   const AutoConeMapping: Record<string, string[]> = {
     Unit_4: ['U4_U23_GW03', 'U4_U22_GW03'],
-    Unit_5: ['U5_U23_GW03', 'U5_U22_GW03', 'U18_GW02', 'U10_GW03'],
+    Unit_5: ['U18_GW02', 'U10_GW03'], // auto cone winding 
     // Unit_4: ['U4_U23_GW03'],
     // Unit_5: ['U5_U22_GW03'],
   };
@@ -42,46 +53,50 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   };
   const ComberMapping: Record<string, string[]> = {
     Unit_4: ['U4_U4_GW02', 'U13_PLC'],
-    Unit_5: ['U5_U4_GW02', 'U6_GW03'],
+    Unit_5: ['U14_GW02', 'U22_GW02'],//DONE
+    
   };
   const BlowRoomMapping: Record<string, string[]> = {
     Unit_4: ['U8_GW01', 'U14_GW01'],
-    Unit_5: ['U12_GW02', 'U9_GW02'],
+    Unit_5: ['U12_GW02', 'U9_GW02'], //Done
   };
 
   const DrawingMapping: Record<string, string[]> = {
     Unit_4: ['U8_PLC', 'U1_GW01'],
+     Unit_5: ['U23_GW02'],// Done
   };
     const SimplexMapping: Record<string, string[]> = {
     Unit_4: ['U15_PLC'],
     Unit_5: ['U21_GW02'],
   };
     const RTransportSystemMapping: Record<string, string[]> = {
-    Unit_5: ['U4_GW03'],
+    Unit_5: ['U4_GW03'], // Done
     Unit_4: ['U1_PLC'],
 
   };
     const RingMapping: Record<string, string[]> = {
     Unit_4: ['U10_PLC', 'U11_PLC', 'U12_PLC', 'U17_PLC', 'U15_GW01', 'U17_GW01', 'U16_GW01'],
-    Unit_5: ['U10_GW02', 'U7_GW02', 'U1_GW03','U5_GW03', 'U9_GW03', 'U12_GW03'],
+    Unit_5: ['U10_GW02', 'U7_GW02', 'U1_GW03','U5_GW03', 'U9_GW03', 'U12_GW03'], // Done
   };
 
   const AirCompressorMapping: Record<string, string[]> = {
   
-    Unit_4: ['U14_PLC', 'U16_PLC'],
+    Unit_4: ['U14_PLC'],
+    Unit_5: [ 'U16_PLC'], // Done
+
   };
   const TurbineMapping: Record<string, string[]> = {
     Unit_4: ['U6_PLC'],
-    Unit_5: ['U15_GW03'],
+    Unit_5: ['U15_GW03'],//  Done
   };
   const BailingPressMapping: Record<string, string[]> = {
     Unit_4: ['U18_GW01'],
-    Unit_5: ['U11_GW03'],
+    Unit_5: ['U11_GW03'], // Done 
 
   };
   const ResidentialcolonyMapping: Record<string, string[]> = {
     Unit_4: ['U4_GW01','U6_GW01'],
-    Unit_5: ['U3_GW03'],
+    Unit_5: ['U3_GW03'], // Done
 
   };
   const SpareMapping: Record<string, string[]> = {
@@ -104,7 +119,7 @@ async getConsumptionData(dto: GetEnergyCostDto) {
 
     
   };
-    const LabMapping: Record<string, string[]> = {
+    const LabMapping: Record<string, string[]> = { //Done
     Unit_4: ['U19_GW01']
     
   };
@@ -135,7 +150,9 @@ async getConsumptionData(dto: GetEnergyCostDto) {
     
   };
   const LightningMapping: Record<string, string[]> = {
-    Unit_4: ['U4_PLC', 'U3_PLC']
+    Unit_4: ['U4_PLC', 'U3_PLC'],
+    Unit_5: ['U14_GW03'] // Done
+
   };
   const AuxUnit5Mapping: Record<string, string[]> = {
     Unit_4: ['U2_PLC']
@@ -143,6 +160,9 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   const CapacitorbankMapping: Record<string, string[]> = {
     Unit_5: ['U18_GW03', 'U5_GW02']
   };
+  // workshop :U4_GW01
+
+  //power house:U5_PLC
 
   // -------------------------------
   // Time range & areas
