@@ -416,7 +416,7 @@ if (lastNonZeroTimestamp) {
 const maxSpike = (installedLoad[meterId] / 60) * minutesDiff;
 
 // if ((currentValue - lastNonZeroLV) > maxSpike) {
-    if (currentValue  < (lastNonZeroLV + maxSpike + 20)) {
+    if (currentValue  > (lastNonZeroLV + maxSpike + 20)) {
     console.log("----------MAX SPIKE -----------------");
     console.log(maxSpike);
     console.log(`High spike detected on ${meterId}, replacing  ${currentValue} value`);
@@ -586,7 +586,7 @@ for (const meterId of meterKeys) {
     const maxSpike = (installedLoad[meterId] / 60) * minutesDiff;
     console.log("----------MAX SPIKE -----------------");
     console.log(maxSpike);
-    if (currentValue  < (lastNonZeroLV + maxSpike + 20)) {
+    if (currentValue  > (lastNonZeroLV + maxSpike + 20)) {
         console.log(`High spike detected on ${meterId}, replacing value ${currentValue} `);
         currentValue = lastNonZeroLV || currentValue; // I WILL DISCUSS THIS WITH AUTOMATION / IF HIGH VALUE COME FIRST TIME AND THERE IS NO NORMAL VALUE THEN ? ACCEPT IT OR REPLACE IT WITH 0 
         

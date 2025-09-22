@@ -7,7 +7,7 @@ import { JwtAuthGuard } from 'src/auth/jwt.authguard';
 export class ConsumptionEnergyController {
   constructor(private readonly ConsumptionEnergyService: ConsumptionEnergyService) {}
 
-   @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get()
   async getGeneration(@Query() query: Consumption_energyDto ) {
     // Call handleQuery method from the service
