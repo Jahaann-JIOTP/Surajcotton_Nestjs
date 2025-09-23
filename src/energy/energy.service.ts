@@ -109,7 +109,7 @@ export class EnergyService {
         ];
 
 
-    const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
+    const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
     const U5_ConsumptionKeys=["U13_GW02_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U6_GW02_Del_ActiveEnergy","U17_GW03_Del_ActiveEnergy"]
     // ✅ Time window
  const startMoment = moment.tz(`${start} 06:00:00`, "YYYY-MM-DD HH:mm:ss", "Asia/Karachi");

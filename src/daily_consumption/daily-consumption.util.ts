@@ -55,8 +55,10 @@ export async function calculateConsumptionCore(
   } else {
     startISO = `${startDate}T06:00:00.000+05:00`;
     const nextDay = moment(endDate).add(1, 'day').format('YYYY-MM-DD');
-    endISO = `${nextDay}T06:00:00.000+05:00`;
+    endISO = `${nextDay}T06:00:59.999+05:00`;
   }
+
+
 
   // console.log('📌 Querying range [start, end):', startISO, '->', endISO);
 

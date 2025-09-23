@@ -173,8 +173,6 @@ const startISO = `${start_date}T06:00:00.000+05:00`;
 const nextDay = moment(end_date).add(1, 'day').format('YYYY-MM-DD');
 const endISO = `${nextDay}T06:00:59.999+05:00`;
 
-
-
   const areaKeys = area === 'ALL' ? ['Unit_4', 'Unit_5'] : [area];
 
   // -------------------------------
