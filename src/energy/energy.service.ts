@@ -138,7 +138,7 @@ const matchStage = {
 
 
 
-    console.log("📌 Query Window:", { startStr, endStr });
+    // console.log("📌 Query Window:", { startStr, endStr });
 
  
 
@@ -150,7 +150,7 @@ const matchStage = {
       }
     }
 
-    console.log("📌 Projection Keys:", Object.keys(projection).length);
+    // console.log("📌 Projection Keys:", Object.keys(projection).length);
 
     // ✅ Aggregate query
     const result = await this.energyModel.aggregate([
@@ -159,10 +159,10 @@ const matchStage = {
       { $sort: { timestamp: 1 } },
     ]);
 
-    console.log("📌 Documents Fetched:", result.length);
+    // console.log("📌 Documents Fetched:", result.length);
     if (result.length > 0) {
-      console.log("📌 First Doc:", result[0]);
-      console.log("📌 Last Doc:", result[result.length - 1]);
+      // console.log("📌 First Doc:", result[0]);
+      // console.log("📌 Last Doc:", result[result.length - 1]);
     }
 
     // ✅ First & Last values
@@ -181,8 +181,8 @@ const matchStage = {
       });
     }
 
-    console.log("📌 First Values Found:", Object.keys(firstValues).length);
-    console.log("📌 Last Values Found:", Object.keys(lastValues).length);
+    // console.log("📌 First Values Found:", Object.keys(firstValues).length);
+    // console.log("📌 Last Values Found:", Object.keys(lastValues).length);
 
     // ✅ Consumption calculation
     const consumption: Record<string, number> = {};
@@ -201,7 +201,7 @@ const matchStage = {
       consumption[key] = diff;
     });
 
-    console.log("📌 Sample Consumption:", Object.entries(consumption).slice(0, 5));
+    // console.log("📌 Sample Consumption:", Object.entries(consumption).slice(0, 5));
 
     // ✅ Group sums
    // Utility function to group sums
@@ -287,7 +287,7 @@ const sumGroup = (keys: string[]) =>
     // Trafo2activepowertotal: Trafo2activepowertotal.toFixed(2),
     // Trafo3activepowertotal: Trafo3activepowertotal.toFixed(2),
     // Trafo4activepowertotal: Trafo4activepowertotal.toFixed(2),
-   
+
     Trafo3losses: Trafo3losses.toFixed(2),
     Trafo4losses: Trafo4losses.toFixed(2),
     TrasformerLosses: TrasformerLosses.toFixed(2),

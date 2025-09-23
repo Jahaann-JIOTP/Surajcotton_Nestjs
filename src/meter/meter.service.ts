@@ -319,12 +319,12 @@ async calculateConsumption() {
   ];
   // Installed Load 
   const installedLoad: Record<string, number> = {
-  'U23_GW03_Del_ActiveEnergy': 300,
-  'U22_GW03_Del_ActiveEnergy': 300,
-  'U3_GW02_Del_ActiveEnergy': 300,
-  'U1_GW02_Del_ActiveEnergy': 300,
-  'U2_GW02_Del_ActiveEnergy': 300,
-  'U4_GW02_Del_ActiveEnergy': 300,
+  'U23_GW03_Del_ActiveEnergy': 8, // not confirm // ((600*1.8*400)/1000)/60
+  'U22_GW03_Del_ActiveEnergy': 8, // ((600*1.8*400)/1000)/60
+  'U3_GW02_Del_ActiveEnergy': 5,  // ((400*1.8*400)/1000)/60
+  'U1_GW02_Del_ActiveEnergy': 5,  // ((400*1.8*400)/1000)/60 
+  'U2_GW02_Del_ActiveEnergy': 5,  // ((400*1.8*400)/1000)/60 
+  'U4_GW02_Del_ActiveEnergy': 10, // ((800*1.8*400)/1000)/60
 };
 
   // 🔹 Last processDoc (for previous state of flatMeters)
@@ -338,7 +338,7 @@ async calculateConsumption() {
     .sort({ timestamp: -1 });
 
   if (!lastRawDoc) {
-    console.log("⏹ No raw data found in field_meter_raw_data");
+    // console.log("⏹ No raw data found in field_meter_raw_data");
     return { msg: "No raw data found" };
   }
 
@@ -409,24 +409,18 @@ const lastNonZeroTimestamp = prevLastArea === "unit4" ? prevFlatU4?.lastNonZeroT
 let minutesDiff = 3; // default 1 minute if no previous
 if (lastNonZeroTimestamp) {
   console.log("--------- Last non Zero Value TimeStamp ------------")
+  console.log(lastNonZeroTimestamp);
     minutesDiff = (adjustedTimestamp.getTime() - new Date(lastNonZeroTimestamp).getTime()) / (1000 * 60);
 }
 
 // Step 2: Calculate maximum spike and check
-const maxSpike = (installedLoad[meterId] / 60) * minutesDiff;
+const maxSpike = (installedLoad[meterId]) * minutesDiff;
 
-// if ((currentValue - lastNonZeroLV) > maxSpike) {
-    if (currentValue  > (lastNonZeroLV + maxSpike + 20)) {
+  if (currentValue  > (lastNonZeroLV + maxSpike + 20)) {
     console.log("----------MAX SPIKE -----------------");
     console.log(maxSpike);
-    console.log(`High spike detected on ${meterId}, replacing  ${currentValue} value`);
+    console.log(`High spike detected on ${meterId}, replacing  ${currentValue} value with ${lastNonZeroLV}`);
     currentValue = lastNonZeroLV || currentValue; // I WILL DISCUSS THIS WITH AUTOMATION / IF HIGH VALUE COME FIRST TIME AND THERE IS NO NORMAL VALUE THEN ? ACCEPT IT OR REPLACE IT WITH 0 
-}
-
-//Step 3: Update lastNonZeroTime
-if (currentValue > 0) {
-    if (currentArea === "unit4") u4.lastNonZeroTime = adjustedTimestamp;
-    if (currentArea === "unit5") u5.lastNonZeroTime = adjustedTimestamp;
 }
 
 // Calculate the consumption and cumulative consumption
@@ -457,7 +451,7 @@ if (currentValue > 0) {
             u4.cumulative_con += u4.CONS;
 
         } else if (currentArea === "unit5") {
-            console.log("finalizing unit 4 and i am toggle to unit5 now");
+            // console.log("finalizing unit 4 and i am toggle to unit5 now");
             u4.fV = prevFlatU4?.lV ?? u4.lV; // Ensure fV for unit4 is the last value of unit4
             u4.lV = currentValue; // Set unit4's last value to current value
             u4.CONS = u4.lV - u4.fV; // Calculate consumption for unit4
@@ -487,6 +481,11 @@ if (currentValue > 0) {
       }
     }
 
+      // ✅ Update lastNonZeroTime based on CONS, not raw value
+  if (u4.CONS > 0) u4.lastNonZeroTime = adjustedTimestamp;
+  if (u5.CONS > 0) u5.lastNonZeroTime = adjustedTimestamp;
+  
+
     // 🔹 Save into flatMeters
     flatMeters[`U4_${meterId}`] = u4;
     flatMeters[`U5_${meterId}`] = u5;
@@ -494,10 +493,10 @@ if (currentValue > 0) {
   }
 
 
-  const orderedDoc: Record<string, any> = {
-    timestamp: adjustedTimestamp,
-    source: "cron",
-  };
+    const orderedDoc: Record<string, any> = {
+      timestamp: adjustedTimestamp,
+      source: "cron",
+    };
 
   for (const meterId of meterKeys) {
     if (!flatMeters[`U4_${meterId}`]) continue;
@@ -513,7 +512,7 @@ if (currentValue > 0) {
   );
 
   console.log("💾 Cron processDoc inserted successfully");
-  console.log("📊 Final Consumption (cron):", JSON.stringify(flatMeters, null, 2));
+  // console.log("📊 Final Consumption (cron):", JSON.stringify(flatMeters, null, 2));
 
   return { data: flatMeters };
 }
@@ -577,26 +576,23 @@ for (const meterId of meterKeys) {
     let minutesDiff = 3; // default 1 minute if no previous
     if (lastNonZeroTimestamp) {
       console.log("--------- Last non Zero Value TimeStamp ------------")
-      
+      console.log(lastNonZeroTimestamp);
         minutesDiff = (adjustedTimestamp.getTime() - new Date(lastNonZeroTimestamp).getTime()) / (1000 * 60);
         console.log("minutesDiff");
     }
 
     // Step 2: Calculate maximum spike and check
-    const maxSpike = (installedLoad[meterId] / 60) * minutesDiff;
+    const maxSpike = (installedLoad[meterId]) * minutesDiff;
     console.log("----------MAX SPIKE -----------------");
     console.log(maxSpike);
+    console.log("----------Minutes calculation -----------------");
+    console.log(minutesDiff);
     if (currentValue  > (lastNonZeroLV + maxSpike + 20)) {
-        console.log(`High spike detected on ${meterId}, replacing value ${currentValue} `);
+        console.log(`High spike detected on ${meterId}, replacing value ${currentValue} with ${lastNonZeroLV}`);
         currentValue = lastNonZeroLV || currentValue; // I WILL DISCUSS THIS WITH AUTOMATION / IF HIGH VALUE COME FIRST TIME AND THERE IS NO NORMAL VALUE THEN ? ACCEPT IT OR REPLACE IT WITH 0 
         
       }
-
-    //Step 3: Update lastNonZeroTime
-    if (currentValue > 0) {
-        if (currentArea === "unit4") u4.lastNonZeroTime = adjustedTimestamp;
-        if (currentArea === "unit5") u5.lastNonZeroTime = adjustedTimestamp;
-    }
+  
   // First-time init
   if (!prevProcessDoc) {
     if (currentArea === "unit4") {
@@ -652,6 +648,10 @@ for (const meterId of meterKeys) {
       }
     }
   }
+
+        // ✅ Update lastNonZeroTime based on CONS, not raw value
+  if (u4.CONS > 0) u4.lastNonZeroTime = adjustedTimestamp;
+  if (u5.CONS > 0) u5.lastNonZeroTime = adjustedTimestamp;
 
   // Save into flatMeters
   flatMeters[`U4_${meterId}`] = u4;

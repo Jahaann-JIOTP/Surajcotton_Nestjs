@@ -71,8 +71,8 @@ const end = moment.tz(end_date, 'Asia/Karachi')
   .millisecond(999);  // ✅ include all up to 6:00:00.999
 
 
-console.log('Start timestamp (6AM):', start.format('YYYY-MM-DDTHH:mm:ss'));
-console.log('End timestamp (6AM next day):', end.format('YYYY-MM-DDTHH:mm:ss'));
+// console.log('Start timestamp (6AM):', start.format('YYYY-MM-DDTHH:mm:ss'));
+// console.log('End timestamp (6AM next day):', end.format('YYYY-MM-DDTHH:mm:ss'));
 
   const allMeterIds = new Set<string>();
   for (const areaKey of areasToProcess) {

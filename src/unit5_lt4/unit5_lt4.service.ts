@@ -25,7 +25,7 @@ export class Unit5LT4Service {
     .startOf('minute').toDate();
       let endMoment = moment.tz(`${payload.endDate} ${payload.endTime}`, "YYYY-MM-DD HH:mm", TZ)
     .endOf('minute').toDate();
-     
+    
 
       startISO = startMoment.toISOString();
       endISO = endMoment.toISOString();
@@ -36,8 +36,8 @@ export class Unit5LT4Service {
       endISO = `${nextDay}T06:00:59.999+05:00`;
     }
 
-    console.log("📌 Start ISO:", startISO);
-    console.log("📌 End ISO:", endISO);
+    // console.log("📌 Start ISO:", startISO);
+    // console.log("📌 End ISO:", endISO);
 
     // ---------------- Meter setup ----------------
     const meterMap: Record<string, string> = {
