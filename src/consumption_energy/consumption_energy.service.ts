@@ -261,7 +261,7 @@ async calculateConsumption1(range: { start: string; end: string }): Promise<numb
   
   
 
-  const totalConsumption = TR1+ TR1 + GasLTPanel + PowerHouse;
+  const totalConsumption = TR1+ TR2 + GasLTPanel + PowerHouse;
   const totalConsumption1 = Solar1 + Transformer1LT1CB + Transformer2ACB + Solar2;
   const total = totalConsumption + totalConsumption1;
   

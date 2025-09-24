@@ -325,7 +325,7 @@ async getDailyPowerAverages(startDate: string, endDate: string) {
 
   const meterGroups = {
     HT: ['U22_PLC', 'U26_PLC'],
-    LT: ['U19_PLC', 'U11_GW01'],
+    LT: ['U19_PLC', 'U7_GW01'],
     wapda: ['U23_GW01', 'U27_PLC'],
     solar: ['U6_GW02', 'U17_GW03'],
     unit4: ['U19_PLC', 'U21_PLC', 'U11_GW01', 'U13_GW01'],
@@ -512,7 +512,7 @@ if (now.isBefore(endMomentPlanned)) {
 
   const meterGroups: Record<EnergyGroupKey, string[]> = {
     HT: ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'],
-    LT: ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'],
+    LT: ['U19_PLC_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'],
     wapda: ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'],
     solar: ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'],
     unit4: ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy'],

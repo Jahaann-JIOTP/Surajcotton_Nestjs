@@ -143,7 +143,7 @@ export class PieChartService {
       // -----------------------------
       // Groups
       // -----------------------------
-      const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
+      const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
       const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
       const WapdaImportKeys = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
       const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];
