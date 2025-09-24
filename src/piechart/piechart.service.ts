@@ -45,22 +45,22 @@ export class PieChartService {
       const startUnix = startOfDay.unix();
       const endUnix = endOfDay.unix();
 
-      console.log('📌 Input startTimestamp:', startTimestamp);
-      console.log('📌 Input endTimestamp  :', endTimestamp);
-      console.log(
-        '🕕 Query Start (6AM)     :',
-        startOfDay.format('YYYY-MM-DD HH:mm:ss'),
-        '(',
-        startUnix,
-        ')',
-      );
-      console.log(
-        '🕕 Query End (next 6AM)  :',
-        endOfDay.format('YYYY-MM-DD HH:mm:ss'),
-        '(',
-        endUnix,
-        ')',
-      );
+      // console.log('📌 Input startTimestamp:', startTimestamp);
+      // console.log('📌 Input endTimestamp  :', endTimestamp);
+      // console.log(
+      //   '🕕 Query Start (6AM)     :',
+      //   startOfDay.format('YYYY-MM-DD HH:mm:ss'),
+      //   '(',
+      //   startUnix,
+      //   ')',
+      // );
+      // console.log(
+      //   '🕕 Query End (next 6AM)  :',
+      //   endOfDay.format('YYYY-MM-DD HH:mm:ss'),
+      //   '(',
+      //   endUnix,
+      //   ')',
+      // );
 
       // -----------------------------
       // Query DB
@@ -77,16 +77,16 @@ export class PieChartService {
         .lean()
         .exec();
 
-      console.log('📊 Docs found:', data.length);
+      // console.log('📊 Docs found:', data.length);
       if (data.length) {
-        console.log(
-          '🔍 First doc time:',
-          moment.unix(data[0].UNIXtimestamp).tz('Asia/Karachi').format('YYYY-MM-DD HH:mm:ss'),
-        );
-        console.log(
-          '🔍 Last doc time :',
-          moment.unix(data[data.length - 1].UNIXtimestamp).tz('Asia/Karachi').format('YYYY-MM-DD HH:mm:ss'),
-        );
+        // console.log(
+        //   '🔍 First doc time:',
+        //   moment.unix(data[0].UNIXtimestamp).tz('Asia/Karachi').format('YYYY-MM-DD HH:mm:ss'),
+        // );
+        // console.log(
+        //   '🔍 Last doc time :',
+        //   moment.unix(data[data.length - 1].UNIXtimestamp).tz('Asia/Karachi').format('YYYY-MM-DD HH:mm:ss'),
+        // );
       }
 
       if (data.length === 0) {
@@ -133,10 +133,10 @@ export class PieChartService {
         const last = clean(arr[arr.length - 1]);
         let diff = last - first;
 
-        console.log(`⚡ ${key}: first=${first}, last=${last}, diff=${diff}`);
+        // console.log(`⚡ ${key}: first=${first}, last=${last}, diff=${diff}`);
 
         diff = applyDiffRules(diff);
-        console.log(`✅ ${key}: final consumption=${diff}`);
+        // console.log(`✅ ${key}: final consumption=${diff}`);
         return +diff.toFixed(2);
       };
 
@@ -158,7 +158,7 @@ export class PieChartService {
         const subData = keys.map((key) => {
           const arr = buildConsumptionArray(key);
           if (!arr.length) {
-            console.log(`❌ ${key}: no values found in range`);
+            // console.log(`❌ ${key}: no values found in range`);
             return { name: key, value: 0 };
           }
           const consumption = getConsumption(arr, key);
@@ -167,7 +167,7 @@ export class PieChartService {
 
         const rawSum = subData.reduce((sum, item) => sum + item.value, 0);
         const groupSum = +applyDiffRules(rawSum).toFixed(2);
-        console.log(`📦 Group total (${keys.join(',')}): ${groupSum}`);
+        // console.log(`📦 Group total (${keys.join(',')}): ${groupSum}`);
         return { subData, groupSum };
       };
 

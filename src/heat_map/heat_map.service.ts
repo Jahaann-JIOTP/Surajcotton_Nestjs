@@ -92,12 +92,12 @@ async getPowerAverages(startDate: string, endDate: string) {
       matchedDocs.push(nextHourDoc);
     }
 
-    console.log(
-      "Hour:",
-      hourStart.format("YYYY-MM-DD HH:00"),
-      "Docs:",
-      matchedDocs.map((d) => moment(d.timestampDate).format("HH:mm"))
-    );
+    // console.log(
+    //   "Hour:",
+    //   hourStart.format("YYYY-MM-DD HH:00"),
+    //   "Docs:",
+    //   matchedDocs.map((d) => moment(d.timestampDate).format("HH:mm"))
+    // );
 
     let Trafo1 = 0,
       Trafo2 = 0,

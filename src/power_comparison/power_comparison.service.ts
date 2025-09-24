@@ -500,8 +500,8 @@ if (now.isBefore(endMomentPlanned)) {
   endISO = now.toISOString();
 }
 
-console.log("📌 Start Window:", startISO);
-console.log("📌 End Window  :", endISO);
+// console.log("📌 Start Window:", startISO);
+// console.log("📌 End Window  :", endISO);
 
 
   type EnergyGroupKey =
@@ -586,10 +586,10 @@ console.log("📌 End Window  :", endISO);
       { $sort: { month: 1 } }
     ];
 
-    console.log(`🚀 Pipeline for ${groupName}:`, JSON.stringify(pipeline, null, 2));
+    // console.log(`🚀 Pipeline for ${groupName}:`, JSON.stringify(pipeline, null, 2));
 
     const data = await collection.aggregate(pipeline).toArray();
-    console.log(`📊 Raw Data for ${groupName}:`, data);
+    // console.log(`📊 Raw Data for ${groupName}:`, data);
 
     for (const item of data) {
       const monthStr = moment(item.month).tz("Asia/Karachi").format("YYYY-MM");

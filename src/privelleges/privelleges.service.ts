@@ -88,9 +88,9 @@ constructor(
       { $pull: { privileges: id } },
     );
     if (result.modifiedCount > 0) {
-      console.log(
-        `${result.modifiedCount} role(s) updated by removing privilege id ${id}`,
-      );
+      // console.log(
+      //   `${result.modifiedCount} role(s) updated by removing privilege id ${id}`,
+      // );
     }
 
     const privelleges = await this.privellegesModel

@@ -283,7 +283,7 @@ async getWeeklyGeneration() {
   const now = moment().tz('Asia/Karachi');
   const monday = now.clone().startOf('week').add(1, 'day'); // Monday in PKT
 
-  console.log(`[WEEKLY] Base week Monday (PKT): ${monday.format("YYYY-MM-DD HH:mm:ss Z")}`);
+  // console.log(`[WEEKLY] Base week Monday (PKT): ${monday.format("YYYY-MM-DD HH:mm:ss Z")}`);
 
   for (let i = 0; i < 7; i++) {
     const thisDayStart = monday.clone()
@@ -300,16 +300,16 @@ async getWeeklyGeneration() {
     const lastWeekEnd   = moment(thisDayEnd).subtract(7, 'days').format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 
     // 🔎 Debug logs for weekly ranges
-    console.log(`[WEEKLY][${days[i]}] Windows:`);
-    console.log(`   This Week => ${thisDayStart} → ${thisDayEnd}`);
-    console.log(`   Last Week => ${lastWeekStart} → ${lastWeekEnd}`);
+    // console.log(`[WEEKLY][${days[i]}] Windows:`);
+    // console.log(`   This Week => ${thisDayStart} → ${thisDayEnd}`);
+    // console.log(`   Last Week => ${lastWeekStart} → ${lastWeekEnd}`);
 
     const [thisWeek, lastWeek] = await Promise.all([
       this.calculateConsumption1({ start: thisDayStart, end: thisDayEnd }),
       this.calculateConsumption1({ start: lastWeekStart, end: lastWeekEnd }),
     ]);
 
-    console.log(`[WEEKLY][${days[i]}] Result => ThisWeek: ${thisWeek}, LastWeek: ${lastWeek}`);
+    // console.log(`[WEEKLY][${days[i]}] Result => ThisWeek: ${thisWeek}, LastWeek: ${lastWeek}`);
 
     result.push({
       Day: days[i],
@@ -382,8 +382,8 @@ async getTodayGeneration(): Promise<HourlyData[]> {
     ]),
   ]);
 
-  console.log("🔹 Today Docs Found:", todayData.length);
-  console.log("🔹 Yesterday Docs Found:", yesterdayData.length);
+  // console.log("🔹 Today Docs Found:", todayData.length);
+  // console.log("🔹 Yesterday Docs Found:", yesterdayData.length);
 
   const calculateHourly = (data: any[], baseStart: moment.Moment, hour: number): number => {
     const hourStart = baseStart.clone().add(hour, "hours");
@@ -442,7 +442,7 @@ async getTodayGeneration(): Promise<HourlyData[]> {
     }
 
     // Debug log per hour
-    console.log(`[${hourStart.format("HH:mm")} - ${hourEnd.format("HH:mm")}] Total:`, total);
+    // console.log(`[${hourStart.format("HH:mm")} - ${hourEnd.format("HH:mm")}] Total:`, total);
 
     return +total.toFixed(2);
   };
@@ -464,7 +464,7 @@ async getTodayGeneration(): Promise<HourlyData[]> {
   });
   }
 
-  console.log("📊 Final Hourly Data:", hourlyData);
+  // console.log("📊 Final Hourly Data:", hourlyData);
   return hourlyData;
 }
   
@@ -536,14 +536,14 @@ async getMonthlyGeneration() {
   const weeksThisMonth = getWeekRanges(currentMonth, currentYear);
   const weeksLastMonth = getWeekRanges(lastMonth, lastYear);
 
-  console.log("🟢 Weeks This Month:", weeksThisMonth);
-  console.log("🟡 Weeks Last Month:", weeksLastMonth);
+  // console.log("🟢 Weeks This Month:", weeksThisMonth);
+  // console.log("🟡 Weeks Last Month:", weeksLastMonth);
 
   // ✅ Consumption calculate karo
   for (let i = 0; i < 4; i++) {
-    console.log(`\n📅 ${weekLabels[i]}:`);
-    console.log("   🔹 This Month Range:", weeksThisMonth[i][0], "->", weeksThisMonth[i][1]);
-    console.log("   🔹 Last Month Range:", weeksLastMonth[i][0], "->", weeksLastMonth[i][1]);
+    // console.log(`\n📅 ${weekLabels[i]}:`);
+    // console.log("   🔹 This Month Range:", weeksThisMonth[i][0], "->", weeksThisMonth[i][1]);
+    // console.log("   🔹 Last Month Range:", weeksLastMonth[i][0], "->", weeksLastMonth[i][1]);
 
     const thisMonth = await this.calculateConsumption({
       start: weeksThisMonth[i][0],
@@ -555,8 +555,8 @@ async getMonthlyGeneration() {
       end: weeksLastMonth[i][1],
     });
 
-    console.log(`   ⚡ This Month Consumption: ${thisMonth.toFixed(2)}`);
-    console.log(`   ⚡ Last Month Consumption: ${lastMonthVal.toFixed(2)}`);
+    // console.log(`   ⚡ This Month Consumption: ${thisMonth.toFixed(2)}`);
+    // console.log(`   ⚡ Last Month Consumption: ${lastMonthVal.toFixed(2)}`);
 
     result.push({
       Weeks: weekLabels[i],
@@ -565,7 +565,7 @@ async getMonthlyGeneration() {
     });
   }
 
-  console.log("📊 Final Monthly Data:", result);
+  // console.log("📊 Final Monthly Data:", result);
   return result;
 }
 
