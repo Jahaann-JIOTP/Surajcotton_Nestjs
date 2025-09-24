@@ -319,17 +319,15 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
 
 
 
-async getDailyPowerAverages(start: string, end: string) {
+// Corrected 6AM-6AM daily calculation
+async getDailyPowerAverages(startDate: string, endDate: string) {
   const collection = this.conModel.collection;
 
-  // Meter groups
   const meterGroups = {
     HT: ['U22_PLC', 'U26_PLC'],
     LT: ['U19_PLC', 'U11_GW01'],
     wapda: ['U23_GW01', 'U27_PLC'],
-    // solar: ['U6_GW02', 'U17_GW03'],
     solar: ['U6_GW02', 'U17_GW03'],
-
     unit4: ['U19_PLC', 'U21_PLC', 'U11_GW01', 'U13_GW01'],
     unit5: ['U6_GW02', 'U13_GW02', 'U16_GW03', 'U17_GW03'],
     Trafo1Incoming: ['U23_GW01'],
@@ -348,119 +346,133 @@ async getDailyPowerAverages(start: string, end: string) {
 
   const suffix = 'Del_ActiveEnergy';
 
+  // Build unique keys
   const meterGroupKeys: Record<string, string[]> = {};
-  const allKeys: string[] = [];
-
+  const allKeysSet = new Set<string>();
   for (const group in meterGroups) {
-    meterGroupKeys[group] = meterGroups[group].map(id => `${id}_${suffix}`);
-    allKeys.push(...meterGroupKeys[group]);
+    const keys = meterGroups[group].map(id => `${id}_${suffix}`);
+    meterGroupKeys[group] = keys;
+    keys.forEach(k => allKeysSet.add(k));
   }
+  const allKeys = Array.from(allKeysSet);
 
   const projection = allKeys.reduce((acc, key) => ({ ...acc, [key]: 1 }), { timestamp: 1 });
 
-  // 6AM to 6AM match stage
-  const matchStage = {
-    timestamp: {
-      $gte: moment(`${start}T06:00:00`).tz('Asia/Karachi').format(),
-      $lt: moment(`${end}T06:00:00`).tz('Asia/Karachi').add(1, 'day').format(),
-    },
-  };
+  // Build ISO strings in +05:00 offset format
+  const startISO = `${startDate}T06:00:00.000+05:00`;
+  const nextDay = moment(startDate).add(1, "day").format("YYYY-MM-DD");
+  const endISO = `${nextDay}T06:00:59.999+05:00`;
 
-  // console.log('📌 Query Match Stage:', matchStage);
+  console.log("📌 Query Start:", startISO);
+  console.log("📌 Query End  :", endISO);
 
-  const docs = await collection.find(matchStage).project(projection).sort({ timestamp: 1 }).toArray();
+  // Fetch docs
+  const docs = await collection.find({
+    timestamp: { $gte: startISO, $lte: endISO }
+  }).project(projection).sort({ timestamp: 1 }).toArray();
 
-  // console.log('📦 Docs Found:', docs.length);
+  console.log("📦 Docs Found:", docs.length);
+  if (!docs.length) return [];
 
-  // Group docs by 6AM–6AM date
-  const groupedByDate = docs.reduce((acc, doc) => {
-    const docTime = moment(doc.timestamp).tz('Asia/Karachi');
-    const dateKey = docTime.hour() < 6
-      ? docTime.subtract(1, 'day').format('YYYY-MM-DD')
-      : docTime.format('YYYY-MM-DD');
-
-    if (!acc[dateKey]) acc[dateKey] = [];
-    acc[dateKey].push(doc);
-    return acc;
-  }, {} as Record<string, any[]>);
-
-  const dailyResults: any[] = [];
-  const isInvalid = (val: number) => Math.abs(val) < 1e-5 || Math.abs(val) > 1e28;
-
-  for (const date in groupedByDate) {
-    const docsOfDay = groupedByDate[date];
-    const firstDoc = docsOfDay[0];
-    const lastDoc = docsOfDay[docsOfDay.length - 1];
-
-    // console.log(`\n📅 Date: ${date}`);
-    // console.log(`   🔹 First doc timestamp: ${firstDoc.timestamp}`);
-    // console.log(`   🔹 Last doc timestamp:  ${lastDoc.timestamp}`);
-
-    const consumption: Record<string, number> = {};
-
-    for (const key of allKeys) {
-      let first = firstDoc[key] ?? 0;
-      let last = lastDoc[key] ?? 0;
-
-      if (isInvalid(first)) first = 0;
-      if (isInvalid(last)) last = 0;
-
-      const diff = last - first;
-      consumption[key] = isInvalid(diff) || isNaN(diff) ? 0 : diff;
-    }
-
-    const sum = (keys: string[]) => keys.reduce((total, key) => total + (consumption[key] || 0), 0);
-
-    const ht = sum(meterGroupKeys.HT);
-    const lt = sum(meterGroupKeys.LT);
-    const wapda = sum(meterGroupKeys.wapda);
-    const solar = sum(meterGroupKeys.solar);
-    const unit4 = sum(meterGroupKeys.unit4);
-    const unit5 = sum(meterGroupKeys.unit5);
-    const Trafo1Incoming = sum(meterGroupKeys.Trafo1Incoming);
-    const Trafo2Incoming = sum(meterGroupKeys.Trafo2Incoming);
-    const Trafo3Incoming = sum(meterGroupKeys.Trafo3Incoming);
-    const Trafo4Incoming = sum(meterGroupKeys.Trafo4Incoming);
-    const Trafo1outgoing = sum(meterGroupKeys.Trafo1outgoing);
-    const Trafo2outgoing = sum(meterGroupKeys.Trafo2outgoing);
-    const Trafo3outgoing = sum(meterGroupKeys.Trafo3outgoing);
-    const Trafo4outgoing = sum(meterGroupKeys.Trafo4outgoing);
-    const Wapda2 = sum(meterGroupKeys.Wapda2);
-    const Niigata = sum(meterGroupKeys.Niigata);
-    const JMS = sum(meterGroupKeys.JMS);
-    const PH_IC = sum(meterGroupKeys.PH_IC);
-
-    // Loss calculations
-    const transformerLosses = (Trafo1Incoming + Trafo2Incoming - Trafo1outgoing - Trafo2outgoing)
-                            + (Trafo3Incoming - Trafo3outgoing)
-                            + (Trafo4Incoming - Trafo4outgoing);
-    const HTTransmissionLosses = (Wapda2 + Niigata + JMS) - (Trafo3Incoming + Trafo4Incoming + PH_IC);
-    const losses = transformerLosses + HTTransmissionLosses;
-
-    const totalConsumption = unit4 + unit5;
-    const totalgeneration = ht + lt + wapda + solar;
-    const unaccountable_energy = totalConsumption - totalgeneration;
-    const efficiency = totalgeneration > 0 ? (totalConsumption / totalgeneration) * 100 : 0;
-
-    dailyResults.push({
-      date,
-      HT: +ht.toFixed(2),
-      LT: +lt.toFixed(2),
-      wapda: +wapda.toFixed(2),
-      solar: +solar.toFixed(2),
-      unit4: +unit4.toFixed(2),
-      unit5: +unit5.toFixed(2),
-      losses: +losses.toFixed(2),
-      totalConsumption: +totalConsumption.toFixed(2),
-      totalgeneration: +totalgeneration.toFixed(2),
-      unaccountable_energy: +unaccountable_energy.toFixed(2),
-      efficiency: +efficiency.toFixed(2),
-    });
+  // Start doc: first >= 6AM
+  const firstDoc = docs.find(d => d.timestamp >= startISO);
+  if (!firstDoc) {
+    console.warn(`⚠️ No doc found at/after ${startISO}`);
+    return [];
   }
 
-  // console.log('📊 Daily Results:', dailyResults);
+  // End doc: last <= next day 6:00:59
+  const lastDoc = [...docs].reverse().find(d => d.timestamp <= endISO);
+  if (!lastDoc) {
+    console.warn(`⚠️ No doc found at/before ${endISO}`);
+    return [];
+  }
+
+  console.log(`📅 Date: ${startDate}`);
+  console.log(`   🔹 Start Doc Timestamp: ${firstDoc.timestamp}`);
+  console.log(`   🔹 End Doc Timestamp  : ${lastDoc.timestamp}`);
+
+  // Debug values
+  console.log("🟢 First Doc Values:");
+  for (const key of allKeys) console.log(`   ${key}: ${firstDoc[key] ?? 0}`);
+  console.log("🔴 Last Doc Values:");
+  for (const key of allKeys) console.log(`   ${key}: ${lastDoc[key] ?? 0}`);
+
+  // Compute consumption
+  const isInvalid = (val: number) => Math.abs(val) < 1e-5 || Math.abs(val) > 1e28;
+  const consumption: Record<string, number> = {};
+
+  for (const key of allKeys) {
+    let first = Number(firstDoc[key] ?? 0);
+    let last = Number(lastDoc[key] ?? 0);
+    if (isInvalid(first)) first = 0;
+    if (isInvalid(last)) last = 0;
+    consumption[key] = last - first;
+  }
+
+  const sum = (keys: string[]) => keys.reduce((t, k) => t + (consumption[k] || 0), 0);
+
+  const ht = sum(meterGroupKeys.HT);
+  const lt = sum(meterGroupKeys.LT);
+  const wapda = sum(meterGroupKeys.wapda);
+  const solar = sum(meterGroupKeys.solar);
+  const unit4 = sum(meterGroupKeys.unit4);
+  const unit5 = sum(meterGroupKeys.unit5);
+  const Trafo1Incoming = sum(meterGroupKeys.Trafo1Incoming);
+  const Trafo2Incoming = sum(meterGroupKeys.Trafo2Incoming);
+  const Trafo3Incoming = sum(meterGroupKeys.Trafo3Incoming);
+  const Trafo4Incoming = sum(meterGroupKeys.Trafo4Incoming);
+  const Trafo1outgoing = sum(meterGroupKeys.Trafo1outgoing);
+  const Trafo2outgoing = sum(meterGroupKeys.Trafo2outgoing);
+  const Trafo3outgoing = sum(meterGroupKeys.Trafo3outgoing);
+  const Trafo4outgoing = sum(meterGroupKeys.Trafo4outgoing);
+  const Wapda2 = sum(meterGroupKeys.Wapda2);
+  const Niigata = sum(meterGroupKeys.Niigata);
+  const JMS = sum(meterGroupKeys.JMS);
+  const PH_IC = sum(meterGroupKeys.PH_IC);
+
+  const transformerLosses =
+    (Trafo1Incoming + Trafo2Incoming - Trafo1outgoing - Trafo2outgoing) +
+    (Trafo3Incoming - Trafo3outgoing) +
+    (Trafo4Incoming - Trafo4outgoing);
+
+  const HTTransmissionLosses =
+    (Wapda2 + Niigata + JMS) - (Trafo3Incoming + Trafo4Incoming + PH_IC);
+
+  const losses = transformerLosses + HTTransmissionLosses;
+  const totalConsumption = unit4 + unit5;
+  const totalgeneration = ht + lt + wapda + solar;
+  const unaccountable_energy = totalConsumption - totalgeneration;
+  const efficiency = totalgeneration > 0 ? (totalConsumption / totalgeneration) * 100 : 0;
+
+  const dailyResults = [{
+    date: startDate,
+    HT: +ht.toFixed(2),
+    LT: +lt.toFixed(2),
+    wapda: +wapda.toFixed(2),
+    solar: +solar.toFixed(2),
+    unit4: +unit4.toFixed(2),
+    unit5: +unit5.toFixed(2),
+    losses: +losses.toFixed(2),
+    totalConsumption: +totalConsumption.toFixed(2),
+    totalgeneration: +totalgeneration.toFixed(2),
+    unaccountable_energy: +unaccountable_energy.toFixed(2),
+    efficiency: +efficiency.toFixed(2),
+  }];
+
+  console.log("📊 Daily Results:", dailyResults);
   return dailyResults;
 }
+
+
+
+
+
+
+
+
+
+
 
 
 
