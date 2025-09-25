@@ -26,19 +26,21 @@ export class HeatMapService  {
 async getPowerAverages(startDate: string, endDate: string) {
   const collection = this.conModel.collection;
 
-  // ✅ StartDate always at 6 AM
+  // ✅ StartDate always at 6 AM Asia/Karachi
   const startDateTime = moment
     .tz(startDate, "YYYY-MM-DD", "Asia/Karachi")
     .hour(6).minute(0).second(0).millisecond(0)
     .toDate();
 
-  // ✅ EndDate always next day's 6 AM
+console.log(startDateTime)
+
+  // ✅ EndDate always next day's 6 AM Asia/Karachi
   const endDateTime = moment
     .tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
     .add(1, "day")
     .hour(7).minute(0).second(0).millisecond(0)
     .toDate();
-
+console.log(endDateTime)
   const Trafo1Tags = ["U21_PLC_ActivePower_Total"];
   const Trafo2Tags = ["U13_GW01_ActivePower_Total"];
   const Trafo3Tags = ["U13_GW02_ActivePower_Total"];
@@ -46,12 +48,23 @@ async getPowerAverages(startDate: string, endDate: string) {
 
   const allTags = [...Trafo1Tags, ...Trafo2Tags, ...Trafo3Tags, ...Trafo4Tags];
 
-  // 🔹 STEP 1: Fetch raw docs
+  // 🔹 STEP 1: Fetch raw docs (UTC in DB → but project Asia/Karachi)
   const rawDocs = await collection
     .aggregate([
       {
         $addFields: {
-          timestampDate: { $toDate: "$timestamp" },
+          timestampDate: {
+            $dateFromString: {
+              dateString: {
+                $dateToString: {
+                  format: "%Y-%m-%dT%H:%M:%S",
+                  date: { $toDate: "$timestamp" },
+                  timezone: "Asia/Karachi",   // ✅ force Karachi timezone
+                },
+              },
+              timezone: "Asia/Karachi",
+            },
+          },
         },
       },
       {
@@ -69,10 +82,10 @@ async getPowerAverages(startDate: string, endDate: string) {
     ])
     .toArray();
 
-  // 🔹 STEP 2: Grouping logic (include next hour’s :00 in current group)
+  // 🔹 STEP 2: Group by hour (Karachi time)
   const results: any[] = [];
-  let current = moment(startDateTime);
-  const end = moment(endDateTime).subtract(1, "hour");
+  let current = moment.tz(startDateTime, "Asia/Karachi");
+  const end = moment.tz(endDateTime, "Asia/Karachi").subtract(1, "hour");
 
   while (current.isSameOrBefore(end)) {
     const hourStart = current.clone();
@@ -80,24 +93,17 @@ async getPowerAverages(startDate: string, endDate: string) {
 
     // 👉 Match docs between [hourStart, hourEnd] inclusive
     let matchedDocs = rawDocs.filter((d) => {
-      const t = moment(d.timestampDate);
+      const t = moment.tz(d.timestampDate, "Asia/Karachi");
       return t.isBetween(hourStart, hourEnd, null, "[]");
     });
 
     // ✅ Add next hour’s :00 doc also
     const nextHourDoc = rawDocs.find(
-      (d) => moment(d.timestampDate).isSame(hourEnd, "minute")
+      (d) => moment.tz(d.timestampDate, "Asia/Karachi").isSame(hourEnd, "minute")
     );
     if (nextHourDoc) {
       matchedDocs.push(nextHourDoc);
     }
-
-    // console.log(
-    //   "Hour:",
-    //   hourStart.format("YYYY-MM-DD HH:00"),
-    //   "Docs:",
-    //   matchedDocs.map((d) => moment(d.timestampDate).format("HH:mm"))
-    // );
 
     let Trafo1 = 0,
       Trafo2 = 0,
@@ -135,7 +141,8 @@ async getPowerAverages(startDate: string, endDate: string) {
     }
 
     results.push({
-      date: hourStart.format("YYYY-MM-DD HH:00"),
+      // ✅ Always return Asia/Karachi time
+      date: hourStart.clone().tz("Asia/Karachi").format("YYYY-MM-DD HH:00"),
       Trafo1and2: +(Trafo1 + Trafo2).toFixed(2),
       Trafo3: +Trafo3.toFixed(2),
       Trafo4: +Trafo4.toFixed(2),
@@ -146,6 +153,7 @@ async getPowerAverages(startDate: string, endDate: string) {
 
   return results;
 }
+
 
 
 
