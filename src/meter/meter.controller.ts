@@ -46,8 +46,9 @@ async getToggleBasedRealTime() {
 
   // ✅ Meter wise consumption
   @UseGuards(JwtAuthGuard)
-  @Get('meter-wise-consumption')
-  async getMeterWiseConsumption() {
-    return this.meterService.getMeterWiseConsumption();
-  }
+ @Post("meter-wise-consumption")
+async getMeterWiseConsumptionApi(@Body() payload: { startDate: string; endDate: string }) {
+  return this.meterService.getMeterWiseConsumption(payload.startDate, payload.endDate);
+}
+
 }

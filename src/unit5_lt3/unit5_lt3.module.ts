@@ -3,11 +3,12 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Unit5LT3Service } from './unit5_lt3.service';
 import { Unit5LT3Controller } from './unit5_lt3.controller';
 import { Unit5LT3, Unit5LT3Schema } from './schemas/unit5_LT3.schema';
-
+import { FieldMeterProcess, FieldMeterProcessSchema } from './schemas/field-meter-process.schema';
 @Module({
   imports: [
     MongooseModule.forFeature(
-      [{ name: Unit5LT3.name, schema: Unit5LT3Schema }],
+      [{ name: Unit5LT3.name, schema: Unit5LT3Schema },
+      { name: FieldMeterProcess.name, schema: FieldMeterProcessSchema }],
       'surajcotton' // MongoDB connection name
     ),
   ],

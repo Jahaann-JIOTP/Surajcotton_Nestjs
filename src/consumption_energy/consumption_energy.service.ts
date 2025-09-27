@@ -35,16 +35,19 @@ export class ConsumptionEnergyService {
   }
 
 private async calculateConsumption(range: { start: string; end: string }) {
-  
-const TR2Keys = ["U19_PLC_Del_ActiveEnergy"];
-const TR1Keys = ["U21_PLC_Del_ActiveEnergy"];
-const GasLTPanelKeys = ["U7_GW01_Del_ActiveEnergy"];
-const PowerHouseKeys = ["U13_GW01_Del_ActiveEnergy"];
-const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
-const Transformer1LT1CBKeys = ["U13_GW02_Del_ActiveEnergy"];
-const Transformer2ACBKeys = ["U16_GW03_Del_ActiveEnergy"];
-const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
-  const allMeterKeys = [...TR2Keys, ...TR1Keys, ...GasLTPanelKeys, ...PowerHouseKeys, ...Solar1Keys, ...Transformer1LT1CBKeys, ...Transformer2ACBKeys, ...Solar2Keys];
+   const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
+    const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
+    const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];                                                                         //is may sum show karvana ha nilgata or jms ka jab us k tags ayain gay
+    const WapdaImportKeys = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
+// const TR2Keys = ["U19_PLC_Del_ActiveEnergy"];
+// const TR1Keys = ["U21_PLC_Del_ActiveEnergy"];
+// const GasLTPanelKeys = ["U7_GW01_Del_ActiveEnergy"];
+// const PowerHouseKeys = ["U13_GW01_Del_ActiveEnergy"];
+// const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
+// const Transformer1LT1CBKeys = ["U13_GW02_Del_ActiveEnergy"];
+// const Transformer2ACBKeys = ["U16_GW03_Del_ActiveEnergy"];
+// const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
+  const allMeterKeys = [...LTGenerationKeys, ...SolarGenerationKeys, ...HTGenerationKeys, ...WapdaImportKeys];
 
   // console.log(`\n🔍 Calculating Consumption for Range: ${range.start} -> ${range.end}`);
   // console.log(`📌 Meters: ${allMeterKeys.join(", ")}`);
@@ -127,18 +130,18 @@ const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
       return sum + (Number.isFinite(value) ? value : 0);
     }, 0);
 
-  const TR2 = sumByMeterGroup(TR2Keys);
-  const TR1 = sumByMeterGroup(TR1Keys);
-  const GasLTPanel = sumByMeterGroup(GasLTPanelKeys);
-  const PowerHouse = sumByMeterGroup(PowerHouseKeys);
-  const Solar1 = sumByMeterGroup(Solar1Keys);
-  const Transformer1LT1CB = sumByMeterGroup(Transformer1LT1CBKeys);
-  const Transformer2ACB = sumByMeterGroup(Transformer2ACBKeys);
-  const Solar2 = sumByMeterGroup(Solar2Keys);
+  const LTGeneration = sumByMeterGroup(LTGenerationKeys);
+  const SolarGeneration = sumByMeterGroup(SolarGenerationKeys);
+  const HTGeneration = sumByMeterGroup(HTGenerationKeys);
+  const WapdaImport = sumByMeterGroup(WapdaImportKeys);
+  // const Solar1 = sumByMeterGroup(Solar1Keys);
+  // const Transformer1LT1CB = sumByMeterGroup(Transformer1LT1CBKeys);
+  // const Transformer2ACB = sumByMeterGroup(Transformer2ACBKeys);
+  // const Solar2 = sumByMeterGroup(Solar2Keys);
 
-  const totalConsumption = TR2 + TR1 + GasLTPanel + PowerHouse 
-  const totalConsumption1= Solar1 + Transformer1LT1CB +Transformer2ACB + Solar2
-  const total= totalConsumption + totalConsumption1
+  const totalConsumption = LTGeneration + SolarGeneration + WapdaImport + HTGeneration
+  // const totalConsumption1= Solar1 + Transformer1LT1CB +Transformer2ACB + Solar2
+  const total= totalConsumption;
  
 
   // console.log(`\n✅ Final Total Consumption for Range: ${total.toFixed(2)}\n`);
@@ -154,18 +157,21 @@ const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
  
 
 async calculateConsumption1(range: { start: string; end: string }): Promise<number> {
-  const TR2Keys = ["U19_PLC_Del_ActiveEnergy"];
-  const TR1Keys = ["U21_PLC_Del_ActiveEnergy"];
-  const GasLTPanelKeys = ["U7_GW01_Del_ActiveEnergy"];
-  const PowerHouseKeys = ["U13_GW01_Del_ActiveEnergy"];
-  const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
-  const Transformer1LT1CBKeys = ["U13_GW02_Del_ActiveEnergy"];
-  const Transformer2ACBKeys = ["U16_GW03_Del_ActiveEnergy"];
-  const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
+   const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
+    const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
+    const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];                                                                         //is may sum show karvana ha nilgata or jms ka jab us k tags ayain gay
+    const WapdaImportKeys = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
+  // const TR2Keys = ["U19_PLC_Del_ActiveEnergy"];
+  // const TR1Keys = ["U21_PLC_Del_ActiveEnergy"];
+  // const GasLTPanelKeys = ["U7_GW01_Del_ActiveEnergy"];
+  // const PowerHouseKeys = ["U13_GW01_Del_ActiveEnergy"];
+  // const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
+  // const Transformer1LT1CBKeys = ["U13_GW02_Del_ActiveEnergy"];
+  // const Transformer2ACBKeys = ["U16_GW03_Del_ActiveEnergy"];
+  // const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
 
   const allKeys = [
-    ...TR1Keys, ...TR2Keys, ...GasLTPanelKeys, ...PowerHouseKeys,
-    ...Solar1Keys, ...Transformer1LT1CBKeys, ...Transformer2ACBKeys, ...Solar2Keys
+    ...LTGenerationKeys, ...SolarGenerationKeys, ...HTGenerationKeys, ...WapdaImportKeys
   ];
 
   // Range as ISO (UTC Z); aap ki caller (getWeeklyGeneration) Asia/Karachi ko UTC mēn convert karke bhej rahi hai — sahi.
@@ -250,20 +256,20 @@ async calculateConsumption1(range: { start: string; end: string }): Promise<numb
   // Group sums
   const sum = (keys: string[]) => keys.reduce((t, k) => t + (consumption[k] || 0), 0);
 
-  const TR1 = sum(TR1Keys);
-  const TR2= sum(TR2Keys);
-  const GasLTPanel = sum(GasLTPanelKeys);
-  const PowerHouse = sum(PowerHouseKeys);
-  const Solar1 = sum(Solar1Keys);
-  const Transformer1LT1CB = sum(Transformer1LT1CBKeys);
-  const Transformer2ACB = sum(Transformer2ACBKeys);
-  const Solar2 = sum(Solar2Keys);
+  const LTGeneration = sum(LTGenerationKeys);
+  const SolarGeneration= sum(SolarGenerationKeys);
+  const HTGeneration = sum(HTGenerationKeys);
+  const WapdaImport = sum(WapdaImportKeys);
+  // const Solar1 = sum(Solar1Keys);
+  // const Transformer1LT1CB = sum(Transformer1LT1CBKeys);
+  // const Transformer2ACB = sum(Transformer2ACBKeys);
+  // const Solar2 = sum(Solar2Keys);
   
   
 
-  const totalConsumption = TR1+ TR2 + GasLTPanel + PowerHouse;
-  const totalConsumption1 = Solar1 + Transformer1LT1CB + Transformer2ACB + Solar2;
-  const total = totalConsumption + totalConsumption1;
+  const totalConsumption = LTGeneration+ SolarGeneration + HTGeneration + WapdaImport;
+  // const totalConsumption1 = Solar1 + Transformer1LT1CB + Transformer2ACB + Solar2;
+  const total = totalConsumption;
   
 
 
@@ -283,33 +289,28 @@ async getWeeklyGeneration() {
   const now = moment().tz('Asia/Karachi');
   const monday = now.clone().startOf('week').add(1, 'day'); // Monday in PKT
 
-  // console.log(`[WEEKLY] Base week Monday (PKT): ${monday.format("YYYY-MM-DD HH:mm:ss Z")}`);
-
   for (let i = 0; i < 7; i++) {
-    const thisDayStart = monday.clone()
-      .add(i, 'days')
-      .hour(6).minute(0).second(0).millisecond(0)
-      .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+    const currentDate = monday.clone().add(i, "days").format("YYYY-MM-DD");
 
-    const thisDayEnd = monday.clone()
-      .add(i + 1, 'days')
-      .hour(6).minute(0).second(0).millisecond(0)
-      .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+    // ✅ Start = 6:00 AM current day
+    const thisDayStart = `${currentDate}T06:00:00.000+05:00`;
 
-    const lastWeekStart = moment(thisDayStart).subtract(7, 'days').format("YYYY-MM-DDTHH:mm:ss.SSSZ");
-    const lastWeekEnd   = moment(thisDayEnd).subtract(7, 'days').format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+    // ✅ End   = 6:00:59 next day
+    const nextDay = moment(currentDate).add(1, "day").format("YYYY-MM-DD");
+    const thisDayEnd = `${nextDay}T06:00:59.999+05:00`;
 
-    // 🔎 Debug logs for weekly ranges
-    // console.log(`[WEEKLY][${days[i]}] Windows:`);
-    // console.log(`   This Week => ${thisDayStart} → ${thisDayEnd}`);
-    // console.log(`   Last Week => ${lastWeekStart} → ${lastWeekEnd}`);
+    // ✅ Last week window
+    const lastWeekStart = moment(thisDayStart).subtract(7, "days").format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+    const lastWeekEnd   = moment(thisDayEnd).subtract(7, "days").format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+
+    // 🔎 Debug logs
+    console.log(`\n[${days[i]}] This Week: ${thisDayStart} → ${thisDayEnd}`);
+    console.log(`[${days[i]}] Last Week: ${lastWeekStart} → ${lastWeekEnd}`);
 
     const [thisWeek, lastWeek] = await Promise.all([
       this.calculateConsumption1({ start: thisDayStart, end: thisDayEnd }),
       this.calculateConsumption1({ start: lastWeekStart, end: lastWeekEnd }),
     ]);
-
-    // console.log(`[WEEKLY][${days[i]}] Result => ThisWeek: ${thisWeek}, LastWeek: ${lastWeek}`);
 
     result.push({
       Day: days[i],
@@ -318,8 +319,10 @@ async getWeeklyGeneration() {
     });
   }
 
+  console.log("\n✅ Final Weekly:", JSON.stringify(result, null, 2));
   return result;
 }
+
 
 
 
@@ -354,13 +357,20 @@ async getTodayGeneration(): Promise<HourlyData[]> {
 
   const meterKeys = [
     "U19_PLC_Del_ActiveEnergy",
-    "U21_PLC_Del_ActiveEnergy",
     "U7_GW01_Del_ActiveEnergy",
-    "U13_GW01_Del_ActiveEnergy",
     "U6_GW02_Del_ActiveEnergy",
-    "U13_GW02_Del_ActiveEnergy",
-    "U16_GW03_Del_ActiveEnergy",
     "U17_GW03_Del_ActiveEnergy",
+    "U22_PLC_Del_ActiveEnergy",
+    "U26_PLC_Del_ActiveEnergy",
+    "U23_GW01_Del_ActiveEnergy",
+     "U27_PLC_Del_ActiveEnergy"
+    // "U21_PLC_Del_ActiveEnergy",
+    
+    // "U13_GW01_Del_ActiveEnergy",
+    
+    // "U13_GW02_Del_ActiveEnergy",
+    // "U16_GW03_Del_ActiveEnergy",
+    
   ];
 
   const projection: Record<string, number> = { ts: 1, timestamp: 1 };

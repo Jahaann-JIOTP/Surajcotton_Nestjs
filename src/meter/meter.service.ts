@@ -11,6 +11,8 @@ import {
   FieldMeterProcessData,FieldMeterProcessDataSchema} from './schemas/field_meter_process_data';
 import axios from 'axios';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import * as moment from "moment-timezone";
+
 
 @Injectable()
 export class MeterService {
@@ -683,49 +685,139 @@ console.log("📊 Final Consumption (toggle):", JSON.stringify(flatMeters, null,
 return { data: flatMeters };
 }
 
-// Get total consumption sum (U4, U5, grand total)
 // Get per-meter total consumption sum
-async getMeterWiseConsumption() {
+
+
+
+async getMeterWiseConsumption(startDate: string, endDate: string) {
   try {
-    
-    // Run the aggregation query on the collection
+    // ✅ Asia/Karachi ke hisaab se 6 AM se next day 6 AM tak ka range banao
+    const startISO = `${startDate}T11:00:00.000+05:00`;
+
+    const nextDay = moment(endDate).add(1, "day").format("YYYY-MM-DD");
+    const endISO = `${nextDay}T11:00:59.999+05:00`;
+
+    // console.log("📅 StartISO:", startISO);
+    // console.log("📅 EndISO  :", endISO);
+
     const result = await this.fieldMeterProcessDataModel.aggregate([
-      // Step 1: Sort by timestamp to get the latest document
       {
-        $sort: { timestamp: -1 } // Sorting by timestamp in descending order
+        $match: {
+         timestamp: {
+  $gte: new Date(startISO),
+  $lte: new Date(endISO),
+}
+
+        },
       },
-      // Step 2: Limit to only the most recent document
+      { $sort: { timestamp: 1 } },
       {
-        $limit: 1 // Only the most recent document
+        $group: {
+          _id: null,
+          first: { $first: "$$ROOT" },
+          last: { $last: "$$ROOT" },
+        },
       },
-      // Step 3: Project the fields you want to include in the output (cumulative_con for each meter)
       {
         $project: {
-          _id: 0, // Exclude the _id field
-          U4_U1_GW02_Del_ActiveEnergy: "$U4_U1_GW02_Del_ActiveEnergy.cumulative_con",
-          U4_U22_GW03_Del_ActiveEnergy: "$U4_U22_GW03_Del_ActiveEnergy.cumulative_con",
-          U4_U23_GW03_Del_ActiveEnergy: "$U4_U23_GW03_Del_ActiveEnergy.cumulative_con",
-          U4_U2_GW02_Del_ActiveEnergy: "$U4_U2_GW02_Del_ActiveEnergy.cumulative_con",
-          U4_U3_GW02_Del_ActiveEnergy: "$U4_U3_GW02_Del_ActiveEnergy.cumulative_con",
-          U4_U4_GW02_Del_ActiveEnergy: "$U4_U4_GW02_Del_ActiveEnergy.cumulative_con",
-          U5_U1_GW02_Del_ActiveEnergy: "$U5_U1_GW02_Del_ActiveEnergy.cumulative_con",
-          U5_U22_GW03_Del_ActiveEnergy: "$U5_U22_GW03_Del_ActiveEnergy.cumulative_con",
-          U5_U23_GW03_Del_ActiveEnergy: "$U5_U23_GW03_Del_ActiveEnergy.cumulative_con",
-          U5_U2_GW02_Del_ActiveEnergy: "$U5_U2_GW02_Del_ActiveEnergy.cumulative_con",
-          U5_U3_GW02_Del_ActiveEnergy: "$U5_U3_GW02_Del_ActiveEnergy.cumulative_con",
-          U5_U4_GW02_Del_ActiveEnergy: "$U5_U4_GW02_Del_ActiveEnergy.cumulative_con"
-        }
-      }
+          _id: 0,
+          // ✅ Timestamps properly Asia/Karachi timezone ke sath dikhayenge
+       firstTimestamp: {
+      $dateToString: {
+        format: "%Y-%m-%d %H:%M:%S",
+        date: "$first.timestamp",
+        timezone: "Asia/Karachi",
+      },
+    },
+    lastTimestamp: {
+      $dateToString: {
+        format: "%Y-%m-%d %H:%M:%S",
+        date: "$last.timestamp",
+        timezone: "Asia/Karachi",
+      },
+    },
+
+          // ✅ Har meter ke liye subtraction
+          U4_U1_GW02_Del_ActiveEnergy: {
+            $subtract: [
+              "$last.U4_U1_GW02_Del_ActiveEnergy.cumulative_con",
+              "$first.U4_U1_GW02_Del_ActiveEnergy.cumulative_con",
+            ],
+          },
+          U4_U22_GW03_Del_ActiveEnergy: {
+            $subtract: [
+              "$last.U4_U22_GW03_Del_ActiveEnergy.cumulative_con",
+              "$first.U4_U22_GW03_Del_ActiveEnergy.cumulative_con",
+            ],
+          },
+          U4_U23_GW03_Del_ActiveEnergy: {
+            $subtract: [
+              "$last.U4_U23_GW03_Del_ActiveEnergy.cumulative_con",
+              "$first.U4_U23_GW03_Del_ActiveEnergy.cumulative_con",
+            ],
+          },
+          U4_U2_GW02_Del_ActiveEnergy: {
+            $subtract: [
+              "$last.U4_U2_GW02_Del_ActiveEnergy.cumulative_con",
+              "$first.U4_U2_GW02_Del_ActiveEnergy.cumulative_con",
+            ],
+          },
+          U4_U3_GW02_Del_ActiveEnergy: {
+            $subtract: [
+              "$last.U4_U3_GW02_Del_ActiveEnergy.cumulative_con",
+              "$first.U4_U3_GW02_Del_ActiveEnergy.cumulative_con",
+            ],
+          },
+          U4_U4_GW02_Del_ActiveEnergy: {
+            $subtract: [
+              "$last.U4_U4_GW02_Del_ActiveEnergy.cumulative_con",
+              "$first.U4_U4_GW02_Del_ActiveEnergy.cumulative_con",
+            ],
+          },
+          U5_U1_GW02_Del_ActiveEnergy: {
+            $subtract: [
+              "$last.U5_U1_GW02_Del_ActiveEnergy.cumulative_con",
+              "$first.U5_U1_GW02_Del_ActiveEnergy.cumulative_con",
+            ],
+          },
+          U5_U22_GW03_Del_ActiveEnergy: {
+            $subtract: [
+              "$last.U5_U22_GW03_Del_ActiveEnergy.cumulative_con",
+              "$first.U5_U22_GW03_Del_ActiveEnergy.cumulative_con",
+            ],
+          },
+          U5_U23_GW03_Del_ActiveEnergy: {
+            $subtract: [
+              "$last.U5_U23_GW03_Del_ActiveEnergy.cumulative_con",
+              "$first.U5_U23_GW03_Del_ActiveEnergy.cumulative_con",
+            ],
+          },
+          U5_U2_GW02_Del_ActiveEnergy: {
+            $subtract: [
+              "$last.U5_U2_GW02_Del_ActiveEnergy.cumulative_con",
+              "$first.U5_U2_GW02_Del_ActiveEnergy.cumulative_con",
+            ],
+          },
+          U5_U3_GW02_Del_ActiveEnergy: {
+            $subtract: [
+              "$last.U5_U3_GW02_Del_ActiveEnergy.cumulative_con",
+              "$first.U5_U3_GW02_Del_ActiveEnergy.cumulative_con",
+            ],
+          },
+          U5_U4_GW02_Del_ActiveEnergy: {
+            $subtract: [
+              "$last.U5_U4_GW02_Del_ActiveEnergy.cumulative_con",
+              "$first.U5_U4_GW02_Del_ActiveEnergy.cumulative_con",
+            ],
+          },
+        },
+      },
     ]);
 
-    // Check if we got any results
     if (result.length > 0) {
-      return result[0]; // Return the first (and only) document as it's the most recent one
+      return result[0];
     }
-
-    // If no results, return an empty object
     return {};
-
   } catch (err) {
     console.error("❌ Error in getMeterWiseConsumption:", err.message);
     return {};
@@ -737,40 +829,45 @@ async getMeterWiseConsumption() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

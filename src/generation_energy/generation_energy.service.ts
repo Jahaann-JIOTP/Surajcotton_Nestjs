@@ -35,16 +35,21 @@ export class GenerationEnergyService {
 
 private async calculateConsumption(range: { start: string; end: string }) {
   
-  const DieselICKeys = ["U19_PLC_Del_ActiveEnergy", "U7_GW01_Del_ActiveEnergy"];
+  // const DieselICKeys = ["U19_PLC_Del_ActiveEnergy", "U7_GW01_Del_ActiveEnergy"];
   // const WapdaICKeys = ["U21_PLC_Del_ActiveEnergy"];
-   const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
-   const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
-   const Wapda1Keys = ["U23_GW01_Del_ActiveEnergy", "'U27_PLC_Del_ActiveEnergy'"];
-   const HTGenerationKeys = ['U20_GW03_Del_ActiveEnergy','U21_GW03_Del_ActiveEnergy','U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy',
-      ];
+  //  const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
+  //  const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
+  //  const Wapda1Keys = ["U23_GW01_Del_ActiveEnergy", "'U27_PLC_Del_ActiveEnergy'"];
+  //  const HTGenerationKeys = ['U20_GW03_Del_ActiveEnergy','U21_GW03_Del_ActiveEnergy','U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy',
+  //     ];
+
+const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
+    const U5_ConsumptionKeys=["U13_GW02_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U6_GW02_Del_ActiveEnergy","U17_GW03_Del_ActiveEnergy"]
+    
+    const Aux_consumptionKeys = ['U25_PLC_Del_ActiveEnergy'];
 
     
- const allMeterKeys = [...DieselICKeys,  ...Solar1Keys, ...Solar2Keys, ...HTGenerationKeys];
+ const allMeterKeys = [...Aux_consumptionKeys,  ...U4_ConsumptionKeys, ...U5_ConsumptionKeys];
   // console.log(`\n🔍 Calculating Consumption for Range: ${range.start} -> ${range.end}`);
   // console.log(`📌 Meters: ${allMeterKeys.join(", ")}`);
 
@@ -127,17 +132,17 @@ private async calculateConsumption(range: { start: string; end: string }) {
     }, 0);
 
  // ✅ Calculate each group total
- const DieselIC = sumByMeterGroup(DieselICKeys);
+ const U4_Consumption = sumByMeterGroup(U4_ConsumptionKeys);
   // const WapdaIC = sumByMeterGroup(WapdaICKeys);
-  const Solar1 = sumByMeterGroup(Solar1Keys);
-  const Solar2 = sumByMeterGroup(Solar2Keys);
-  const Wapda1 = sumByMeterGroup(Wapda1Keys);
-  const HTGeneration = sumByMeterGroup(HTGenerationKeys);
+  const U5_Consumption = sumByMeterGroup(U5_ConsumptionKeys);
+
+ 
+  const Aux_consumption = sumByMeterGroup(Aux_consumptionKeys);
 
   
 
   // ✅ Final totals
- const totalConsumption = DieselIC+  Solar1 + Solar2 + Wapda1 +HTGeneration
+ const totalConsumption = U4_Consumption+  U5_Consumption  +Aux_consumption
 
 
 // const total= totalConsumption + totalConsumption1
@@ -189,13 +194,18 @@ const total= totalConsumption
  
 
 async calculateConsumption1(range: { start: string; end: string }): Promise<number> {
-const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
-    const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
-    const Wapda1Keys = ["U23_GW01_Del_ActiveEnergy", 'U27_PLC_Del_ActiveEnergy'];
-   const HTGenerationKeys = ['U20_GW03_Del_ActiveEnergy','U21_GW03_Del_ActiveEnergy','U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
-   const allKeys = [
-  ...LTGenerationKeys, ...SolarGenerationKeys, 
-    ...HTGenerationKeys, ...Wapda1Keys
+// const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
+//     const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
+//     const Wapda1Keys = ["U23_GW01_Del_ActiveEnergy", 'U27_PLC_Del_ActiveEnergy'];
+//    const HTGenerationKeys = ['U20_GW03_Del_ActiveEnergy','U21_GW03_Del_ActiveEnergy','U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
+ 
+const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
+    const U5_ConsumptionKeys=["U13_GW02_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U6_GW02_Del_ActiveEnergy","U17_GW03_Del_ActiveEnergy"]
+    
+    const Aux_consumptionKeys = ['U25_PLC_Del_ActiveEnergy'];
+const allKeys = [
+  ...U4_ConsumptionKeys, ...U5_ConsumptionKeys, 
+    ...Aux_consumptionKeys
     ];
 
   // Range as ISO (UTC Z); aap ki caller (getWeeklyGeneration) Asia/Karachi ko UTC mēn convert karke bhej rahi hai — sahi.
@@ -280,30 +290,30 @@ const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'
   // Group sums
   const sum = (keys: string[]) => keys.reduce((t, k) => t + (consumption[k] || 0), 0);
 
-  const LT_Gen = sum(LTGenerationKeys);
-  const Solar = sum(SolarGenerationKeys);
-  const HTGeneration = sum(HTGenerationKeys);
-  const Wapda1 = sum(Wapda1Keys);
+  const U4_Consumption= sum(U4_ConsumptionKeys);
+  const U5_Consumption = sum(U5_ConsumptionKeys);
+  const Aux_consumption = sum(Aux_consumptionKeys);
 
   
   
 
  // ✅ Final totals
- const totalConsumption = 
-LT_Gen+ Solar + Wapda1 +HTGeneration
+ const totalConsumption = U4_Consumption+ U5_Consumption +Aux_consumption
 
 const total= totalConsumption
   // Logs
-//   console.log(`[DEBUG] Range: ${startUTC} to ${endUTC}`);
+  // console.log(`[DEBUG] Range: ${startUTC} to ${endUTC}`);
 //   console.log(`[DEBUG] Transport: ${transport}`);
 //   console.log(`[DEBUG] Unit05Aux: ${unit05Aux}`);
-//   console.log(`[DEBUG] Total: ${totalConsumption}`);
+  // console.log(`[DEBUG] Total: ${totalConsumption}`);
 
   // return +totalConsumption.toFixed(2);
   // return +totalConsumption1.toFixed(2);
   return +total.toFixed(2);
 
   }
+
+
 
 
 async getWeeklyGeneration() {
@@ -313,33 +323,28 @@ async getWeeklyGeneration() {
   const now = moment().tz('Asia/Karachi');
   const monday = now.clone().startOf('week').add(1, 'day'); // Monday in PKT
 
-  // console.log(`[WEEKLY] Base week (PKT). Monday: ${monday.format()}`);
-
   for (let i = 0; i < 7; i++) {
-    const thisDayStart = monday.clone()
-      .add(i, 'days')
-      .hour(6).minute(0).second(0).millisecond(0)
-      .toISOString();
+    const currentDate = monday.clone().add(i, "days").format("YYYY-MM-DD");
 
-    const thisDayEnd = monday.clone()
-      .add(i + 1, 'days')
-      .hour(6).minute(0).second(0).millisecond(0)
-      .toISOString();
+    // ✅ Start = 6:00 AM current day
+    const thisDayStart = `${currentDate}T06:00:00.000+05:00`;
 
-    const lastWeekStart = moment(thisDayStart).subtract(7, 'days').toISOString();
-    const lastWeekEnd   = moment(thisDayEnd).subtract(7, 'days').toISOString();
+    // ✅ End   = 6:00:59 next day
+    const nextDay = moment(currentDate).add(1, "day").format("YYYY-MM-DD");
+    const thisDayEnd = `${nextDay}T06:00:59.999+05:00`;
+
+    // ✅ Last week window
+    const lastWeekStart = moment(thisDayStart).subtract(7, "days").format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+    const lastWeekEnd   = moment(thisDayEnd).subtract(7, "days").format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 
     // 🔎 Debug logs
-    // console.log(`[WEEKLY] ${days[i]} window:`);
-    // console.log(`   This Week => ${thisDayStart} -> ${thisDayEnd}`);
-    // console.log(`   Last Week => ${lastWeekStart} -> ${lastWeekEnd}`);
+    // console.log(`\n[${days[i]}] This Week: ${thisDayStart} → ${thisDayEnd}`);
+    // console.log(`[${days[i]}] Last Week: ${lastWeekStart} → ${lastWeekEnd}`);
 
     const [thisWeek, lastWeek] = await Promise.all([
       this.calculateConsumption1({ start: thisDayStart, end: thisDayEnd }),
       this.calculateConsumption1({ start: lastWeekStart, end: lastWeekEnd }),
     ]);
-
-    // console.log(`[WEEKLY] ${days[i]} result => ThisWeek: ${thisWeek}, LastWeek: ${lastWeek}`);
 
     result.push({
       Day: days[i],
@@ -348,6 +353,7 @@ async getWeeklyGeneration() {
     });
   }
 
+  // console.log("\n✅ Final Weekly:", JSON.stringify(result, null, 2));
   return result;
 }
 
@@ -379,12 +385,15 @@ async getTodayGeneration(): Promise<HourlyData[]> {
   const yesterdayRange = this.getDayRange(-1);
 
   const meterKeys = [
-    "U19_PLC_Del_ActiveEnergy",
-    'U7_GW01_Del_ActiveEnergy',
-    'U17_GW03_Del_ActiveEnergy',
+  "U19_PLC_Del_ActiveEnergy",
+   "U21_PLC_Del_ActiveEnergy",
+   "U13_GW01_Del_ActiveEnergy",
+    "U7_GW01_Del_ActiveEnergy",
+   "U13_GW02_Del_ActiveEnergy",
+    "U16_GW03_Del_ActiveEnergy",
     "U6_GW02_Del_ActiveEnergy",
-    'U22_PLC_Del_ActiveEnergy',
-    'U26_PLC_Del_ActiveEnergy'
+    "U17_GW03_Del_ActiveEnergy",
+   " U25_PLC_Del_ActiveEnergy"
   ];
 
   const projection: Record<string, number> = { ts: 1, timestamp: 1 };

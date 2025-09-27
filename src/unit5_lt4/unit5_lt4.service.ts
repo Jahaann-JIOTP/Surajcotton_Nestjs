@@ -68,7 +68,7 @@ export class Unit5LT4Service {
 
     const meterFields = [
       'U16_GW03_Del_ActiveEnergy', // TF3
-      'U17_GW03_Del_ActiveEnergy', // solar2
+      'U17_GW03_Del_ActiveEnergy', // solar
       ...Object.keys(meterMap).map((m) => `${m}_Del_ActiveEnergy`),
     ];
 

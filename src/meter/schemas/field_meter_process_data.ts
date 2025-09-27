@@ -12,6 +12,7 @@ export class FieldMeterProcessData{
   source: string;
 
   // Optional: save last area for each meter
+  
   // You can save dynamic keys for U4_/U5_ prefixed fields or direct meterIds
   [key: string]: any;  // allows dynamic meter fields
 }
