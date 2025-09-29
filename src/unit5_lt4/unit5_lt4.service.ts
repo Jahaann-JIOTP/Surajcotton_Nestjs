@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as moment from 'moment';
 import { Unit5LT4 } from './schemas/unit5_LT4.schema';
+import { MeterService } from 'src/meter/meter.service';
 
 
 @Injectable()
@@ -10,6 +11,7 @@ export class Unit5LT4Service {
   constructor(
     @InjectModel(Unit5LT4.name, 'surajcotton')
     private readonly unitModel: Model<Unit5LT4>,
+    private readonly meterService: MeterService,
   ) {}
 
   async getSankeyData(payload: { startDate: string; endDate: string; startTime?: string; endTime?: string }) {
@@ -39,6 +41,26 @@ export class Unit5LT4Service {
     // console.log("📌 Start ISO:", startISO);
     // console.log("📌 End ISO:", endISO);
 
+    // -------------------- Call existing daily-consumption function (6am→6am window handled inside it) ---------------------
+    const fmCons = await this.meterService.getMeterWiseConsumption(
+      payload.startDate,
+      payload.endDate,
+      { startTime: payload.startTime, endTime: payload.endTime }
+    );
+
+    // ----------------- 1- This value will be used to display a new leg in generation side as From U4 LT 2
+    const PDB10_U4 = +(Number(fmCons?.U4_U23_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
+    // console.log(PDB10_U4)
+
+    // ----------------- 2- This value will be used to subscrat the value from the U10_GW03: 'Auto Con-linker Conner M/S 10-12',
+    const PDB10_U5 = +(Number(fmCons?.U5_U23_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
+    // console.log(PDB10_U5)
+
+    // ----------------- 3- This value will be used to display a new leg in consumption side for PDB 10 TOTAL 
+    const PDB10_sum = Math.max(0, +(PDB10_U4 + PDB10_U5).toFixed(2));
+    // console.log(PDB10_sum)
+
+
     // ---------------- Meter setup ----------------
     const meterMap: Record<string, string> = {
      U1_GW03: 'Ring Frame 7-9',
@@ -57,13 +79,6 @@ export class Unit5LT4Service {
      U14_GW03: 'MLDB2 Ring Con',
      U15_GW03: 'Deep Valve Turbine',
      U18_GW03: 'PF Panel',
-    //  U19_GW03: 'wapda + HFO + Gas Incoming',
-    //  U20_GW03: 'WAPDA + HFO + Gas Outgoing T/F 3',
-    //  U21_GW03: 'WAPDA + HFO + Gas Outgoing T/F 4',
-    //  U22_GW03: 'PDB 07',
-    //  U23_GW03: 'PDB 10',
-
-
     };
 
     const meterFields = [
@@ -103,22 +118,37 @@ export class Unit5LT4Service {
       }
     }
 
+    // Which PLC meter should lose what (non-negative math later)
+    const minusByMeter: Record<string, number> = {
+      U10_GW03: +(Number(PDB10_U5).toFixed(2)),   // Auto Con-linker Conner M/S 10-12
+    };
+
     // ---------------- Prepare Sankey Data ----------------
     const tf4 = +consumptionTotals['U16_GW03_Del_ActiveEnergy'].toFixed(2);
     const solar2 = +consumptionTotals['U17_GW03_Del_ActiveEnergy'].toFixed(2);
     const totalLT4 = +(tf4 + solar2).toFixed(2);
 
+
+    const plcLegs = Object.entries(meterMap).map(([meter, label]) => {
+    const key   = `${meter}_Del_ActiveEnergy`;
+    const base  = +(Number(consumptionTotals[key] || 0).toFixed(2));
+    const minus = +(Number(minusByMeter[meter] || 0).toFixed(2));
+    const raw   = +(base - minus).toFixed(2);
+    const value = Math.max(0, Math.abs(raw) < 1e-9 ? 0 : raw);
+    return { from: 'TotalLT4', to: label, value };
+  });
+
     const sankeyData = [
       { from: 'TF #2', to: 'TotalLT4', value: tf4 },
       { from: 'Solar 1017', to: 'TotalLT4', value: solar2 },
-      ...Object.entries(meterMap).map(([meter, label]) => {
-        const key = `${meter}_Del_ActiveEnergy`;
-        return {
-          from: 'TotalLT4',
-          to: label,
-          value: +(consumptionTotals[key] || 0).toFixed(2),
-        };
-      }),
+    // NEW input/generation leg
+      { from: 'From U4 LT 2', to: 'TotalLT4', value: PDB10_U4 },
+
+      // Adjusted PLC branches (includes the U10_GW03 subtraction)
+      ...plcLegs,
+
+      // NEW bottom/output summary leg
+      { from: 'TotalLT4', to: 'PDB 10', value: PDB10_sum },
     ];
     return sankeyData;
   }
