@@ -42,7 +42,7 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
   // const solarTags = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
   const solarTags = ['U6_GW02_Del_ActiveEnergy'];
 
-  const unit4Tags = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy'];
+  const unit4Tags = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy'];
   const unit5Tags = ['U6_GW02_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
   const Trafo1IncomingTags = ['U23_GW01_Del_ActiveEnergy'];
   const Trafo2IncomingTags = ['U22_GW01_Del_ActiveEnergy'];
@@ -515,7 +515,7 @@ if (now.isBefore(endMomentPlanned)) {
     LT: ['U19_PLC_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'],
     wapda: ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'],
     solar: ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'],
-    unit4: ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy'],
+    unit4: ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy'],
     unit5: ['U6_GW02_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'],
     Trafo1Incoming: ['U23_GW01_Del_ActiveEnergy'],
     Trafo2Incoming: ['U22_GW01_Del_ActiveEnergy'],

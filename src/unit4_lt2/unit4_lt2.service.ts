@@ -128,7 +128,7 @@ export class Unit4LT2Service {
 
     const meterFields = [
       'U13_GW01_Del_ActiveEnergy', // TF2
-      'U11_GW01_Del_ActiveEnergy',  // Gas Gen
+      'U7_GW01_Del_ActiveEnergy',  // Gas Gen
       ...Object.keys(meterMap).map(m => `${m}_Del_ActiveEnergy`),
     ];
 
@@ -185,7 +185,8 @@ export class Unit4LT2Service {
 
     // ---------------- Prepare Sankey Data ----------------
     const tf2 = +(consumptionTotals['U13_GW01_Del_ActiveEnergy'] || 0).toFixed(2);
-    const GasGen = +(consumptionTotals['U11_GW01_Del_ActiveEnergy'] || 0).toFixed(2);
+    const GasGen = +(consumptionTotals['U7_GW01_Del_ActiveEnergy'] || 0).toFixed(2);
+// changed id U11 to U7
 
     const sankeyData = [
        // Generation (inputs)

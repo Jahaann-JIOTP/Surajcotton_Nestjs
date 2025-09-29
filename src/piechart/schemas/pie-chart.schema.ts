@@ -4,7 +4,7 @@ import { Schema, Document } from 'mongoose';
 export const PieChartSchema = new Schema(
   {
     U19_PLC_Del_ActiveEnergy: Number,
-    U11_GW01_Del_ActiveEnergy: Number,
+    U7_GW01_Del_ActiveEnergy: Number,
     U6_GW02_Del_ActiveEnergy: Number,
     U17_GW03_Del_ActiveEnergy: Number,
     U22_GW01_Del_ActiveEnergy: Number,
@@ -21,7 +21,7 @@ export const PieChartSchema = new Schema(
 
 export interface PieChart extends Document {
 U19_PLC_Del_ActiveEnergy: number;
-U11_GW01_Del_ActiveEnergy: number;
+U7_GW01_Del_ActiveEnergy: number;
 U6_GW02_Del_ActiveEnergy: number;
 U17_GW03_Del_ActiveEnergy: number;
 U22_GW01_Del_ActiveEnergy: number;
