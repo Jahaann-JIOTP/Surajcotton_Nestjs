@@ -3,12 +3,15 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as moment from 'moment-timezone';
 import { Unit4LT1 } from './schemas/unit4_LT1.schema';
+import { MeterService } from 'src/meter/meter.service';
+
 
 @Injectable()
 export class Unit4LT1Service {
   constructor(
     @InjectModel(Unit4LT1.name, 'surajcotton')
     private readonly unitModel: Model<Unit4LT1>,
+    private readonly meterService: MeterService,
   ) {}
 
   async getSankeyData(payload: { startDate: string; endDate: string; startTime?: string; endTime?: string }) {
@@ -16,7 +19,7 @@ export class Unit4LT1Service {
 
     let startISO: string;
     let endISO: string;
-
+    
     // ---------------- Determine start & end ISO ----------------
     if (payload.startTime && payload.endTime) {
       // Custom time window
@@ -24,7 +27,7 @@ export class Unit4LT1Service {
     .startOf('minute').toDate();
       let endMoment = moment.tz(`${payload.endDate} ${payload.endTime}`, "YYYY-MM-DD HH:mm", TZ)
     .endOf('minute').toDate();
-     
+    
 
       startISO = startMoment.toISOString();
       endISO = endMoment.toISOString();
@@ -35,9 +38,21 @@ export class Unit4LT1Service {
       endISO = `${nextDay}T06:00:59.999+05:00`;
     }
 
-    // console.log("📌 Start ISO:", startISO);
-    // console.log("📌 End ISO:", endISO);
+    console.log("📌 Start ISO:", startISO);
+    console.log("📌 End ISO:", endISO);
 
+    
+    // -------------------- Call existing daily-consumption function (6am→6am window handled inside it) ---------------------
+    const fmCons = await this.meterService.getMeterWiseConsumption(
+      payload.startDate,
+      payload.endDate,
+      { startTime: payload.startTime, endTime: payload.endTime }
+    );
+
+    //  Pull just U4_U22_GW03’s (Ring 21 - 24 / PDB 07 U4 ) consumption from that response (defaults to 0 if missing)
+    // normalize & round once
+    const PDB07_U4 = +(Number(fmCons?.U4_U22_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
+    console.log(PDB07_U4)
     // ---------------- Meter setup ----------------
     const meterMap: Record<string, string> = {
       U1_PLC: 'Transport', U2_PLC: 'Unit 05 Lighting', U3_PLC: 'Light Outside', U4_PLC: 'Light Inside',
@@ -84,6 +99,12 @@ export class Unit4LT1Service {
       }
     }
 
+
+    const ring2124Raw = +(Number(consumptionTotals['U12_PLC_Del_ActiveEnergy'] || 0).toFixed(2));
+
+    // adjusted Ring 21~24 = raw - PDB07_U4 (never below 0)
+    const ring2124Adj = Math.max(0, +(ring2124Raw - PDB07_U4).toFixed(2));
+
     // ---------------- Prepare Sankey Data ----------------
     const tf1 = +consumptionTotals['U21_PLC_Del_ActiveEnergy'].toFixed(2);
     const ltGen = +consumptionTotals['U19_PLC_Del_ActiveEnergy'].toFixed(2);
@@ -92,10 +113,18 @@ export class Unit4LT1Service {
       { from: 'Diesel+JGS Incomming', to: 'TotalLT1', value: ltGen },
       ...Object.entries(meterMap).map(([meter, label]) => {
         const key = `${meter}_Del_ActiveEnergy`;
-        return { from: 'TotalLT1', to: label, value: +(consumptionTotals[key] || 0).toFixed(2) };
+        const baseVal = +(Number(consumptionTotals[key] || 0).toFixed(2));
+        const value   = meter === 'U12_PLC' ? ring2124Adj : baseVal;
+        return { from: 'TotalLT1', to: label, value};      
       }),
     ];
 
+    // ➕ NEW LEG: show the subtracted portion separately
+  sankeyData.push({
+    from: 'TotalLT1',
+    to: 'To U5 LT 1 (Auto Cone 1-9)',
+    value: Math.max(0, +PDB07_U4.toFixed(2))
+  });
     return sankeyData;
   }
 }

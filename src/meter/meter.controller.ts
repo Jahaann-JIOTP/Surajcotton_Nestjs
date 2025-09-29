@@ -45,10 +45,16 @@ async getToggleBasedRealTime() {
   }
 
   // ✅ Meter wise consumption
-  @UseGuards(JwtAuthGuard)
- @Post("meter-wise-consumption")
-async getMeterWiseConsumptionApi(@Body() payload: { startDate: string; endDate: string }) {
-  return this.meterService.getMeterWiseConsumption(payload.startDate, payload.endDate);
+@UseGuards(JwtAuthGuard)
+@Post('meter-wise-consumption')
+async getMeterWiseConsumptionApi(
+  @Body() payload: { startDate: string; endDate: string; startTime?: string; endTime?: string }
+) {
+  return this.meterService.getMeterWiseConsumption(
+    payload.startDate,
+    payload.endDate,
+    { startTime: payload.startTime, endTime: payload.endTime } // ✅ optional
+  );
 }
 
 }

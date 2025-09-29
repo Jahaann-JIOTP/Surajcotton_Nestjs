@@ -16,17 +16,16 @@ import { FieldMeterProcessData, FieldMeterProcessDataSchema } from './schemas/fi
     MongooseModule.forFeature([
       { name: MeterToggle.name, schema: MeterToggleSchema },
       // { name: MeterHistory.name, schema: MeterHistorySchema },
-       { name: MeterConfiguration.name, schema: MeterConfigurationSchema },
-       { name: Roles.name, schema: RolesSchema },
+      { name: MeterConfiguration.name, schema: MeterConfigurationSchema },
+      { name: Roles.name, schema: RolesSchema },
           { name: FieldMeterRawData.name, schema: FieldMeterRawDataSchema },
           { name: FieldMeterProcessData.name, schema: FieldMeterProcessDataSchema },
-
-       
     ],
 'surajcotton',
 ),
   ],
   controllers: [MeterController],
   providers: [MeterService],
+  exports: [MeterService],
 })
 export class MeterModule {}

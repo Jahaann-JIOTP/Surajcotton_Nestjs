@@ -687,25 +687,54 @@ return { data: flatMeters };
 
 // Get per-meter total consumption sum
 
-
-
-async getMeterWiseConsumption(startDate: string, endDate: string) {
+async getMeterWiseConsumption(
+  startDate: string,
+  endDate: string,
+  opts?: { startTime?: string; endTime?: string }
+) {
   try {
-    // ✅ Asia/Karachi ke hisaab se 6 AM se next day 6 AM tak ka range banao
-    const startISO = `${startDate}T11:00:00.000+05:00`;
 
-    const nextDay = moment(endDate).add(1, "day").format("YYYY-MM-DD");
-    const endISO = `${nextDay}T11:00:59.999+05:00`;
+    const TZ = 'Asia/Karachi';
+// ---- Build start/end Date objects in Asia/Karachi ----
+let start: Date;
+let end: Date;
 
-    // console.log("📅 StartISO:", startISO);
-    // console.log("📅 EndISO  :", endISO);
+if (opts?.startTime && opts?.endTime) {
+  // Custom time window (e.g., 2025-09-28 08:30 → 2025-09-29 03:15)
+  const startMoment = moment
+    .tz(`${startDate} ${opts.startTime}`, 'YYYY-MM-DD HH:mm', TZ)
+    .startOf('minute')
+    .add(5, 'hours');   // ⬅️ Add 5 hours here
+
+  const endMoment = moment
+    .tz(`${endDate} ${opts.endTime}`, 'YYYY-MM-DD HH:mm', TZ)
+    .endOf('minute')
+    .add(5, 'hours');   // ⬅️ Add 5 hours here
+
+  start = startMoment.toDate();
+  end = endMoment.toDate();
+  
+    } else {
+      // Default: 6:00 AM (startDate) → next day 6:00 AM
+      // const fixedDate = "2025-09-27"; 
+      const startMoment = moment.tz(`${startDate} 11:00`, 'YYYY-MM-DD HH:mm', TZ);
+      const endMoment = moment.tz(`${endDate} 11:00`, 'YYYY-MM-DD HH:mm', TZ)
+        .add(1, 'day')
+
+      start = startMoment.toDate();
+      end = endMoment.toDate();
+    }
+
+
+    console.log("📅 start:", start);
+    console.log("📅 end  :", end);
 
     const result = await this.fieldMeterProcessDataModel.aggregate([
       {
         $match: {
-         timestamp: {
-  $gte: new Date(startISO),
-  $lte: new Date(endISO),
+        timestamp: {
+  $gte: new Date(start),
+  $lte: new Date(end),
 }
 
         },
@@ -722,7 +751,7 @@ async getMeterWiseConsumption(startDate: string, endDate: string) {
         $project: {
           _id: 0,
           // ✅ Timestamps properly Asia/Karachi timezone ke sath dikhayenge
-       firstTimestamp: {
+      firstTimestamp: {
       $dateToString: {
         format: "%Y-%m-%d %H:%M:%S",
         date: "$first.timestamp",
@@ -744,6 +773,13 @@ async getMeterWiseConsumption(startDate: string, endDate: string) {
               "$first.U4_U1_GW02_Del_ActiveEnergy.cumulative_con",
             ],
           },
+
+          first_U4_U22_GW03_cum: "$first.U4_U22_GW03_Del_ActiveEnergy.cumulative_con",
+          last_U4_U22_GW03_cum:  "$last.U4_U22_GW03_Del_ActiveEnergy.cumulative_con",
+          first_raw_ts:          "$first.timestamp",
+          last_raw_ts:           "$last.timestamp",
+
+
           U4_U22_GW03_Del_ActiveEnergy: {
             $subtract: [
               "$last.U4_U22_GW03_Del_ActiveEnergy.cumulative_con",
@@ -815,6 +851,12 @@ async getMeterWiseConsumption(startDate: string, endDate: string) {
     ]);
 
     if (result.length > 0) {
+      const r =  result[0];
+      console.log("first_ts:", r.firstTimestamp, "raw:", r.first_raw_ts);
+      console.log("last_ts :", r.lastTimestamp,  "raw:", r.last_raw_ts);
+      console.log("U4_U22 first cumulative:", r.first_U4_U22_GW03_cum);
+      console.log("U4_U22 last  cumulative:", r.last_U4_U22_GW03_cum);
+      console.log("U4_U22 diff (projected):", r.U4_U22_GW03_Del_ActiveEnergy);
       return result[0];
     }
     return {};
@@ -823,10 +865,6 @@ async getMeterWiseConsumption(startDate: string, endDate: string) {
     return {};
   }
 }
-
-
-
-
 
 
 }

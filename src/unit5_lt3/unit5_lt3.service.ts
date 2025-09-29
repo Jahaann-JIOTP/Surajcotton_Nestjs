@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as moment from 'moment';
 import { Unit5LT3 } from './schemas/unit5_LT3.schema';
+import { MeterService } from 'src/meter/meter.service';
 
 
 @Injectable()
@@ -10,6 +11,7 @@ export class Unit5LT3Service {
   constructor(
     @InjectModel(Unit5LT3.name, 'surajcotton')
     private readonly unitModel: Model<Unit5LT3>,
+    private readonly meterService: MeterService,
   ) {}
 
   async getSankeyData(payload: { startDate: string; endDate: string; startTime?: string; endTime?: string }) {
@@ -25,7 +27,7 @@ export class Unit5LT3Service {
     .startOf('minute').toDate();
       let endMoment = moment.tz(`${payload.endDate} ${payload.endTime}`, "YYYY-MM-DD HH:mm", TZ)
     .endOf('minute').toDate();
-     
+    
 
       startISO = startMoment.toISOString();
       endISO = endMoment.toISOString();
@@ -39,6 +41,60 @@ export class Unit5LT3Service {
     // console.log("📌 Start ISO:", startISO);
     // console.log("📌 End ISO:", endISO);
 
+        // -------------------- Call existing daily-consumption function (6am→6am window handled inside it) ---------------------
+    const fmCons = await this.meterService.getMeterWiseConsumption(
+      payload.startDate,
+      payload.endDate,
+      { startTime: payload.startTime, endTime: payload.endTime }
+    );
+
+    // --------------- 1- This value will be added in a new leg in generation side -  as From Unit4 LT 1 (Ring 21- 24)
+    const PDB07_U4 = +(Number(fmCons?.U4_U22_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
+    // console.log(PDB07_U4)
+
+    // --------------- 2-  This value will be subscrated from U18_GW02: 'Auto Con-link Conner 1-9',
+    const PDB07_U5 = +(Number(fmCons?.U5_U22_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
+    // console.log(PDB07_U5)
+
+    // --------------- 3-  This value will be subscrated from  U14_GW02: 'Comber MCS 1-14',
+    const PDB08_U5 = +(Number(fmCons?.U5_U4_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+    // console.log(PDB08_U5)
+
+    // --------------- 4-  This value will be subscrated from  U17_GW02: 'Card M/C 8-14',
+    const CardPDB1_U5 = +(Number(fmCons?.U5_U3_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+    // console.log(CardPDB1_U5)
+
+    // --------------- 5-  This value will be subscrated from U17_GW02: 'Card M/C 8-14',,
+    const PDB1CD1_U5 = +(Number(fmCons?.U5_U1_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+    // console.log(PDB1CD1_U5)
+
+    // --------------- 5-  This value will be subscrated from  U14_GW02: 'Comber MCS 1-14',
+    const PDB2CD2_U5 = +(Number(fmCons?.U5_U2_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+    // console.log(PDB2CD2_U5)
+
+    // --------------- 6-  This value will be used for full consumption leg CardPDB1
+    const CardPDB1_U4 = +(Number(fmCons?.U4_U3_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+    // console.log(CardPDB1_U4)
+
+    // --------------- 7-  This value will be used for full consumption of PDB 08 leg 
+    const PDB08_U4 = +(Number(fmCons?.U4_U4_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+    // console.log(PDB08_U4)
+
+        // --------------- 8-  This value will be used to show generation U14_GW02: 'Comber MCS 1-14',
+    const PDB2CD2_U4 = +(Number(fmCons?.U4_U2_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+    // console.log(PDB2CD2_U4)
+
+     // --------------- 9-  This value will be used to show generation from U4 LT 2 17_GW02: 'Card M/C 8-14',,
+    const PDB1CD1_U4 = +(Number(fmCons?.U4_U1_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+    // console.log(PDB1CD1_U4)
+
+
+    // ---------- bottom-leg sums (rounded, non-negative) ----------
+    const toU4LT2   = Math.max(0, +(PDB1CD1_U5 + PDB2CD2_U5).toFixed(2));
+    const PDB07_sum = Math.max(0, +(PDB07_U5 + PDB07_U4).toFixed(2));
+    const PDB08_sum = Math.max(0, +(PDB08_U5 + PDB08_U4).toFixed(2));
+    const CardPDB1_sum = Math.max(0, +(CardPDB1_U5 + CardPDB1_U4).toFixed(2));
+    const U4_LT2_sum = Math.max(0, +(PDB2CD2_U4 + PDB1CD1_U4).toFixed(2));
     // ---------------- Meter setup ----------------
   const meterMap: Record<string, string> = {
       // U1_GW02: 'PDB CD1',
@@ -105,17 +161,45 @@ export class Unit5LT3Service {
     // ---------------- Prepare Sankey Data ----------------
     const tf3 = +consumptionTotals['U13_GW02_Del_ActiveEnergy'].toFixed(2);
     const solar = +consumptionTotals['U6_GW02_Del_ActiveEnergy'].toFixed(2);
+    
+    // Build a per-meter subtraction table
+    const minusByMeter: Record<string, number> = {
+      // U18_GW02: subtract PDB07_U5
+      U18_GW02: PDB07_U5,
+
+      // U14_GW02: subtract PDB08_U5 + PDB2CD2_U5
+      U14_GW02: (PDB08_U5 + PDB2CD2_U5),
+
+      // U17_GW02: subtract CardPDB1_U5 + PDB1CD1_U5
+      U17_GW02: (CardPDB1_U5 + PDB1CD1_U5),
+      // others default to 0
+    };
+
+    const plcLegs = Object.entries(meterMap).map(([meter, label]) => {
+      const key   = `${meter}_Del_ActiveEnergy`;
+      const base  = +(Number(consumptionTotals[key] || 0).toFixed(2));
+      const minus = +(Number(minusByMeter[meter] || 0).toFixed(2));
+      const value = Math.max(0, +(base - minus).toFixed(2));
+      return { from: 'TotalLT3', to: label, value };
+    });
+
 
     const sankeyData = [
       { from: 'TF #1', to: 'TotalLT3', value: tf3 },
       { from: 'Solar 1236.39 Kw', to: 'TotalLT3', value: solar },
-      ...Object.entries(meterMap).map(([meter, label]) => ({
-        from: 'TotalLT3',
-        to: label,
-        value: +(consumptionTotals[`${meter}_Del_ActiveEnergy`] || 0).toFixed(2),
-      }))
-    ];
+       // NEW INPUT LEG (generation side)
+      { from: 'From Unit 4 LT 1 (Ring 21-24)', to: 'TotalLT3', value: PDB07_U4 },
+      { from: 'From Unit 4 LT 2 (Card 1-8 & Card 9-14 + 1Breaker)', to: 'TotalLT3', value:  U4_LT2_sum },
+      // adjusted PLC branches
+      ...plcLegs,
 
+       // -------- NEW bottom legs (show transfers/bridges) --------
+      { from: 'TotalLT3', to: 'To U4 LT 2', value: toU4LT2 },
+      { from: 'TotalLT3', to: 'PDB 07',     value: PDB07_sum },
+      { from: 'TotalLT3', to: 'PDB 08',     value: PDB08_sum },
+      { from: 'TotalLT3', to: 'Card PDB1',  value: CardPDB1_sum },
+    ];
+  
     return sankeyData;
   }
 }

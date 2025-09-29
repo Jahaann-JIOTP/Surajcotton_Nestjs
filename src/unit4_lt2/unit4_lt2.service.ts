@@ -24,7 +24,7 @@ export class Unit4LT2Service {
     .startOf('minute').toDate();
       let endMoment = moment.tz(`${payload.endDate} ${payload.endTime}`, "YYYY-MM-DD HH:mm", TZ)
     .endOf('minute').toDate();
-     
+    
 
       startISO = startMoment.toISOString();
       endISO = endMoment.toISOString();
