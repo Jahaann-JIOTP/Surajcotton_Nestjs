@@ -31,7 +31,7 @@ export class EnergyService {
 
 
     const suffixes: string[] = ['Del_ActiveEnergy', 'ActivePower_Total', 'ActiveEnergy_Imp_kWh', 'ActiveEnergy_Exp_kWh'];
-    const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
+    const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
     const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
     const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];                                                                         //is may sum show karvana ha nilgata or jms ka jab us k tags ayain gay
     const WapdaImportKeys = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
@@ -48,7 +48,7 @@ export class EnergyService {
     const Trafo2outgoingKeys = ['U13_GW01_Del_ActiveEnergy'];
     const Trafo3outgoingKeys = ['U13_GW02_Del_ActiveEnergy'];
     const Trafo4outgoingKeys = ['U16_GW03_Del_ActiveEnergy'];
-    const DieselGensetandGasGensetKeys = ['U19_PLC_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
+    const DieselGensetandGasGensetKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
     
     const Solar1Keys = ['U6_GW02_Del_ActiveEnergy'];
     const Solar2Keys = ['U17_GW03_Del_ActiveEnergy'];
@@ -108,7 +108,7 @@ export class EnergyService {
         ];
 
 
-    const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
+    const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
     const U5_ConsumptionKeys=["U13_GW02_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U6_GW02_Del_ActiveEnergy","U17_GW03_Del_ActiveEnergy"]
     // ✅ Time window
  const startMoment = moment.tz(`${start} 06:00:00`, "YYYY-MM-DD HH:mm:ss", "Asia/Karachi");

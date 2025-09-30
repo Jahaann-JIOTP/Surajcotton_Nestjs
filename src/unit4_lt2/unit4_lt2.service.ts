@@ -128,7 +128,7 @@ export class Unit4LT2Service {
 
     const meterFields = [
       'U13_GW01_Del_ActiveEnergy', // TF2
-      'U7_GW01_Del_ActiveEnergy',  // Gas Gen
+      'U11_GW01_Del_ActiveEnergy',  // Gas Gen
       ...Object.keys(meterMap).map(m => `${m}_Del_ActiveEnergy`),
     ];
 

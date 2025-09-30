@@ -88,7 +88,7 @@ export class PlantsTrendsService {
   }
 
   async getUnit4LT2Trends(startDate: string, endDate: string, type?: string) {
-    const meters = ['U13_GW01', 'U7_GW01'];
+    const meters = ['U13_GW01', 'U11_GW01'];
     const data = await getTrends({
       startDate,
       endDate,

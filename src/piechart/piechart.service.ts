@@ -68,7 +68,7 @@ export class PieChartService {
       const data = await this.pieChartModel
         .find({ UNIXtimestamp: { $gte: startUnix, $lte: endUnix } })
         .select(
-          'UNIXtimestamp U19_PLC_Del_ActiveEnergy U7_GW01_Del_ActiveEnergy ' +
+          'UNIXtimestamp U19_PLC_Del_ActiveEnergy U11_GW01_Del_ActiveEnergy ' +
             'U6_GW02_Del_ActiveEnergy U17_GW03_Del_ActiveEnergy ' +
             'U23_GW01_Del_ActiveEnergy U27_PLC_Del_ActiveEnergy ' +
             'U22_PLC_Del_ActiveEnergy U26_PLC_Del_ActiveEnergy',
@@ -143,7 +143,7 @@ export class PieChartService {
       // -----------------------------
       // Groups
       // -----------------------------
-      const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
+      const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
       const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
       const WapdaImportKeys = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
       const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];

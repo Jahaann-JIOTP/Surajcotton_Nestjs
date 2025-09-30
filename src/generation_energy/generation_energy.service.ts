@@ -43,7 +43,7 @@ private async calculateConsumption(range: { start: string; end: string }) {
   //  const HTGenerationKeys = ['U20_GW03_Del_ActiveEnergy','U21_GW03_Del_ActiveEnergy','U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy',
   //     ];
 
-const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
+const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
     const U5_ConsumptionKeys=["U13_GW02_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U6_GW02_Del_ActiveEnergy","U17_GW03_Del_ActiveEnergy"]
     
     const Aux_consumptionKeys = ['U25_PLC_Del_ActiveEnergy'];
@@ -199,7 +199,7 @@ async calculateConsumption1(range: { start: string; end: string }): Promise<numb
 //     const Wapda1Keys = ["U23_GW01_Del_ActiveEnergy", 'U27_PLC_Del_ActiveEnergy'];
 //    const HTGenerationKeys = ['U20_GW03_Del_ActiveEnergy','U21_GW03_Del_ActiveEnergy','U23_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
  
-const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U7_GW01_Del_ActiveEnergy'];
+const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
     const U5_ConsumptionKeys=["U13_GW02_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U6_GW02_Del_ActiveEnergy","U17_GW03_Del_ActiveEnergy"]
     
     const Aux_consumptionKeys = ['U25_PLC_Del_ActiveEnergy'];
@@ -388,7 +388,7 @@ async getTodayGeneration(): Promise<HourlyData[]> {
   "U19_PLC_Del_ActiveEnergy",
    "U21_PLC_Del_ActiveEnergy",
    "U13_GW01_Del_ActiveEnergy",
-    "U7_GW01_Del_ActiveEnergy",
+    "U11_GW01_Del_ActiveEnergy",
    "U13_GW02_Del_ActiveEnergy",
     "U16_GW03_Del_ActiveEnergy",
     "U6_GW02_Del_ActiveEnergy",
