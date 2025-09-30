@@ -188,16 +188,16 @@ export class Unit5LT3Service {
       { from: 'TF #1', to: 'TotalLT3', value: tf3 },
       { from: 'Solar 1236.39 Kw', to: 'TotalLT3', value: solar },
        // NEW INPUT LEG (generation side)
-      { from: 'From Unit 4 LT 1 (Ring 21-24)', to: 'TotalLT3', value: PDB07_U4 },
-      { from: 'From Unit 4 LT 2 (Card 1-8 & Card 9-14 + 1Breaker)', to: 'TotalLT3', value:  U4_LT2_sum },
+      { from: 'From U4LT 1 (Ring 21-24)', to: 'TotalLT3', value: PDB07_U4 },
+      { from: 'From U4LT 2(Card1-8 & Card9-14+1Breaker)', to: 'TotalLT3', value:  U4_LT2_sum },
       // adjusted PLC branches
       ...plcLegs,
 
        // -------- NEW bottom legs (show transfers/bridges) --------
-      { from: 'TotalLT3', to: 'To U4 LT 2', value: toU4LT2 },
-      { from: 'TotalLT3', to: 'PDB 07',     value: PDB07_sum },
-      { from: 'TotalLT3', to: 'PDB 08',     value: PDB08_sum },
-      { from: 'TotalLT3', to: 'Card PDB1',  value: CardPDB1_sum },
+      { from: 'TotalLT3', to: 'CD1+CD2->To U4LT2(Card1-8 & Card9-14)', value: toU4LT2 },
+      { from: 'TotalLT3', to: 'PDB 07 TOTAL',     value: PDB07_sum },
+      { from: 'TotalLT3', to: 'PDB 08 TOTAL',     value: PDB08_sum },
+      { from: 'TotalLT3', to: 'Card PDB1 TOTAL',  value: CardPDB1_sum },
     ];
   
     return sankeyData;

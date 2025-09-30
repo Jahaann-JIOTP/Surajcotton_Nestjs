@@ -142,13 +142,13 @@ export class Unit5LT4Service {
       { from: 'TF #2', to: 'TotalLT4', value: tf4 },
       { from: 'Solar 1017', to: 'TotalLT4', value: solar2 },
     // NEW input/generation leg
-      { from: 'From U4 LT 2', to: 'TotalLT4', value: PDB10_U4 },
+      { from: 'From U4LT2(Ring5-8 )', to: 'TotalLT4', value: PDB10_U4 },
 
       // Adjusted PLC branches (includes the U10_GW03 subtraction)
       ...plcLegs,
 
       // NEW bottom/output summary leg
-      { from: 'TotalLT4', to: 'PDB 10', value: PDB10_sum },
+      { from: 'TotalLT4', to: 'PDB 10 TOTAL', value: PDB10_sum },
     ];
     return sankeyData;
   }

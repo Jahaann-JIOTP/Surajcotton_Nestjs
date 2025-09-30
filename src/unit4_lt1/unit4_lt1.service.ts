@@ -53,13 +53,13 @@ export class Unit4LT1Service {
     // normalize & round once
     const PDB07_U4 = +(Number(fmCons?.U4_U22_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
     console.log(PDB07_U4)
-    // ---------------- Meter setup ----------------
+    // ---------------- Meter setup ----------------  U18_PLC: 'Ring AC (Bypass)' removed by miss mehak at 30-sept
     const meterMap: Record<string, string> = {
       U1_PLC: 'Transport', U2_PLC: 'Unit 05 Lighting', U3_PLC: 'Light Outside', U4_PLC: 'Light Inside',
       U5_PLC: 'Power House', U6_PLC: 'Turbine', U8_PLC: 'Drawing Finisher 1~6+2 Breaker',
       U9_PLC: 'Winding 7~9', U10_PLC: 'Ring 1~4', U11_PLC: 'Ring 16~20', U12_PLC: 'Ring 21~24',
       U13_PLC: 'Comber 1~10+ Uni Lap 1-2', U14_PLC: 'Compressor', U15_PLC: 'Simplex 1~6',
-      U16_PLC: 'Compressor 2', U17_PLC: 'Ring AC', U18_PLC: 'Ring AC (Bypass)', U20_PLC: 'Compressor (Bypass)',
+      U16_PLC: 'Compressor 2', U17_PLC: 'Ring AC', U20_PLC: 'Compressor (Bypass)',
     };
 
     const meterFields = [
@@ -122,7 +122,7 @@ export class Unit4LT1Service {
     // ➕ NEW LEG: show the subtracted portion separately
   sankeyData.push({
     from: 'TotalLT1',
-    to: 'To U5 LT 1 (Auto Cone 1-9)',
+    to: 'PDB 07->To U5 LT1(Auto Cone 1-9)',
     value: Math.max(0, +PDB07_U4.toFixed(2))
   });
     return sankeyData;

@@ -194,7 +194,7 @@ export class Unit4LT2Service {
       { from: 'Diesel+JGS Incoming',     to: 'TotalLT2', value: GasGen },
 
       // NEW generation legs
-      { from: 'From Unit 5 LT 1 (Comber M/C 1-14 & Card M/C 8-14)', to: 'TotalLT2', value: PDB12CD12_sum },
+      { from: 'From U5 LT1(Comber M/C 1-14 & Card M/C 8-14)', to: 'TotalLT2', value: PDB12CD12_sum },
     
 
       // Adjusted PLC branches (after subtractions)
@@ -203,8 +203,8 @@ export class Unit4LT2Service {
       // NEW bottom/output legs (exports)
       { from: 'TotalLT2', to: 'PDB1 CD1 TOTAL', value: PDB1CD1_sum },
       { from: 'TotalLT2', to: 'PDB2 CD2 TOTAL', value: PDB2CD2_sum },
-      { from: 'TotalLT2', to: 'To Unit 5 LT 1 (Card M/C 8-14 & Comber M/C 1-14)', value: ToU5LT1_sum },
-      { from: 'TotalLT2', to: 'To Unit 5 LT 2 (Auto Cone 10-12)',                 value: ToU5LT2_sum },
+      { from: 'TotalLT2', to: 'PDB08+Card1->To U5LT1(CardM/C8-14 & ComberM/C1-14)', value: ToU5LT1_sum }, 
+      { from: 'TotalLT2', to: 'PDB10->To U5 LT2(Auto Cone 10-12)',                 value: ToU5LT2_sum },
     ];
     return sankeyData;
   }
