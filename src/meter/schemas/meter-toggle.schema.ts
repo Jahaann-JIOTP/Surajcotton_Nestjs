@@ -3,7 +3,7 @@ import { Document } from 'mongoose';
 
 export type MeterToggleDocument = MeterToggle & Document;
 
-@Schema()
+@Schema({ strict: false, collection: 'metertoggles' })
 export class MeterToggle {
   @Prop({ required: true })
   meterId: string;

@@ -15,7 +15,6 @@ import { FieldMeterProcessData, FieldMeterProcessDataSchema } from './schemas/fi
     HttpModule,
     MongooseModule.forFeature([
       { name: MeterToggle.name, schema: MeterToggleSchema },
-      // { name: MeterHistory.name, schema: MeterHistorySchema },
       { name: MeterConfiguration.name, schema: MeterConfigurationSchema },
       { name: Roles.name, schema: RolesSchema },
           { name: FieldMeterRawData.name, schema: FieldMeterRawDataSchema },

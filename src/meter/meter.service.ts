@@ -1,4 +1,3 @@
-
 import { Injectable} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectModel } from '@nestjs/mongoose';
@@ -155,101 +154,59 @@ const timestampNow = new Date(utcNow.getTime() + 5 * 60 * 60 * 1000)
       });
     }
 
-    // 🔹 Update each meter individually
-    for (const toggle of toggles) {
-      const meterId = toggle.meterId;
-      const fullId = `${meterId}_Del_ActiveEnergy`;
+  //   // 🔹 Update each meter individually
+  //   for (const toggle of toggles) {
+  //     const meterId = toggle.meterId;
+  //     const fullId = `${meterId}_Del_ActiveEnergy`;
 
-      const apiValue =
-        apiData[fullId] ??
-        apiData[meterId] ??
-        0;
+  //     const apiValue =
+  //       apiData[fullId] ??
+  //       apiData[meterId] ??
+  //       0;
 
-      const roundedValue = Math.round(apiValue * 100) / 100;
+  //     const roundedValue = Math.round(apiValue * 100) / 100;
 
-      // ✅ Update only this meter key in existing doc
-      await this.fieldMeterRawDataModel.updateOne(
-        { _id: doc._id },
-        {
-          $set: {
-            [`${fullId}`]: {
-              area: toggle.area,
-              value: roundedValue,
-            },
-          },
-        }
-      );
-    }
+  //     // ✅ Update only this meter key in existing doc
+  //     await this.fieldMeterRawDataModel.updateOne(
+  //       { _id: doc._id },
+  //       {
+  //         $set: {
+  //           [`${fullId}`]: {
+  //             area: toggle.area,
+  //             value: roundedValue,
+  //           },
+  //         },
+  //       }
+  //     );
+  //   }
 
-    // 🔹 Return fresh doc
-    return await this.fieldMeterRawDataModel.findById(doc._id).lean();
-  } catch (error) {
+  //   // 🔹 Return fresh doc
+  //   return await this.fieldMeterRawDataModel.findById(doc._id).lean();
+  // } 
+  
+  // write all meters first (parallel = faster + consistent)
+  const ops = toggles.map(t => {
+    const fullId = `${t.meterId}_Del_ActiveEnergy`;
+    const apiValue = apiData[fullId] ?? apiData[t.meterId] ?? 0;
+    const value = Math.round(apiValue * 100) / 100;
+    return this.fieldMeterRawDataModel.updateOne(
+      { _id: doc._id },
+      { $set: { [fullId]: { area: t.area, value } } }
+    );
+  });
+  await Promise.all(ops);
+
+  // ✅ process exactly this raw toggle doc
+  await this.calculateConsumption(String(doc._id));
+
+  return await this.fieldMeterRawDataModel.findById(doc._id).lean();
+}
+  catch (error) {
     console.error('❌ Error fetching toggle based real time:', error.message);
     return { message: 'Something went wrong' };
   }
 }
 
-// 🔹 har 15 min baad yeh cron job chalegi or doc db may jay ga //
-// @Cron('0 */15 * * * *') 
-// async storeEvery15Minutes() {
-//   try {
-//     // 1️⃣ API call
-//     const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
-//     const apiData = apiRes.data;
-
-//     // 2️⃣ Round current time to nearest 1-minute slot
-//   // 2️⃣ Round current time to nearest 15-minute slot in UTC
-// const now = new Date();
-// const roundedMinutes = Math.floor(now.getMinutes() / 15) * 15;
-// const timestamp15UTC = new Date(now);
-// timestamp15UTC.setMinutes(roundedMinutes, 0, 0);
-
-// // 🔹 Convert UTC → Karachi (+05:00)
-// const timestamp15 = new Date(timestamp15UTC.getTime() + 5 * 60 * 60 * 1000)
-//   .toISOString()
-//   .replace('Z', '+05:00');
-
-//     // 3️⃣ Check last doc
-//     const lastDoc = await this.fieldMeterRawDataModel.findOne().sort({ timestamp: -1 });
-
-//     const realTimeValuesObj: Record<string, { area: string; value: number }> = {};
-//     for (const meterId of Object.keys(this.METER_UNIT_MAP)) {
-//       const shortId = meterId.replace('_Del_ActiveEnergy', '');
-//       const apiValue = apiData[meterId] ?? apiData[shortId] ?? 0;
-
-//       realTimeValuesObj[meterId] = {
-//         area: lastDoc?.[meterId]?.area || 'unit4', // keep last area or default
-//         value: Math.round(apiValue * 100) / 100,
-//       };
-//     }
-
-//     // 4️⃣ Insert with upsert (only one cron doc per minute)
-//     const newDoc = await this.fieldMeterRawDataModel.findOneAndUpdate(
-//       { timestamp: timestamp15, source: 'cron' }, // unique condition
-     
-//       {
-//         $setOnInsert: {
-//           ...realTimeValuesObj,
-//           timestamp: timestamp15,
-//           source: 'cron',
-//         },
-//       },
-//       { upsert: true, new: true }
-//     );
-
-//     // console.log(`✅ Cron insert complete for ${timestamp15.toISOString()}`);
-
-//     // After storing the real-time data, now call the calculateConsumption function
-//     await this.calculateConsumption(); // Calling calculateConsumption after storing data
-
-//     return newDoc;
-
-//   } catch (err) {
-//     console.error('❌ Cron error:', err.message);
-//   }
-// }
-
-// for 3 minutes interval 
 @Cron('0 */3 * * * *') 
 async storeEvery15Minutes() {
   try {
@@ -272,13 +229,20 @@ const timestamp15 = new Date(timestamp15UTC.getTime() + 5 * 60 * 60 * 1000)
     // 3️⃣ Check last doc
     const lastDoc = await this.fieldMeterRawDataModel.findOne().sort({ timestamp: -1 });
 
+    //  🔸🔸 get current areas from toggles as fallback when there's no process/raw doc
+    const toggles = await this.toggleModel.find().lean();
+    const areaMap: Record<string, string> = {};
+    for (const t of toggles) {
+      areaMap[`${t.meterId}_Del_ActiveEnergy`] = t.area; // same key shape as raw
+    }
+
     const realTimeValuesObj: Record<string, { area: string; value: number }> = {};
     for (const meterId of Object.keys(this.METER_UNIT_MAP)) {
       const shortId = meterId.replace('_Del_ActiveEnergy', '');
       const apiValue = apiData[meterId] ?? apiData[shortId] ?? 0;
 
       realTimeValuesObj[meterId] = {
-        area: lastDoc?.[meterId]?.area || 'unit4', // keep last area or default
+        area: (lastDoc as any)?.[meterId]?.area || areaMap[meterId] || 'unit4',
         value: Math.round(apiValue * 100) / 100,
       };
     }
@@ -286,7 +250,7 @@ const timestamp15 = new Date(timestamp15UTC.getTime() + 5 * 60 * 60 * 1000)
     // 4️⃣ Insert with upsert (only one cron doc per minute)
     const newDoc = await this.fieldMeterRawDataModel.findOneAndUpdate(
       { timestamp: timestamp15, source: 'cron' }, // unique condition
-     
+    
       {
         $setOnInsert: {
           ...realTimeValuesObj,
@@ -310,7 +274,9 @@ const timestamp15 = new Date(timestamp15UTC.getTime() + 5 * 60 * 60 * 1000)
 }
 
 
-async calculateConsumption() {
+async calculateConsumption(rawId?: string) {
+
+
   const meterKeys = [
     "U23_GW03_Del_ActiveEnergy",
     "U22_GW03_Del_ActiveEnergy",
@@ -335,9 +301,16 @@ async calculateConsumption() {
     .sort({ timestamp: -1 });
 
   // 🔹 Latest rawDoc (toggle OR cron)
-  const lastRawDoc = await this.fieldMeterRawDataModel
-    .findOne({})
-    .sort({ timestamp: -1 });
+  // const lastRawDoc = await this.fieldMeterRawDataModel
+  //   .findOne({})
+  //   .sort({ timestamp: -1 });
+    const rawQuery = rawId ? { _id: rawId } : {};
+    const lastRawDoc = await this.fieldMeterRawDataModel
+    .findOne(rawQuery)
+    .sort({ timestamp: -1, _id: -1 });
+
+
+
 
   if (!lastRawDoc) {
     // console.log("⏹ No raw data found in field_meter_raw_data");
@@ -362,6 +335,8 @@ if (lastRawDoc.source === "cron") {
   const adjustedTimestamp = new Date(
     new Date(latestCron.timestamp).getTime() + 5 * 60 * 60 * 1000
   );
+
+  // const adjustedTimestamp = new Date(lastRawDoc.timestamp);
   for (const meterId of meterKeys) {
     const latestMeter = latestCron[meterId];
     if (!latestMeter) continue;
@@ -527,6 +502,7 @@ const flatMeters: Record<string, { fV: number; lV: number; CONS: number; cumulat
 const adjustedTimestamp = new Date(
   new Date(lastRawDoc.timestamp).getTime() + 5 * 60 * 60 * 1000
 );
+// const adjustedTimestamp = new Date(lastRawDoc.timestamp);
 
 for (const meterId of meterKeys) {
   const meterObj = lastRawDoc[meterId];
@@ -540,8 +516,8 @@ for (const meterId of meterKeys) {
   const prevFlatU5 = prevProcessDoc?.[`U5_${meterId}`];
   const prevLastArea = prevProcessDoc?.[`lastArea_${meterId}`];
 
-  let u4 = prevFlatU4 ? { ...prevFlatU4 } : { fV: 0, lV: 0, CONS: 0 };
-  let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0 };
+let u4 = prevFlatU4 ? { ...prevFlatU4 } : { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 };
+let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 };
 
 
   const lastLV = prevLastArea === "unit4" ? prevFlatU4?.lV : prevFlatU5?.lV;
@@ -661,9 +637,13 @@ for (const meterId of meterKeys) {
   flatMeters[`lastArea_${meterId}`] = currentArea;
 }
 
-const orderedDoc: Record<string, any> = {
-  timestamp: adjustedTimestamp,
-};
+// const orderedDoc: Record<string, any> = {
+//   timestamp: adjustedTimestamp,
+// };
+  const orderedDoc: Record<string, any> = {
+    timestamp: adjustedTimestamp,
+    source: 'toggle',
+  };
 
 for (const meterId of meterKeys) {
   if (!flatMeters[`U4_${meterId}`]) continue;
@@ -674,7 +654,7 @@ for (const meterId of meterKeys) {
 }
 
 await this.fieldMeterProcessDataModel.updateOne(
-  { timestamp: adjustedTimestamp },
+  { timestamp: adjustedTimestamp, source: 'toggle' },
   { $set: orderedDoc },
   { upsert: true }
 );
