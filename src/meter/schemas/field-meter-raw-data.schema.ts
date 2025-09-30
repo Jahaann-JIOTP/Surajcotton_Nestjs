@@ -3,7 +3,7 @@ import { Document } from 'mongoose';
 
 
 //changed collection names
-@Schema({ strict: false, collection: 'FM_raw' })
+@Schema({ strict: false, collection: 'FM_raw33' })
 export class FieldMeterRawData extends Document {
   @Prop()
   meterId: string;

@@ -114,7 +114,7 @@ export class Unit4LT2Service {
       U8_GW01: 'Blow Room',
       U9_GW01: 'Card 9~14+1 Breaker',
       U10_GW01: 'Winding 1~6',
-      U11_GW01: 'Power House 2nd Source',
+      U7_GW01: 'Power House 2nd Source',
       U12_GW01: 'Card Filter',
       U14_GW01: 'D/R Card Filter',
       U15_GW01: 'Ring 5~8',
@@ -185,7 +185,7 @@ export class Unit4LT2Service {
 
     // ---------------- Prepare Sankey Data ----------------
     const tf2 = +(consumptionTotals['U13_GW01_Del_ActiveEnergy'] || 0).toFixed(2);
-    const GasGen = +(consumptionTotals['U7_GW01_Del_ActiveEnergy'] || 0).toFixed(2);
+    const GasGen = +(consumptionTotals['U11_GW01_Del_ActiveEnergy'] || 0).toFixed(2);
 // changed id U11 to U7
 
     const sankeyData = [
