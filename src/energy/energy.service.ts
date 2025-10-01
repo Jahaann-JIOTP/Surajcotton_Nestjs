@@ -61,7 +61,7 @@ export class EnergyService {
   ];
   const Unit4_LT2Keys = ['U1_GW01_Del_ActiveEnergy', 'U2_GW01_Del_ActiveEnergy','U3_GW01_Del_ActiveEnergy',
      'U4_GW01_Del_ActiveEnergy',  'U5_GW01_Del_ActiveEnergy',  'U6_GW01_Del_ActiveEnergy',
-      'U8_GW01_Del_ActiveEnergy',  'U9_GW01_Del_ActiveEnergy',  'U10_GW01_Del_ActiveEnergy','U11_GW01_Del_ActiveEnergy',
+      'U8_GW01_Del_ActiveEnergy',  'U9_GW01_Del_ActiveEnergy',  'U10_GW01_Del_ActiveEnergy','U7_GW01_Del_ActiveEnergy',
        'U12_GW01_Del_ActiveEnergy',  'U14_GW01_Del_ActiveEnergy','U15_GW01_Del_ActiveEnergy',
         'U16_GW01_Del_ActiveEnergy',  'U17_GW01_Del_ActiveEnergy',  'U18_GW01_Del_ActiveEnergy',  'U19_GW01_Del_ActiveEnergy',
          'U20_GW01_Del_ActiveEnergy',  'U21_GW01_Del_ActiveEnergy'
@@ -69,7 +69,7 @@ export class EnergyService {
 
    ////// i did not add 4 PDB meters in U5_LT1 because its not add in SLD
     const Unit5_LT1Keys = ['U5_GW02_Del_ActiveEnergy','U7_GW02_Del_ActiveEnergy','U8_GW02_Del_ActiveEnergy','U9_GW02_Del_ActiveEnergy',
-      'U10_GW02_Del_ActiveEnergy','U11_GW02_Del_ActiveEnergy','U12_GW02_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy',  'U14_GW02_Del_ActiveEnergy',
+      'U10_GW02_Del_ActiveEnergy','U11_GW02_Del_ActiveEnergy','U12_GW02_Del_ActiveEnergy',  'U14_GW02_Del_ActiveEnergy',
       'U15_GW02_Del_ActiveEnergy','U16_GW02_Del_ActiveEnergy',  'U17_GW02_Del_ActiveEnergy',  'U18_GW02_Del_ActiveEnergy',  'U19_GW02_Del_ActiveEnergy',
          'U20_GW02_Del_ActiveEnergy',  'U21_GW02_Del_ActiveEnergy',  'U22_GW02_Del_ActiveEnergy',  'U23_GW02_Del_ActiveEnergy'
    ];
@@ -77,8 +77,8 @@ export class EnergyService {
        const Unit5_LT2Keys = ['U1_GW03_Del_ActiveEnergy', 'U2_GW03_Del_ActiveEnergy','U3_GW03_Del_ActiveEnergy', 'U4_GW03_Del_ActiveEnergy',
       'U5_GW03_Del_ActiveEnergy', 'U6_GW03_Del_ActiveEnergy','U7_GW03_Del_ActiveEnergy','U8_GW03_Del_ActiveEnergy','U9_GW03_Del_ActiveEnergy',
       'U10_GW03_Del_ActiveEnergy','U11_GW03_Del_ActiveEnergy','U12_GW03_Del_ActiveEnergy', 'U13_GW03_Del_ActiveEnergy',  'U14_GW03_Del_ActiveEnergy',
-      'U15_GW03_Del_ActiveEnergy','U16_GW03_Del_ActiveEnergy',   'U18_GW03_Del_ActiveEnergy',
-      'U21_GW03_Del_ActiveEnergy',  'U22_GW03_Del_ActiveEnergy',  'U23_GW03_Del_ActiveEnergy'
+      'U15_GW03_Del_ActiveEnergy',   'U18_GW03_Del_ActiveEnergy',
+      
    ]
 
     
