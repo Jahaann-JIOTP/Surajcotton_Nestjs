@@ -251,7 +251,7 @@ const sumGroup = (keys: string[]) =>
     let Trafo4losses = Trafo4Incoming - Trafo4outgoing;
     let TrasformerLosses = T1andT2losses+ Trafo3losses + Trafo4losses;
     let HT_Transmissioin_Losses = (Wapda2+ Niigata + JMS)- (Trafo3Incoming + Trafo4Incoming + PH_IC );
-    let unaccoutable_energy= (U4_Consumption+ U5_Consumption)- (Unit4_LT1+Unit4_LT2+Unit5_LT1+Unit5_LT2);
+    let unaccoutable_energy= (Unit4_LT1+Unit4_LT2+Unit5_LT1+Unit5_LT2)-(U4_Consumption+ U5_Consumption);
     // let unaccountable = totalConsumption - production;
 
     return {
