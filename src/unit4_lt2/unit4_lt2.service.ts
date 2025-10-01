@@ -115,7 +115,7 @@ export class Unit4LT2Service {
       U9_GW01: 'Card 9~14+1 Breaker',
       U10_GW01: 'Winding 1~6',
       U7_GW01: 'Power House 2nd Source',
-      U12_GW01: 'Card Filter',
+      // U12_GW01: 'Card Filter',
       U14_GW01: 'D/R Card Filter',
       U15_GW01: 'Ring 5~8',
       U16_GW01: 'Ring 13~16',

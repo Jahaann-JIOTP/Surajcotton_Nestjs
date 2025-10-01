@@ -275,8 +275,6 @@ const timestamp15 = new Date(timestamp15UTC.getTime() + 5 * 60 * 60 * 1000)
 
 
 async calculateConsumption(rawId?: string) {
-
-
   const meterKeys = [
     "U23_GW03_Del_ActiveEnergy",
     "U22_GW03_Del_ActiveEnergy",
