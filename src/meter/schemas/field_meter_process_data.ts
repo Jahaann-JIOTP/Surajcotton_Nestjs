@@ -3,7 +3,9 @@ import { Document } from 'mongoose';
 
 export type FieldMeterProcessDataDocument = FieldMeterProcessData & Document;
 
-@Schema({ timestamps: false, collection: 'FM_Process_Prod', strict: false })   //FM_process for local server 
+@Schema({ timestamps: false, collection: 'FM_Process_Prod', strict: false }) 
+// @Schema({ timestamps: false, collection: 'FM_process', strict: false })   //FM_process for local server 
+  //FM_process for local server 
 export class FieldMeterProcessData{
   @Prop({ default: Date.now })
   timestamp: Date;

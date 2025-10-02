@@ -3,7 +3,9 @@ import { Document } from 'mongoose';
 
 export type MeterConfigurationDocument = MeterConfiguration & Document;
 
-@Schema({ timestamps: true, strict: false, collection: 'Toggle-logs'})    // meterconfigurations for local server
+@Schema({ timestamps: true, strict: false, collection: 'Toggle-logs'})
+// @Schema()  
+   
 export class MeterConfiguration {
   @Prop({ required: true })
   meterId: string;

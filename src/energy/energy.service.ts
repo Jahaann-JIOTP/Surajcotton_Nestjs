@@ -111,27 +111,52 @@ export class EnergyService {
     const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
     const U5_ConsumptionKeys=["U13_GW02_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U6_GW02_Del_ActiveEnergy","U17_GW03_Del_ActiveEnergy"]
     // ✅ Time window
- const startMoment = moment.tz(`${start} 06:00:00`, "YYYY-MM-DD HH:mm:ss", "Asia/Karachi");
+//  const startMoment = moment.tz(`${start} 06:00:00`, "YYYY-MM-DD HH:mm:ss", "Asia/Karachi");
+
+// const startStr = startMoment.format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+
+// // 👇 end time ko 1 din add karke 06:00:59.999 set kar do
+// const endStr = startMoment
+//   .clone()
+//   .add(1, "day")
+//   .hour(6)
+//   .minute(0)
+//   .second(59)
+//   .millisecond(999)
+//   .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+
+// const matchStage = {
+//   timestamp: {
+//     $gte: startStr,
+//     $lte: endStr,  // ab 06:00:xx docs bhi capture honge
+//   },
+// };
+
+// ✅ Time window
+// ✅ Time window
+const startMoment = moment.tz(`${start} 06:00:00`, "YYYY-MM-DD HH:mm:ss", "Asia/Karachi");
+
+let endMoment: moment.Moment;
+
+// agar start aur end same hain to ek din ka data
+if (start === end) {
+  endMoment = startMoment.clone().add(1, "day").hour(6).minute(0).second(59).millisecond(999);
+} else {
+  // agar multiple days hain → end date ke agle din ke 06:00 tak le jao
+  endMoment = moment.tz(`${end} 06:00:00`, "YYYY-MM-DD HH:mm:ss", "Asia/Karachi")
+                   .add(1, "day")
+                   .hour(6).minute(0).second(59).millisecond(999);
+}
 
 const startStr = startMoment.format("YYYY-MM-DDTHH:mm:ss.SSSZ");
-
-// 👇 end time ko 1 din add karke 06:00:59.999 set kar do
-const endStr = startMoment
-  .clone()
-  .add(1, "day")
-  .hour(6)
-  .minute(0)
-  .second(59)
-  .millisecond(999)
-  .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+const endStr = endMoment.format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 
 const matchStage = {
   timestamp: {
     $gte: startStr,
-    $lte: endStr,  // ab 06:00:xx docs bhi capture honge
+    $lte: endStr,
   },
 };
-
 
 
 
