@@ -3,8 +3,8 @@ import { Document } from 'mongoose';
 
 export type MeterToggleDocument = MeterToggle & Document;
 
-@Schema({ strict: false, collection: 'area-toggle-status'}) 
-// @Schema()  
+@Schema({ strict: false, collection: 'metertoggles'})  //metertoggles   forlocal server
+
 export class MeterToggle {
   @Prop({ required: true })
   meterId: string;
