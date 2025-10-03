@@ -56,8 +56,8 @@ export class DailyConsumptionService {
     { energy: 'U6_GW01_Del_ActiveEnergy', power: 'U6_GW01_ActivePower_Total', powerFactor: 'U6_GW01_PowerFactor_Avg', voltage: 'U13_GW01_Voltage_Avg', metername: 'Bachelor Colony', deptname: 'Bachelor Colony', MCS: '1', installedLoad: '0' },
     { energy: 'U19_GW01_Del_ActiveEnergy', power: 'U19_GW01_ActivePower_Total', powerFactor: 'U19_GW01_PowerFactor_Avg', voltage: 'U19_GW01_Voltage_Avg', metername: 'AC Lab', deptname: 'lab', MCS: '1', installedLoad: '4' },
     { energy: 'U3_GW01_Del_ActiveEnergy', power: 'U3_GW01_ActivePower_Total', powerFactor: 'U3_GW01_PowerFactor_Avg', voltage: 'U6_GW01_Voltage_Avg', metername: 'Rooms, Quarter, Bunglows', deptname: 'Residential Colony', MCS: '0', installedLoad: '0' },
-    { energy: 'U11_GW01_Del_ActiveEnergy', power: 'U11_GW01_ActivePower_Total', powerFactor: 'U11_GW01_PowerFactor_Avg', voltage: 'U11_GW01_Voltage_Avg', metername: 'Power House Second Source', deptname: 'Power House Second Source', MCS: '1', installedLoad: '100' },
-
+    { energy: 'U7_GW01_Del_ActiveEnergy', power: 'U7_GW01_ActivePower_Total', powerFactor: 'U7_GW01_PowerFactor_Avg', voltage: 'U7_GW01_Voltage_Avg', metername: 'Power House Second Source', deptname: 'Power House Second Source', MCS: '1', installedLoad: '100' },
+// changed in to u11 to u7
     
   ];
 

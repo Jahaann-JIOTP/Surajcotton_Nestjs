@@ -363,7 +363,10 @@ async getTodayGeneration(): Promise<HourlyData[]> {
     "U22_PLC_Del_ActiveEnergy",
     "U26_PLC_Del_ActiveEnergy",
     "U23_GW01_Del_ActiveEnergy",
-     "U27_PLC_Del_ActiveEnergy"
+    "U27_PLC_Del_ActiveEnergy"
+
+
+
     // "U21_PLC_Del_ActiveEnergy",
     
     // "U13_GW01_Del_ActiveEnergy",

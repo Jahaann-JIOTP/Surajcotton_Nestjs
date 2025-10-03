@@ -26,6 +26,7 @@ export class EnergyUsageReportService {
 async getConsumptionData(dto: GetEnergyCostDto) {
   const { start_date, end_date, suffixes, area, start_time, end_time } = dto;
   const suffix = suffixes?.[0] || 'Del_ActiveEnergy';
+  
 
   // -------------------------------
   // Mappings
@@ -74,7 +75,7 @@ async getConsumptionData(dto: GetEnergyCostDto) {
     Unit_4: ['U1_PLC'],
   };
     const RingMapping: Record<string, string[]> = {
-    Unit_4: ['U10_PLC', 'U11_PLC', 'U12_PLC','U15_GW01', 'U17_GW01', 'U16_GW01'],
+    Unit_4: ['U10_PLC', 'U11_PLC', 'U12_PLC','U15_GW01', 'U17_GW01', 'U16_GW01', 'U22_GW02'],
     Unit_5: ['U10_GW02', 'U7_GW02', 'U1_GW03','U5_GW03', 'U9_GW03', 'U12_GW03'], //10
   }; //9
 
@@ -121,7 +122,7 @@ async getConsumptionData(dto: GetEnergyCostDto) {
 
   };
     const Mills_LightingMapping: Record<string, string[]> = {
-    Unit_4: ['U4_PLC', 'U3_PLC', 'U2_PLC'],
+    Unit_4: ['U4_PLC', 'U3_PLC'],
     Unit_5: ['U14_GW03'] // 19
 
   };
@@ -167,70 +168,41 @@ async getConsumptionData(dto: GetEnergyCostDto) {
 
    
 
- 
- 
+const TZ = 'Asia/Karachi';
 
+let startISO: string;
+let endISO: string;
 
- 
-  //   const WindingMapping: Record<string, string[]> = {
-  //   Unit_4: ['U9_PLC','U10_GW01','U3_GW01'],
-  //   Unit_5: ['U20_GW02'],
+if (start_time && end_time) {
+  // Custom time window
+  startISO = moment.tz(`${start_date} ${start_time}`, "YYYY-MM-DD HH:mm", TZ)
+    .startOf('minute')
+    .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 
-  // };
-  // const BypassMapping: Record<string, string[]> = {
-  //   Unit_4: ['U18_PLC','U12_GW01','U20_PLC']
-    
-  // };
-  // const PackingMapping: Record<string, string[]> = {
-  //   Unit_4: ['U2_GW01'],
-  //   Unit_5: ['U14_GW03'],
+  endISO = moment.tz(`${end_date} ${end_time}`, "YYYY-MM-DD HH:mm", TZ)
+    .endOf('minute')
+    .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 
-    
-  // };
+  // Move end to next day if same or before start
+  if (moment(endISO).isSameOrBefore(moment(startISO))) {
+    endISO = moment.tz(`${end_date} ${end_time}`, "YYYY-MM-DD HH:mm", TZ)
+      .add(1, 'day')
+      .endOf('minute')
+      .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+  }
+} else {
+  // Default 6AM → 6AM next day
+  startISO = moment.tz(`${start_date} 06:00:00`, "YYYY-MM-DD HH:mm:ss", TZ)
+    .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 
-  //   const FrameFinisherMapping: Record<string, string[]> = {
-    
-  //   Unit_5: ['U23_GW02']
+  endISO = moment.tz(`${start_date} 06:00:00`, "YYYY-MM-DD HH:mm:ss", TZ)
+    .add(1, 'day')
+    .set({ second: 59, millisecond: 999 })
+    .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+}
 
-    
-  // };
-  //   const ACPlantMapping: Record<string, string[]> = {
-  //   Unit_5: ['U15_GW02', 'U8_GW02']
-    
-  // };
-  //   const FiberdepositMapping: Record<string, string[]> = {
-  //   Unit_5: ['U13_GW03']
-    
-  // };
-  //   const YarnMapping: Record<string, string[]> = {
-  //   Unit_5: ['U2_GW03']
-    
-  // };
-  
-  //     const HFO2ndSourceMapping: Record<string, string[]> = {
-  //   Unit_4: ['U5_PLC', 'U7 GW01']
-    
-  // };
-
-  // const AuxUnit5Mapping: Record<string, string[]> = {
-  //   Unit_4: ['U2_PLC']
-  // };
-  // const CapacitorbankMapping: Record<string, string[]> = {
-  //   Unit_5: ['U18_GW03', 'U5_GW02']
-  // };
-  // workshop :U4_GW01
-
-  //power house:U5_PLC
-
-  // -------------------------------
-  // Time range & areas
-  // -------------------------------
- // ✅ Start 6 AM of start_date
-// ✅ Start ISO
-const startISO = `${start_date}T06:00:00.000+05:00`;
-const nextDay = moment(end_date).add(1, 'day').format('YYYY-MM-DD');
-const endISO = `${nextDay}T06:00:59.999+05:00`;
-
+console.log('📌 startISO:', startISO);
+console.log('📌 endISO:', endISO);
 
 
   const areaKeys = area === 'ALL' ? ['Unit_4', 'Unit_5'] : [area];
@@ -240,6 +212,7 @@ const endISO = `${nextDay}T06:00:59.999+05:00`;
   // -------------------------------
   const Card_BreakerMap: Record<string, number> = { Unit_4: 0, Unit_5: 0 };
   // const AutoConeMap: Record<string, number> = { Unit_4: 0, Unit_5: 0 };
+  
   const CardingMap: Record<string, number> = { Unit_4: 0, Unit_5: 0 };
   const ComberandunilapMap: Record<string, number> = { Unit_4: 0, Unit_5: 0 };
   const BlowRoomMap: Record<string, number> = { Unit_4: 0, Unit_5: 0 };

@@ -47,7 +47,8 @@ private round2(value: number): number {
 }
 
 async getConsumptionData(dto: GetEnergyCostDto) {
-  const { start_date, end_date, suffixes } = dto;
+  const { start_date, end_date, start_time, end_time, suffixes } = dto;
+
   const area = dto.area ?? '';
 
   const isAll = area === 'ALL';
@@ -62,13 +63,35 @@ async getConsumptionData(dto: GetEnergyCostDto) {
     ],
   };
 
- const start = moment.tz(start_date, 'Asia/Karachi').hour(6).minute(0).second(0).millisecond(0);
-const end = moment.tz(end_date, 'Asia/Karachi')
-  .add(1, 'day')
-  .hour(6)
-  .minute(0)
-  .second(59)
-  .millisecond(999);  // ✅ include all up to 6:00:00.999
+const TZ = 'Asia/Karachi';
+let start: moment.Moment;
+let end: moment.Moment;
+let startISO: string;
+let endISO: string;
+
+if (start_time && end_time) {
+  // Custom time window
+  start = moment.tz(`${start_date} ${start_time}`, "YYYY-MM-DD HH:mm", TZ).startOf('minute');
+  end = moment.tz(`${end_date} ${end_time}`, "YYYY-MM-DD HH:mm", TZ).endOf('minute');
+
+  if (end.isSameOrBefore(start)) {
+    end.add(1, 'day');
+  }
+
+} else {
+  // Default: 6AM → next day 6AM
+  start = moment.tz(start_date, TZ).hour(6).minute(0).second(0).millisecond(0);
+  end = moment.tz(start_date, TZ).add(1, 'day').hour(6).minute(0).second(0).millisecond(0);
+}
+
+startISO = start.format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+endISO = end.format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+
+console.log("📌 startISO:", startISO);
+console.log("📌 endISO:", endISO);
+``
+
+
 
 
 // console.log('Start timestamp (6AM):', start.format('YYYY-MM-DDTHH:mm:ss'));
@@ -209,22 +232,24 @@ const end = moment.tz(end_date, 'Asia/Karachi')
       mergedResult[key] = this.round2(mergedResult[key]);
     }
   }
-
+mergedResult.start_time = startISO;
+mergedResult.end_time = endISO;
   // 🔍 Filter fields based on selection
   let fieldsToKeep: string[] = [];
 
+
 if (area === 'Unit_4') {
-  fieldsToKeep = ['area', 'unit4_consumption', 'total_consumption', 'wapda1', 'wapdaexport', 'total_generation', 'unaccountable_energy'];
+  fieldsToKeep = ['start_time', 'end_time','area', 'unit4_consumption', 'total_consumption', 'wapda1', 'wapdaexport', 'total_generation', 'unaccountable_energy'];
 } else if (area === 'Unit_5') {
   fieldsToKeep = [
-    'area', 'unit5_consumption', 'total_consumption',
+     'start_time', 'end_time','area',  'unit5_consumption', 'total_consumption',
     'solar1', 'solar2',
     'trafo1Loss', 'trafo2Loss', 'trafo3Loss', 'trafo4Loss', 'transformerLosses',
     'total_generation', 'unaccountable_energy'
   ];
 } else if (area === 'ALL') {
   fieldsToKeep = [
-    'area', 'unit4_consumption', 'unit5_consumption', 'total_consumption',
+    'start_time', 'end_time','area',  'unit4_consumption', 'unit5_consumption', 'total_consumption',
     'wapda1', 'wapdaexport', 'solar1', 'solar2', 
     'trafo1Loss', 'trafo2Loss', 'trafo3Loss', 'trafo4Loss', 'transformerLosses',
     'total_generation', 'unaccountable_energy'
@@ -258,11 +283,20 @@ if (area === 'Unit_4') {
         mergedResult.unaccountable_energy = this.round2(
           mergedResult.total_consumption - mergedResult.total_generation
         ); 
+const finalResult = {
+  area: mergedResult.area,
+  start_time: startISO,
+  end_time: endISO,
+  ...Object.fromEntries(
+   Object.entries(mergedResult).filter(([key]) => fieldsToKeep.includes(key))
+  )
+};
 
 
-  const finalResult = Object.fromEntries(
-    Object.entries(mergedResult).filter(([key]) => fieldsToKeep.includes(key))
-  );
+  // const finalResult = Object.fromEntries(
+    
+  //   Object.entries(mergedResult).filter(([key]) => fieldsToKeep.includes(key))
+  // );
 
   return [finalResult];
 }
