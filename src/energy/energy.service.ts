@@ -52,7 +52,7 @@ export class EnergyService {
     
     const Solar1Keys = ['U6_GW02_Del_ActiveEnergy'];
     const Solar2Keys = ['U17_GW03_Del_ActiveEnergy'];
-    const PH_ICKeys = ['U23_GW01_Del_ActiveEnergy'];
+    const PH_ICKeys = ['U22_GW01_Del_ActiveEnergy'];
     const Unit4_LT1Keys = ['U1_PLC_Del_ActiveEnergy', 'U2_PLC_Del_ActiveEnergy', 'U3_PLC_Del_ActiveEnergy',
     'U4_PLC_Del_ActiveEnergy', 'U5_PLC_Del_ActiveEnergy', 'U6_PLC_Del_ActiveEnergy', 'U7_PLC_Del_ActiveEnergy',
   'U8_PLC_Del_ActiveEnergy', 'U9_PLC_Del_ActiveEnergy', 'U10_PLC_Del_ActiveEnergy','U11_PLC_Del_ActiveEnergy',
@@ -276,6 +276,19 @@ const sumGroup = (keys: string[]) =>
     let Trafo4losses = Trafo4Incoming - Trafo4outgoing;
     let TrasformerLosses = T1andT2losses+ Trafo3losses + Trafo4losses;
     let HT_Transmissioin_Losses = (Wapda2+ Niigata + JMS)- (Trafo3Incoming + Trafo4Incoming + PH_IC );
+    // console.log("HT_Transmissioin_Losses", HT_Transmissioin_Losses);
+    // console.log("Wapda2", Wapda2);
+    // console.log("Niigata", Niigata);
+    // console.log("JMS", JMS);
+    // console.log("Trafo3Incoming", Trafo3Incoming);
+    // console.log("Trafo4Incoming", Trafo4Incoming);
+    // console.log("PH_IC", PH_IC);
+
+
+
+
+
+
     let unaccoutable_energy= (Unit4_LT1+Unit4_LT2+Unit5_LT1+Unit5_LT2)-(U4_Consumption+ U5_Consumption);
     // let unaccountable = totalConsumption - production;
 

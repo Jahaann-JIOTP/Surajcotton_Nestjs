@@ -40,7 +40,7 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
   const ltTags = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
   const wapdaTags = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
   // const solarTags = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
-  const solarTags = ['U6_GW02_Del_ActiveEnergy'];
+  const solarTags = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
 
   const unit4Tags = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy'];
   const unit5Tags = ['U6_GW02_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
@@ -55,7 +55,7 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
     const Wapda2Tags = ['U27_PLC_Del_ActiveEnergy'];
     const NiigataTags = ['U22_PLC_Del_ActiveEnergy'];
     const JMSTags = ['U26_PLC_Del_ActiveEnergy'];
-    const PH_ICTags = ['U23_GW01_Del_ActiveEnergy'];
+    const PH_ICTags = ['U22_GW01_Del_ActiveEnergy'];
 
   // Aggregation pipeline
   const pipeline = [
@@ -260,14 +260,24 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
       PH_IC += diff;
     }
-    const t1andt2incoming =  Trafo1Incoming + Trafo2Incoming;
-    const t1andt2outgoing =  Trafo1outgoing + Trafo2outgoing;
-    const t1and2losses = t1andt2incoming - t1andt2outgoing;
-    const t3losses = Trafo3Incoming - Trafo3outgoing;
-    const t4losses = Trafo4Incoming - Trafo4outgoing;
-    const transformerlosses = t1and2losses+ t3losses + t4losses;
+
+     const T1andT2incoming = Trafo1Incoming+Trafo2Incoming;
+    const T1andT2outgoing = Trafo1outgoing+Trafo2outgoing;
+    const T1andT2losses = T1andT2incoming-T1andT2outgoing ;
+    const Trafo3losses = Trafo3Incoming - Trafo3outgoing;
+    const Trafo4losses = Trafo4Incoming - Trafo4outgoing;
+    const TrasformerLosses = T1andT2losses+ Trafo3losses + Trafo4losses;
+    // const HT_Transmissioin_Losses = (Wapda2+ Niigata + JMS)- (Trafo3Incoming + Trafo4Incoming + PH_IC );
+    // console.log("HT_Transmissioin_Losses", HT_Transmissi
+ 
+    // const t1andt2incoming =  Trafo1Incoming + Trafo2Incoming;
+    // const t1andt2outgoing =  Trafo1outgoing + Trafo2outgoing;
+    // const t1and2losses = t1andt2incoming - t1andt2outgoing;
+    // const t3losses = Trafo3Incoming - Trafo3outgoing;
+    // const t4losses = Trafo4Incoming - Trafo4outgoing;
+    // const transformerlosses = t1and2losses+ t3losses + t4losses;
     const HT_Transmissioin_Losses = (Wapda2+ Niigata + JMS)- (Trafo3Incoming + Trafo4Incoming + PH_IC );
-    const losses = transformerlosses + HT_Transmissioin_Losses;
+    const losses = TrasformerLosses + HT_Transmissioin_Losses;
     const totalConsumption = unit4Total + unit5Total;
     const totalGeneration = htTotal + ltTotal + wapdaTotal + solarTotal;
 
@@ -286,7 +296,7 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       losses : +losses.toFixed(2),
       total_consumption: +totalConsumption.toFixed(2),
       total_generation: +totalGeneration.toFixed(2),
-      unaccountable_energy: +(totalConsumption - totalGeneration).toFixed(2),
+      unaccountable_energy: +(totalGeneration- totalConsumption).toFixed(2),
       efficiency: +((totalConsumption / totalGeneration) * 100 || 0).toFixed(2),
     };
   });
@@ -341,7 +351,8 @@ async getDailyPowerAverages(startDate: string, endDate: string) {
     Wapda2: ['U27_PLC'],
     Niigata: ['U22_PLC'],
     JMS: ['U26_PLC'],
-    PH_IC: ['U23_GW01'],
+    PH_IC: ['U22_GW01'],
+   
   };
 
   const suffix = 'Del_ActiveEnergy';
@@ -431,18 +442,26 @@ async getDailyPowerAverages(startDate: string, endDate: string) {
   const JMS = sum(meterGroupKeys.JMS);
   const PH_IC = sum(meterGroupKeys.PH_IC);
 
-  const transformerLosses =
-    (Trafo1Incoming + Trafo2Incoming - Trafo1outgoing - Trafo2outgoing) +
-    (Trafo3Incoming - Trafo3outgoing) +
-    (Trafo4Incoming - Trafo4outgoing);
+    const T1andT2incoming = Trafo1Incoming+Trafo2Incoming;
+    const T1andT2outgoing = Trafo1outgoing+Trafo2outgoing;
+    const T1andT2losses = T1andT2incoming-T1andT2outgoing ;
+    const Trafo3losses = Trafo3Incoming - Trafo3outgoing;
+    const Trafo4losses = Trafo4Incoming - Trafo4outgoing;
+    const TrasformerLosses = T1andT2losses+ Trafo3losses + Trafo4losses;
+    const HT_Transmissioin_Losses = (Wapda2+ Niigata + JMS)- (Trafo3Incoming + Trafo4Incoming + PH_IC );
+    // console.log("HT_Transmissioin_Losses", HT_Transmissi
+  const losses = TrasformerLosses + HT_Transmissioin_Losses;
 
-  const HTTransmissionLosses =
-    (Wapda2 + Niigata + JMS) - (Trafo3Incoming + Trafo4Incoming + PH_IC);
-
-  const losses = transformerLosses + HTTransmissionLosses;
+//   console.log("🔍 T1+T2 Incoming:", T1andT2incoming);
+// console.log("🔍 T1+T2 Outgoing:", T1andT2outgoing);
+// console.log("🔍 Trafo3 Incoming:", Trafo3Incoming, "Outgoing:", Trafo3outgoing);
+// console.log("🔍 Trafo4 Incoming:", Trafo4Incoming, "Outgoing:", Trafo4outgoing);
+// console.log("🔍 Transformer Losses:", TrasformerLosses);
+// console.log("🔍 HT Transmission Losses:", HT_Transmissioin_Losses);
+// console.log("🔍 Losses (Final):", losses);
   const totalConsumption = unit4 + unit5;
   const totalgeneration = ht + lt + wapda + solar;
-  const unaccountable_energy = totalConsumption - totalgeneration;
+  const unaccountable_energy = totalgeneration - totalConsumption;
   const efficiency = totalgeneration > 0 ? (totalConsumption / totalgeneration) * 100 : 0;
 
   const dailyResults = [{
@@ -528,7 +547,7 @@ if (now.isBefore(endMomentPlanned)) {
     Wapda2: ['U27_PLC_Del_ActiveEnergy'],
     Niigata: ['U22_PLC_Del_ActiveEnergy'],
     JMS: ['U26_PLC_Del_ActiveEnergy'],
-    PH_IC: ['U23_GW01_Del_ActiveEnergy'],
+    PH_IC: ['U22_GW01_Del_ActiveEnergy'],
   };
 
   const results: Record<string, any> = {};
@@ -616,7 +635,7 @@ if (now.isBefore(endMomentPlanned)) {
   for (const month of Object.values(results)) {
     month.total_consumption = +(month.unit4 + month.unit5).toFixed(2);
     month.total_generation = +(month.HT + month.LT + month.wapda + month.solar).toFixed(2);
-    month.unaccountable_energy = +(month.total_consumption - month.total_generation).toFixed(2);
+    month.unaccountable_energy = +(month.total_generation - month.total_consumption).toFixed(2);
     month.efficiency = month.total_generation > 0
       ? +((month.total_consumption / month.total_generation) * 100).toFixed(2)
       : 0;
@@ -627,6 +646,8 @@ if (now.isBefore(endMomentPlanned)) {
     const t3losses = month.Trafo3Incoming - month.Trafo3outgoing;
     const t4losses = month.Trafo4Incoming - month.Trafo4outgoing;
     const transformerlosses = t1and2losses + t3losses + t4losses;
+
+    
 
     const HT_Transmission_Losses =
       (month.Wapda2 + month.Niigata + month.JMS) -
