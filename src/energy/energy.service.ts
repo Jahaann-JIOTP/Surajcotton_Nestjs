@@ -270,8 +270,8 @@ const sumGroup = (keys: string[]) =>
     let T1andT2incoming = Trafo1Incoming+Trafo2Incoming;
     let T1andT2outgoing = Trafo1outgoing+Trafo2outgoing;
     let T1andT2losses = T1andT2incoming-T1andT2outgoing ;
-    // let Trafo1losses = Trafo1Incoming - Trafo1outgoing;
-    // let Trafo2losses = Trafo2Incoming - Trafo2outgoing;
+    let Trafo1losses = Trafo1Incoming - Trafo1outgoing;
+    let Trafo2losses = Trafo2Incoming - Trafo2outgoing;
     let Trafo3losses = Trafo3Incoming - Trafo3outgoing;
     let Trafo4losses = Trafo4Incoming - Trafo4outgoing;
     let TrasformerLosses = T1andT2losses+ Trafo3losses + Trafo4losses;
@@ -308,11 +308,11 @@ const sumGroup = (keys: string[]) =>
     Unit5_LT2: Unit5_LT2.toFixed(2),
     PH_ICKeys: PH_IC.toFixed(2),
     Wapdaexport: WapdaExport.toFixed(2),
-    T1andT2incoming: T1andT2incoming.toFixed(2),
-    T1andT2outgoing: T1andT2outgoing.toFixed(2),
-    T1andT2losses: T1andT2losses.toFixed(2),
-    // Trafo1Incoming:Trafo1Incoming.toFixed(2),
-    // Trafo2Incoming: Trafo2Incoming.toFixed(2),
+    // T1andT2incoming: T1andT2incoming.toFixed(2),
+    // T1andT2outgoing: T1andT2outgoing.toFixed(2),
+    // T1andT2losses: T1andT2losses.toFixed(2),
+    Trafo1Incoming:Trafo1Incoming.toFixed(2),
+    Trafo2Incoming: Trafo2Incoming.toFixed(2),
     Trafo3Incoming: Trafo3Incoming.toFixed(2),
     Trafo4Incoming: Trafo4Incoming.toFixed(2),
     Trafo1outgoing: Trafo1outgoing.toFixed(2),
@@ -324,7 +324,8 @@ const sumGroup = (keys: string[]) =>
     // Trafo2activepowertotal: Trafo2activepowertotal.toFixed(2),
     // Trafo3activepowertotal: Trafo3activepowertotal.toFixed(2),
     // Trafo4activepowertotal: Trafo4activepowertotal.toFixed(2),
-
+    Trafo1losses: Trafo1losses.toFixed(2),
+    Trafo2losses: Trafo2losses.toFixed(2),
     Trafo3losses: Trafo3losses.toFixed(2),
     Trafo4losses: Trafo4losses.toFixed(2),
     TrasformerLosses: TrasformerLosses.toFixed(2),

@@ -46,7 +46,7 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   };
   const ComberandunilapMapping: Record<string, string[]> = {
     Unit_4: ['U13_PLC'],
-    Unit_5: ['U14_GW02', 'U22_GW02'],//4
+    Unit_5: ['U14_GW02', 'U6_GW03'],//4
   };
    const DrawingFinisherand2BreakerMapping: Record<string, string[]> = {
     Unit_4: ['U8_PLC'], //5
@@ -61,8 +61,8 @@ async getConsumptionData(dto: GetEnergyCostDto) {
     Unit_4: ['U15_PLC'], //7
    
   };
-     const DrawingBreaker_SimplexMapping: Record<string, string[]> = {
-    Unit_4: ['U21_GW02'], //7
+     const DrawingSimplex_BreakerMapping: Record<string, string[]> = {
+    Unit_5: ['U21_GW02'], //7
    
   };
   //   const DrawingBreakerandSimplexMapping: Record<string, string[]> = {
@@ -108,8 +108,8 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   
  const AirCompressorMapping: Record<string, string[]> = {
   
-    Unit_4: ['U14_PLC'],
-    Unit_5: [ 'U16_PLC', 'U20_PLC'], // 16
+    Unit_4: ['U14_PLC', 'U20_PLC'],
+    Unit_5: [ 'U16_PLC'], // 16
 
   };
    const Deep_Well_TurbineMapping: Record<string, string[]> = {
@@ -123,7 +123,7 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   };
     const Mills_LightingMapping: Record<string, string[]> = {
     Unit_4: ['U4_PLC', 'U3_PLC'],
-    Unit_5: ['U14_GW03'] // 19
+    Unit_5: ['U14_GW03', 'U2_PLC'] // 19
 
   };
     const ResidentialcolonyMapping: Record<string, string[]> = {
@@ -159,7 +159,7 @@ async getConsumptionData(dto: GetEnergyCostDto) {
   };
  const SpareMapping: Record<string, string[]> = {
     Unit_4: ['U6_GW01','U21_GW01'],
-    Unit_5: ['U7_GW03', 'U8_GW03','U6_GW03'], //27
+    Unit_5: ['U7_GW03', 'U8_GW03'], //27
 
   };
 
@@ -229,7 +229,7 @@ console.log('📌 endISO:', endISO);
   const DrawingFinisherand2BreakerMap: Record<string, number> = { Unit_4: 0, Unit_5: 0 };
   const DrawingFinisher1to8BreakerMap: Record<string, number> = { Unit_4: 0, Unit_5: 0 };
   const DrawingSimplexMap: Record<string, number> = { Unit_4: 0, Unit_5: 0 };
-  const DrawingBreaker_SimplexMap: Record<string, number> = { Unit_4: 0, Unit_5: 0 };
+  const DrawingSimplex_BreakerMap: Record<string, number> = { Unit_4: 0, Unit_5: 0 };
 
   const WaterChillerMap: Record<string, number> = { Unit_4: 0, Unit_5: 0 };
 
@@ -290,7 +290,7 @@ console.log('📌 endISO:', endISO);
       result[`${areaKey.toLowerCase()}DrawingFinisherand2Breaker_consumption`] = 0;
       result[`${areaKey.toLowerCase()}DrawingFinisher1to8Breaker_consumption`] = 0;
       result[`${areaKey.toLowerCase()}DrawingSimplex_consumption`] = 0;
-      result[`${areaKey.toLowerCase()}DrawingBreaker_Simplex_consumption`] = 0;
+      result[`${areaKey.toLowerCase()}DrawingSimplex_Breaker_consumption`] = 0;
 
    
 
@@ -473,12 +473,12 @@ for (const key of areaKeys) {
     // console.log(`DrawingFinisherand2Breaker Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
        ///....DrawingSimplex(firstDoc & lastDoc direct values, no .CONS) ---
-    for (const meterId of DrawingBreaker_SimplexMapping[key] || []) {
+    for (const meterId of DrawingSimplex_BreakerMapping[key] || []) {
     const meterKey = `${meterId}_${suffix}`;
     const startVal = this.sanitizeValue(firstDoc[meterKey]);
     const endVal = this.sanitizeValue(lastDoc[meterKey]);
     const consumption = this.sanitizeValue(endVal - startVal);
-    DrawingBreaker_SimplexMap[key] += consumption;
+    DrawingSimplex_BreakerMap[key] += consumption;
 
     // console.log(`DrawingFinisherand2Breaker Meter: ${meterKey} | Start: ${startVal} | End: ${endVal} | Consumption: ${consumption}`);
   }
@@ -832,7 +832,7 @@ for (const key of areaKeys) {
     result[`${areaKey.toLowerCase()}DrawingFinisherand2Breaker_consumption`] = +DrawingFinisherand2BreakerMap[areaKey].toFixed(2);
     result[`${areaKey.toLowerCase()}DrawingFinisher1to8Breaker_consumption`] = +DrawingFinisher1to8BreakerMap[areaKey].toFixed(2);
     result[`${areaKey.toLowerCase()}DrawingSimplex_consumption`] = +DrawingSimplexMap[areaKey].toFixed(2);
-    result[`${areaKey.toLowerCase()}DrawingBreaker_Simplex_consumption`] = +DrawingBreaker_SimplexMap[areaKey].toFixed(2);
+    result[`${areaKey.toLowerCase()}DrawingSimplex_Breaker_consumption`] = +DrawingSimplex_BreakerMap[areaKey].toFixed(2);
     result[`${areaKey.toLowerCase()}RTransportSystem_consumption`] = +RTransportSystemMap[areaKey].toFixed(2);
     result[`${areaKey.toLowerCase()}Ring_consumption`] = +RingMap[areaKey].toFixed(2);
     result[`${areaKey.toLowerCase()}AutoCone_Winding10to18_consumption`] = +AutoCone_Winding10to18Map[areaKey].toFixed(2);

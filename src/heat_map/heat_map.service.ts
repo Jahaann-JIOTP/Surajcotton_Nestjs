@@ -143,7 +143,8 @@ console.log(endDateTime)
     results.push({
       // ✅ Always return Asia/Karachi time
       date: hourStart.clone().tz("Asia/Karachi").format("YYYY-MM-DD HH:00"),
-      Trafo1and2: +(Trafo1 + Trafo2).toFixed(2),
+     Trafo1: +Trafo1.toFixed(2),
+      Trafo2: +Trafo2.toFixed(2),
       Trafo3: +Trafo3.toFixed(2),
       Trafo4: +Trafo4.toFixed(2),
     });
@@ -153,12 +154,6 @@ console.log(endDateTime)
 
   return results;
 }
-
-
-
-
-
-
 
 
 
