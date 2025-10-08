@@ -14,7 +14,7 @@ import { RolesModule } from '../roles/roles.module';
           schema: UsersSchema,
         },
       ],
-      'usdenim' // ✅ MUST match the connection name used in forRoot
+      'surajcotton' // ✅ MUST match the connection name used in forRoot
     ),
     RolesModule,
   ],

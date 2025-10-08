@@ -7,9 +7,7 @@ async function bootstrap() {
 
   // ✅ Add this line to fix your CORS issue
   app.enableCors({
-    // origin: ['https://surajcotton.jiotp.com','http://110.39.23.106:3091','http://localhost:3001', 'http://localhost:3000', '*'], // or wherever your frontend runs
-    origin: ['http://localhost:3000','*'], // or wherever your frontend runs
-    
+    origin: ['https://surajcotton.jiotp.com','http://110.39.23.106:3091','http://localhost:3001', 'http://localhost:3000', '*'], // or wherever your frontend runs
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     allowedHeaders: "Content-Type, Authorization",
     credentials: true, // only if using cookies/auth

@@ -13,7 +13,7 @@ import { Roles, RolesDocument } from 'src/roles/schema/roles.schema';
 @Injectable()
 export class AdminGuard implements CanActivate {
   constructor(
-    @InjectModel(Roles.name, 'usdenim')
+    @InjectModel(Roles.name, 'surajcotton')
     private readonly rolesModel: Model<RolesDocument>,
   ) {}
 

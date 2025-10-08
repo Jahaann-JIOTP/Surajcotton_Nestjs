@@ -12,7 +12,7 @@ import { PrivellegesSchema } from 'src/privelleges/schema/privelleges.schema';
       { name: 'Roles', schema: RolesSchema },
       { name: 'Privelleges', schema: PrivellegesSchema },
     ],
-    'usdenim' // ✅ This must match your forRoot connectionName
+    'surajcotton' // ✅ This must match your forRoot connectionName
   ),
   forwardRef(() => UsersModule),
 ],

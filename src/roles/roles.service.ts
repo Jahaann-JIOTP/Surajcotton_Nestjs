@@ -25,13 +25,13 @@ export class RolesService {
   // ) {}
 
   constructor(
-  @InjectModel('Roles', 'usdenim')
+  @InjectModel('Roles', 'surajcotton')
   private readonly rolesModel: Model<RolesDocument>,
 
-  @InjectModel('Users', 'usdenim')
+  @InjectModel('Users', 'surajcotton')
   private readonly usersModel: Model<UsersDocument>,
 
-  @InjectModel('Privelleges', 'usdenim')
+  @InjectModel('Privelleges', 'surajcotton')
   private readonly privellegesModel: Model<PrivellegesDocument>,
 ) {}
 
