@@ -20,8 +20,8 @@ export class UsersService {
     
   }
   constructor(
-    @InjectModel(Users.name, 'surajcotton') private userModel: Model<UsersDocument>,
-    @InjectModel(Roles.name, 'surajcotton') private readonly roleModel: Model<RolesDocument>,
+    @InjectModel(Users.name, 'usdenim') private userModel: Model<UsersDocument>,
+    @InjectModel(Roles.name, 'usdenim') private readonly roleModel: Model<RolesDocument>,
   ) {}
 
   async addUser(

@@ -16,7 +16,7 @@ import { PrivellegesController } from './privelleges.controller';
         { name: Users.name, schema: UsersSchema },
         { name: Roles.name, schema: RolesSchema },
       ],
-      'surajcotton', // << make sure this matches your DB connection name
+      'usdenim', // << make sure this matches your DB connection name
     ),
   ],
 
