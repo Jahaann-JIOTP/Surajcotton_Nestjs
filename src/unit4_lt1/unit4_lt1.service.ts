@@ -52,7 +52,7 @@ export class Unit4LT1Service {
     //  Pull just U4_U22_GW03’s (Ring 21 - 24 / PDB 07 U4 ) consumption from that response (defaults to 0 if missing)
     // normalize & round once
     const PDB07_U4 = +(Number(fmCons?.U4_U22_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
-    console.log(PDB07_U4)
+    // console.log(PDB07_U4)
     // ---------------- Meter setup ----------------  U18_PLC: 'Ring AC (Bypass)' removed by miss mehak at 30-sept
     const meterMap: Record<string, string> = {
       U1_PLC: 'Transport', U2_PLC: 'Unit 05 Lighting', U3_PLC: 'Light Outside', U4_PLC: 'Light Inside',
@@ -122,7 +122,7 @@ export class Unit4LT1Service {
     // ➕ NEW LEG: show the subtracted portion separately
   sankeyData.push({
     from: 'TotalLT1',
-    to: 'PDB 07->To U5 LT1(Auto Cone 1-9)',
+    to: 'PDB07->To U5LT1(AutoCone1-9)',
     value: Math.max(0, +PDB07_U4.toFixed(2))
   });
     return sankeyData;

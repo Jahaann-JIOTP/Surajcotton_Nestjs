@@ -118,10 +118,11 @@ export class Unit5LT4Service {
       }
     }
 
-    // Which PLC meter should lose what (non-negative math later)
-    const minusByMeter: Record<string, number> = {
-      U10_GW03: +(Number(PDB10_U5).toFixed(2)),   // Auto Con-linker Conner M/S 10-12
+    const minusByMeter: Record<string, number> = {}; // no subtraction now from Auto Con-linker Conner M/S 10-12
+    const overrideByMeter: Record<string, number> = {   // displaying the PDB_10 TOTAL value in Auto Con-linker Conner M/S 10-12 insteat of its original value
+      U10_GW03: PDB10_sum,
     };
+
 
     // ---------------- Prepare Sankey Data ----------------
     const tf4 = +consumptionTotals['U16_GW03_Del_ActiveEnergy'].toFixed(2);
@@ -129,26 +130,50 @@ export class Unit5LT4Service {
     const totalLT4 = +(tf4 + solar2).toFixed(2);
 
 
-    const plcLegs = Object.entries(meterMap).map(([meter, label]) => {
-    const key   = `${meter}_Del_ActiveEnergy`;
-    const base  = +(Number(consumptionTotals[key] || 0).toFixed(2));
-    const minus = +(Number(minusByMeter[meter] || 0).toFixed(2));
-    const raw   = +(base - minus).toFixed(2);
-    const value = Math.max(0, Math.abs(raw) < 1e-9 ? 0 : raw);
-    return { from: 'TotalLT4', to: label, value };
-  });
+  // Build one Sankey leg per PLC meter
+const plcLegs = Object.entries(meterMap).map(([meter, label]) => {
+  // Compose the raw-data field name used in your collection, e.g. "U10_GW03_Del_ActiveEnergy"
+  const key  = `${meter}_Del_ActiveEnergy`;
+
+  // Base consumption for this meter (last - first), already computed into `consumptionTotals`
+  // Ensure it's a number and round to 2 decimals; unary + converts string → number
+  const base = +(Number(consumptionTotals[key] || 0).toFixed(2));
+
+  // If this meter has a forced value (override), use that instead of its own base consumption.
+  // In your case, U10_GW03 is overridden to PDB10_sum.
+  if (Object.prototype.hasOwnProperty.call(overrideByMeter, meter)) {
+    // Pull the override, round to 2 decimals, coerce to number
+    const ov = +(Number(overrideByMeter[meter]).toFixed(2));
+    // Return the Sankey leg object for this meter using the override (never negative)
+    return { from: 'TotalLT4', to: label, value: Math.max(0, ov) };
+  }
+
+  // Otherwise, optionally subtract a correction (minus). Here we’ve emptied minusByMeter,
+  // but the code remains generic for future meters that might need a subtraction.
+  const minus = +(Number(minusByMeter[meter] || 0).toFixed(2));
+
+  // Raw value = base - minus; round to 2 decimals and coerce to number
+  const raw   = +(base - minus).toFixed(2);
+
+  // Final value for Sankey: clamp tiny -0.00 to 0 and prevent negatives
+  const value = Math.max(0, Math.abs(raw) < 1e-9 ? 0 : raw);
+
+  // Return the Sankey leg for this meter
+  return { from: 'TotalLT4', to: label, value };
+});
+
 
     const sankeyData = [
       { from: 'TF #2', to: 'TotalLT4', value: tf4 },
       { from: 'Solar 1017', to: 'TotalLT4', value: solar2 },
     // NEW input/generation leg
-      { from: 'From U4LT2(Ring5-8 )', to: 'TotalLT4', value: PDB10_U4 },
+      { from: 'From U4 LT2(Ring5-8 )', to: 'TotalLT4', value: PDB10_U4 },
 
       // Adjusted PLC branches (includes the U10_GW03 subtraction)
       ...plcLegs,
 
       // NEW bottom/output summary leg
-      { from: 'TotalLT4', to: 'PDB 10 TOTAL', value: PDB10_sum },
+      // { from: 'TotalLT4', to: 'PDB 10 TOTAL', value: PDB10_sum },
     ];
     return sankeyData;
   }

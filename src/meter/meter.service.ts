@@ -1,4 +1,4 @@
-import { Injectable} from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -11,18 +11,40 @@ import {
 import axios from 'axios';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as moment from "moment-timezone";
+// add this import at the top with the others:
+import type { AnyBulkWriteOperation as MongooseBulkOp } from 'mongoose';
+
 
 
 @Injectable()
 export class MeterService {
+  //  Structured logger instead of console.log
+  private readonly logger = new Logger(MeterService.name);
+  //  Allowed target areas (strict)
+  private static readonly ALLOWED_AREAS = new Set(['unit4', 'unit5']);
+  /**
+   *   Linked meter groups:
+   * - Any key resolves to the full group it belongs to.
+   * - Singles map to themselves and remain independent.
+   */
+  private static readonly LINKED_GROUPS: Record<string, string[]> = {
+    'U1_GW02': ['U1_GW02', 'U4_GW02'], // Group A
+    'U4_GW02': ['U1_GW02', 'U4_GW02'], // Group A
+
+    'U3_GW02': ['U3_GW02', 'U2_GW02'], // Group B
+    'U2_GW02': ['U3_GW02', 'U2_GW02'], // Group B
+
+    'U23_GW03': ['U23_GW03'],          // Single
+    'U22_GW03': ['U22_GW03'],          // Single
+  };
   constructor(
-    @InjectModel(MeterToggle.name, 'surajcotton') private readonly toggleModel: Model<MeterToggleDocument>,
-    @InjectModel(MeterConfiguration.name, 'surajcotton') private readonly configModel: Model<MeterConfigurationDocument>,
-      
+  @InjectModel(MeterToggle.name, 'surajcotton') private readonly toggleModel: Model<MeterToggleDocument>,
+  @InjectModel(MeterConfiguration.name, 'surajcotton') private readonly configModel: Model<MeterConfigurationDocument>,
+  
   private readonly httpService: HttpService,
   @InjectModel(FieldMeterRawData.name, 'surajcotton') private fieldMeterRawDataModel: Model<FieldMeterRawData>,
-@InjectModel(FieldMeterProcessData.name, 'surajcotton')
-private readonly fieldMeterProcessDataModel: Model<FieldMeterProcessData>,
+  @InjectModel(FieldMeterProcessData.name, 'surajcotton')
+  private readonly fieldMeterProcessDataModel: Model<FieldMeterProcessData>,
 ) {}
 
 // This is generic function for time-zone conversion to asia karachi
@@ -30,55 +52,126 @@ private readonly fieldMeterProcessDataModel: Model<FieldMeterProcessData>,
     return new Date(Date.now() + 5 * 60 * 60 * 1000);
   }
 
-  // This Api Handles the meter Toggle functionality and its configurations logs. It inserts data in  meterconfigurations collection and metertoggle collection  - (POST + UPDATE)
+ /**
+   * POST /meter/toggle
+   * - No transactions (works on standalone MongoDB)
+   * - Flips linked meters using bulkWrite
+   * - Response remains: { meterId, area, message }
+   */
   async toggleMeter(dto: ToggleMeterDto) {
-  const { meterId, area, email, username } = dto;
+    const { meterId, area, email, username } = dto;
 
-  if (!['unit4', 'unit5'].includes(area)) {
-    return { message: `Invalid area: ${area}` };
-  }
+    // 1) Validate input early (fast 400)
+    if (!MeterService.ALLOWED_AREAS.has(area)) {
+      throw new BadRequestException(`Invalid area "${area}". Allowed: unit4 | unit5`);
+    }
+    const group = MeterService.LINKED_GROUPS[meterId];
+    if (!group) {
+      throw new BadRequestException(
+        `Unknown meterId "${meterId}". Allowed: ${Object.keys(MeterService.LINKED_GROUPS).join(', ')}`
+      );
+    }
 
-  const karachiAsUtc = this.nowAsKarachiUtcDate();
-  const existing = await this.toggleModel.findOne({ meterId });
+    // 2) Snapshot current state of the whole group (single query)
+    const existingDocs = await this.toggleModel
+      .find({ meterId: { $in: group } })
+      .lean()
+      .catch((e) => {
+        this.logger.error(`Read toggles failed: ${e?.message || e}`);
+        throw new InternalServerErrorException('Unable to read current meter states.');
+      });
 
-  if (!existing) {
-    await this.toggleModel.create({
-      meterId,
-      area,
-      startDate: karachiAsUtc, // ✅ Date shows Karachi time in Z
-      endDate: karachiAsUtc,
+    const now = this.nowAsKarachiUtcDate();
+
+    // 3) Decide what to upsert/update for each meter
+    type Change = { meterId: string; action: 'create' | 'update' | 'noop' };
+    const changes: Change[] = [];
+
+    const existingMap = new Map(existingDocs.map(d => [d.meterId, d]));
+    for (const mId of group) {
+      const doc = existingMap.get(mId);
+      if (!doc) {
+        changes.push({ meterId: mId, action: 'create' });
+      } else if (doc.area === area) {
+        changes.push({ meterId: mId, action: 'noop' });
+      } else {
+        changes.push({ meterId: mId, action: 'update' });
+      }
+    }
+
+    // 4) Build a compact bulkWrite (no sessions/transactions) — strongly typed
+// const ops: AnyBulkWriteOperation<any>[] = []; // or <MeterToggleDocument> if your doc type is compatible
+const ops: MongooseBulkOp[] = [];
+
+for (const c of changes) {
+  if (c.action === 'create') {
+    ops.push({
+      insertOne: {
+        document: {
+          meterId: c.meterId,
+          area,
+          startDate: now,
+          endDate: now,
+        },
+      },
     });
-
-    await this.configModel.create({
-      meterId,
-      area,
-      email,
-      username,
-      assignedAt: karachiAsUtc,
+  } else if (c.action === 'update') {
+    ops.push({
+      updateOne: {
+        filter: { meterId: c.meterId },
+        update: { $set: { area, startDate: now, endDate: now } },
+      },
     });
-
-    return { meterId, area, message: 'Initialized and activated.' };
   }
-
-  if (existing.area === area) {
-    return { meterId, area, message: 'Already active in this area.' };
-  }
-
-    existing.area = area;
-    existing.startDate = karachiAsUtc;
-    existing.endDate = karachiAsUtc;
-    await existing.save();
-
-  await this.configModel.create({
-    meterId,
-    area,
-    email,
-    username,
-    assignedAt: karachiAsUtc,
-  });
-
-  return { meterId, area, message: 'Toggled successfully.' };
 }
+
+// 5) Apply changes in one go (fast & simple)
+if (ops.length > 0) {
+  try {
+    await this.toggleModel.bulkWrite(ops, { ordered: true });
+  } catch (e: any) {
+    this.logger.error(`bulkWrite(toggles) failed: ${e?.message || e}`);
+    throw new InternalServerErrorException('Failed to toggle meters.');
+  }
+}
+
+
+
+    // 6) Create config logs only for "create" or "update"
+    const configDocs = changes
+      .filter(c => c.action !== 'noop')
+      .map(c => ({
+        meterId: c.meterId,
+        area,
+        email,
+        username,
+        assignedAt: now,
+      }));
+
+    if (configDocs.length > 0) {
+      try {
+        await this.configModel.insertMany(configDocs, { ordered: false });
+      } catch (e: any) {
+        // Don’t fail the API if logs fail; just warn (state is already updated)
+        this.logger.warn(`insertMany(config) failed: ${e?.message || e}`);
+      }
+    }
+
+    // 7) Compute the primary meter's message to keep response identical
+    let message = 'Toggled successfully.';
+    const primaryChange = changes.find(c => c.meterId === meterId);
+    if (primaryChange?.action === 'create') message = 'Initialized and activated.';
+    if (primaryChange?.action === 'noop')   message = 'Already active in this area.';
+
+    this.logger.log(
+      `Toggle OK (no-txn) → area=${area}, group=[${group.join(', ')}], primary=${meterId}, msg="${message}"`
+    );
+
+    // 8) EXACT same response format as before
+    return { meterId, area, message };
+  }
+
+
 
 // To get all the meters status in the meter configurations tab  
 async getAllToggleData() {
@@ -261,7 +354,7 @@ const timestamp15 = new Date(timestamp15UTC.getTime() + 5 * 60 * 60 * 1000)
       { upsert: true, new: true }
     );
 
-    // console.log(`✅ Cron insert complete for ${timestamp15.toISOString()}`);
+    console.log(`✅ Cron insert complete for ${timestamp15}`);
 
     // After storing the real-time data, now call the calculateConsumption function
     await this.calculateConsumption(); // Calling calculateConsumption after storing data
@@ -367,10 +460,10 @@ if (lastRawDoc.source === "cron") {
 
 //  ------------------ Step 2: Zero-to-first-value fix -------------------
 
-    if (currentArea === "unit4" && prevFlatU4?.lV === 0 && currentValue > 0) {
+    if (currentArea === "unit4" && prevFlatU4 && prevFlatU4?.lV === 0 && currentValue > 0) {
         u4.fV = currentValue;
     }
-    if (currentArea === "unit5" && prevFlatU5?.lV === 0 && currentValue > 0) {
+    if (currentArea === "unit5" && prevFlatU5 && prevFlatU5?.lV === 0 && currentValue > 0) {
         u5.fV = currentValue;
     }
 
@@ -398,63 +491,62 @@ const maxSpike = (installedLoad[meterId]) * minutesDiff;
     currentValue = lastNonZeroLV || currentValue; // I WILL DISCUSS THIS WITH AUTOMATION / IF HIGH VALUE COME FIRST TIME AND THERE IS NO NORMAL VALUE THEN ? ACCEPT IT OR REPLACE IT WITH 0 
 }
 
-// Calculate the consumption and cumulative consumption
-    if (!prevProcessDoc) {
-      // Initialize first-time data
-      if (currentArea === "unit4") {
-        u4 = { fV: currentValue, lV: currentValue, CONS: 0, cumulative_con: 0 };
-        u5 = { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 }; // keep other empty
-      } else if (currentArea === "unit5") {
-        u5 = { fV: currentValue, lV: currentValue, CONS: 0, cumulative_con: 0 };
-        u4 = { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 };
-      }
+// ---- Per-meter first-time detection (CRON) ----
+const isFirstForThisMeter = !prevFlatU4 && !prevFlatU5 && !prevLastArea;
+
+if (isFirstForThisMeter) {
+  if (currentArea === "unit4") {
+    u4 = { fV: currentValue, lV: currentValue, CONS: 0, cumulative_con: 0 };
+    u5 = { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 };
+  } else {
+    u5 = { fV: currentValue, lV: currentValue, CONS: 0, cumulative_con: 0 };
+    u4 = { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 };
+  }
+} else {
+  // ---- Existing logic: toggle vs same-area ----
+  if (prevLastArea && prevLastArea !== currentArea) {
+    // TOGGLE path
+    if (currentArea === "unit4") {
+      // finalize unit5
+      u5.fV = prevFlatU5?.lV ?? u5.lV;
+      u5.lV = currentValue;
+      u5.CONS = u5.lV - u5.fV;
+      u5.cumulative_con += u5.CONS;
+
+      // start unit4 at current
+      u4.fV = currentValue;
+      u4.lV = currentValue;
+      u4.CONS = u4.lV - u4.fV;
+      u4.cumulative_con += u4.CONS;
     } else {
-      // Handle area toggle (change from unit4 to unit5 or vice versa)
-      if (prevLastArea && prevLastArea !== currentArea) {
-        // Reset previous area and calculate new values
-        if (currentArea === "unit4") {
-              // Finalize Unit_5 consumption
-            u5.fV = prevFlatU5?.lV ?? u5.lV;
-            u5.lV = currentValue;
-            u5.CONS = u5.lV - u5.fV;
-            u5.cumulative_con += u5.CONS  // Update cumulative consumption
+      // finalize unit4
+      u4.fV = prevFlatU4?.lV ?? u4.lV;
+      u4.lV = currentValue;
+      u4.CONS = u4.lV - u4.fV;
+      u4.cumulative_con += u4.CONS;
 
-            // Set FV for Unit_4 from the last value of Unit_5 (not currentValue)
-            u4.fV = currentValue; // Set unit5's fV from unit4's last value (lV)
-            u4.lV = currentValue; // Set unit5's last value (lV) to the current value
-            u4.CONS = u4.lV - u4.fV; // Calculate consumption for unit5
-            u4.cumulative_con += u4.CONS;
-
-        } else if (currentArea === "unit5") {
-            // console.log("finalizing unit 4 and i am toggle to unit5 now");
-            u4.fV = prevFlatU4?.lV ?? u4.lV; // Ensure fV for unit4 is the last value of unit4
-            u4.lV = currentValue; // Set unit4's last value to current value
-            u4.CONS = u4.lV - u4.fV; // Calculate consumption for unit4
-            u4.cumulative_con += u4.CONS;
-
-            // Set FV for Unit_5 from the last value of Unit_4 (not currentValue)
-            u5.fV = currentValue; // Set unit5's fV from unit4's last value (lV)
-            u5.lV = currentValue; // Set unit5's last value (lV) to the current value
-            u5.CONS = u5.lV - u5.fV; // Calculate consumption for unit5
-            u5.cumulative_con += u5.CONS;
-
-        }
-      } else {
-        // 🔹 Same area update
-        if (currentArea === "unit4") {
-          u4.fV = prevFlatU4?.lV ?? u4.lV;
-          u4.lV = currentValue;
-          u4.CONS = currentValue - u4.fV;
-          u4.cumulative_con += u4.CONS;
-
-        } else if (currentArea === "unit5") {
-          u5.fV = prevFlatU5?.lV ?? u5.lV;
-          u5.lV = currentValue;
-          u5.CONS = currentValue - u5.fV;
-          u5.cumulative_con += u5.CONS;
-        }
-      }
+      // start unit5 at current
+      u5.fV = currentValue;
+      u5.lV = currentValue;
+      u5.CONS = u5.lV - u5.fV;
+      u5.cumulative_con += u5.CONS;
     }
+  } else {
+    // SAME-AREA path
+    if (currentArea === "unit4") {
+      u4.fV = prevFlatU4?.lV ?? u4.lV;
+      u4.lV = currentValue;
+      u4.CONS = currentValue - u4.fV;
+      u4.cumulative_con += u4.CONS;
+    } else {
+      u5.fV = prevFlatU5?.lV ?? u5.lV;
+      u5.lV = currentValue;
+      u5.CONS = currentValue - u5.fV;
+      u5.cumulative_con += u5.CONS;
+    }
+  }
+}
+
 
       // ✅ Update lastNonZeroTime based on CONS, not raw value
   if (u4.CONS > 0) u4.lastNonZeroTime = adjustedTimestamp;
@@ -535,10 +627,10 @@ let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0, cumulative_co
 
     //  ------------------ Step 2: Zero-to-first-value fix -------------------
 
-        if (currentArea === "unit4" && prevFlatU4?.lV === 0 && currentValue > 0) {
+        if (currentArea === "unit4" && prevFlatU4 && prevFlatU4?.lV === 0 && currentValue > 0) {
             u4.fV = currentValue;
         }
-        if (currentArea === "unit5" && prevFlatU5?.lV === 0 && currentValue > 0) {
+        if (currentArea === "unit5" && prevFlatU5 && prevFlatU5?.lV === 0 && currentValue > 0) {
             u5.fV = currentValue;
         }
 
@@ -569,61 +661,56 @@ let u5 = prevFlatU5 ? { ...prevFlatU5 } : { fV: 0, lV: 0, CONS: 0, cumulative_co
         
       }
   
-  // First-time init
-  if (!prevProcessDoc) {
+// ---- Per-meter first-time detection (TOGGLE) ----
+const isFirstForThisMeter = !prevFlatU4 && !prevFlatU5 && !prevLastArea;
+
+if (isFirstForThisMeter) {
+  if (currentArea === "unit4") {
+    u4 = { fV: currentValue, lV: currentValue, CONS: 0, cumulative_con: 0 };
+    u5 = { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 };
+  } else {
+    u5 = { fV: currentValue, lV: currentValue, CONS: 0, cumulative_con: 0 };
+    u4 = { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 };
+  }
+} else {
+  // ---- Existing logic: toggle vs same-area ----
+  if (prevLastArea && prevLastArea !== currentArea) {
     if (currentArea === "unit4") {
-      u4 = { fV: currentValue, lV: currentValue, CONS: 0 , cumulative_con: 0};
-      u5 = { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 }; // ensure other side stays empty
-    } else if (currentArea === "unit5") {
-      u5 = { fV: currentValue, lV: currentValue, CONS: 0, cumulative_con: 0 };
-      u4 = { fV: 0, lV: 0, CONS: 0, cumulative_con: 0 };
+      u5.fV = prevFlatU5?.lV ?? u5.lV;
+      u5.lV = currentValue;
+      u5.CONS = u5.lV - u5.fV;
+      u5.cumulative_con += u5.CONS;
+
+      u4.fV = currentValue;
+      u4.lV = currentValue;
+      u4.CONS = u4.lV - u4.fV;
+      u4.cumulative_con += u4.CONS;
+    } else {
+      u4.fV = prevFlatU4?.lV ?? u4.lV;
+      u4.lV = currentValue;
+      u4.CONS = u4.lV - u4.fV;
+      u4.cumulative_con += u4.CONS;
+
+      u5.fV = currentValue;
+      u5.lV = currentValue;
+      u5.CONS = u5.lV - u5.fV;
+      u5.cumulative_con += u5.CONS;
     }
   } else {
-    // 🔄 Toggle event
-    if (prevLastArea && prevLastArea !== currentArea) {
-      // If the area has changed, finalize the previous area’s consumption and reset FV for the new area
-      if (currentArea === "unit4") {
-        // Finalize Unit_5 consumption
-        u5.fV = prevFlatU5?.lV ?? u5.lV;
-        u5.lV = currentValue;
-        u5.CONS = u5.lV - u5.fV;
-        u5.cumulative_con += u5.CONS;  
-
-        // Set FV for Unit_4 from the last value of Unit_5 (not currentValue)
-        u4.fV = currentValue; // Set unit5's fV from unit4's last value (lV)
-        u4.lV = currentValue; // Set unit5's last value (lV) to the current value
-        u4.CONS = u4.lV - u4.fV; // Calculate consumption for unit5
-        u4.cumulative_con += u4.CONS;
-
-      } else if (currentArea === "unit5") {
-                // Finalize Unit_4 consumption
-            console.log("finalizing unit 4 and i am toggle to unit5 now");
-            u4.fV = prevFlatU4?.lV ?? u4.lV; // Ensure fV for unit4 is the last value of unit4
-            u4.lV = currentValue; // Set unit4's last value to current value
-            u4.CONS = u4.lV - u4.fV; // Calculate consumption for unit4
-            u4.cumulative_con += u4.CONS;
-
-            // Set FV for Unit_5 from the last value of Unit_4 (not currentValue)
-            u5.fV = currentValue; // Set unit5's fV from unit4's last value (lV)
-            u5.lV = currentValue; // Set unit5's last value (lV) to the current value
-            u5.CONS = u5.lV - u5.fV; // Calculate consumption for unit5
-            u5.cumulative_con += u5.CONS; 
-      }
+    if (currentArea === "unit4") {
+      u4.fV = prevFlatU4?.lV ?? u4.lV;
+      u4.lV = currentValue;
+      u4.CONS = currentValue - u4.fV;
+      u4.cumulative_con += u4.CONS;
     } else {
-      // Same area update, calculate consumption as usual
-      if (currentArea === "unit4") {
-        u4.fV = prevFlatU4?.lV ?? u4.lV;
-        u4.lV = currentValue;
-        u4.CONS = currentValue - u4.fV;
-        u4.cumulative_con += u4.CONS;
-      } else {
-        u5.fV = prevFlatU5?.lV ?? u5.lV;
-        u5.lV = currentValue;
-        u5.CONS = currentValue - u5.fV;
-        u5.cumulative_con += u5.CONS; 
-      }
+      u5.fV = prevFlatU5?.lV ?? u5.lV;
+      u5.lV = currentValue;
+      u5.CONS = currentValue - u5.fV;
+      u5.cumulative_con += u5.CONS;
     }
   }
+}
+
 
         // ✅ Update lastNonZeroTime based on CONS, not raw value
   if (u4.CONS > 0) u4.lastNonZeroTime = adjustedTimestamp;
@@ -704,8 +791,8 @@ if (opts?.startTime && opts?.endTime) {
     }
 
 
-    console.log("📅 start:", start);
-    console.log("📅 end  :", end);
+    // console.log("📅 start:", start);
+    // console.log("📅 end  :", end);
 
     const result = await this.fieldMeterProcessDataModel.aggregate([
       {
@@ -830,11 +917,11 @@ if (opts?.startTime && opts?.endTime) {
 
     if (result.length > 0) {
       const r =  result[0];
-      console.log("first_ts:", r.firstTimestamp, "raw:", r.first_raw_ts);
-      console.log("last_ts :", r.lastTimestamp,  "raw:", r.last_raw_ts);
-      console.log("U4_U22 first cumulative:", r.first_U4_U22_GW03_cum);
-      console.log("U4_U22 last  cumulative:", r.last_U4_U22_GW03_cum);
-      console.log("U4_U22 diff (projected):", r.U4_U22_GW03_Del_ActiveEnergy);
+      // console.log("first_ts:", r.firstTimestamp, "raw:", r.first_raw_ts);
+      // console.log("last_ts :", r.lastTimestamp,  "raw:", r.last_raw_ts);
+      // console.log("U4_U22 first cumulative:", r.first_U4_U22_GW03_cum);
+      // console.log("U4_U22 last  cumulative:", r.last_U4_U22_GW03_cum);
+      // console.log("U4_U22 diff (projected):", r.U4_U22_GW03_Del_ActiveEnergy);
       return result[0];
     }
     return {};
@@ -843,7 +930,6 @@ if (opts?.startTime && opts?.endTime) {
     return {};
   }
 }
-
 
 }
 

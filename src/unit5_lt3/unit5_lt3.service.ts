@@ -94,7 +94,7 @@ export class Unit5LT3Service {
     const PDB07_sum = Math.max(0, +(PDB07_U5 + PDB07_U4).toFixed(2));
     const PDB08_sum = Math.max(0, +(PDB08_U5 + PDB08_U4).toFixed(2));
     const CardPDB1_sum = Math.max(0, +(CardPDB1_U5 + CardPDB1_U4).toFixed(2));
-    const U4_LT2_sum = Math.max(0, +(PDB2CD2_U4 + PDB1CD1_U4).toFixed(2));
+    const U4_LT2_sum = Math.max(0, +(CardPDB1_U4 + PDB08_U4).toFixed(2));   // CORRECTED
     // ---------------- Meter setup ----------------
   const meterMap: Record<string, string> = {
       // U1_GW02: 'PDB CD1',
@@ -162,42 +162,46 @@ export class Unit5LT3Service {
     const tf3 = +consumptionTotals['U13_GW02_Del_ActiveEnergy'].toFixed(2);
     const solar = +consumptionTotals['U6_GW02_Del_ActiveEnergy'].toFixed(2);
     
-    // Build a per-meter subtraction table
-    const minusByMeter: Record<string, number> = {
-      // U18_GW02: subtract PDB07_U5
-      U18_GW02: PDB07_U5,
-
-      // U14_GW02: subtract PDB08_U5 + PDB2CD2_U5
-      U14_GW02: (PDB08_U5 + PDB2CD2_U5),
-
-      // U17_GW02: subtract CardPDB1_U5 + PDB1CD1_U5
-      U17_GW02: (CardPDB1_U5 + PDB1CD1_U5),
-      // others default to 0
+   // No subtractions anymore
+    const minusByMeter: Record<string, number> = {};
+     // Force specific meters to display totals instead of their own base
+    const overrideByMeter: Record<string, number> = {
+      U18_GW02: PDB07_sum,      // Auto Con-link Conner 1-9  ← show PDB07_sum
+      U17_GW02: CardPDB1_sum,   // Card M/C 8-14             ← show CardPDB1_sum
+      U14_GW02: PDB08_sum,      // Comber MCS 1-14           ← show PDB08_sum
     };
 
-    const plcLegs = Object.entries(meterMap).map(([meter, label]) => {
-      const key   = `${meter}_Del_ActiveEnergy`;
-      const base  = +(Number(consumptionTotals[key] || 0).toFixed(2));
-      const minus = +(Number(minusByMeter[meter] || 0).toFixed(2));
-      const value = Math.max(0, +(base - minus).toFixed(2));
-      return { from: 'TotalLT3', to: label, value };
-    });
+  const plcLegs = Object.entries(meterMap).map(([meter, label]) => {
+    const key  = `${meter}_Del_ActiveEnergy`;
+    const base = +(Number(consumptionTotals[key] || 0).toFixed(2));
+
+    // If an override exists, use it directly
+    if (Object.prototype.hasOwnProperty.call(overrideByMeter, meter)) {
+      const ov = +(Number(overrideByMeter[meter]).toFixed(2));
+      return { from: 'TotalLT3', to: label, value: Math.max(0, ov) };
+    }
+
+    // Otherwise keep generic path (minus is empty now, but kept for future flexibility)
+    const minus = +(Number(minusByMeter[meter] || 0).toFixed(2));
+    const raw   = +(base - minus).toFixed(2);
+    const value = Math.max(0, Math.abs(raw) < 1e-9 ? 0 : raw);
+    return { from: 'TotalLT3', to: label, value };
+  });
 
 
     const sankeyData = [
       { from: 'TF #1', to: 'TotalLT3', value: tf3 },
       { from: 'Solar 1236.39 Kw', to: 'TotalLT3', value: solar },
        // NEW INPUT LEG (generation side)
-      { from: 'From U4LT 1 (Ring 21-24)', to: 'TotalLT3', value: PDB07_U4 },
-      { from: 'From U4LT 2(Card1-8 & Card9-14+1Breaker)', to: 'TotalLT3', value:  U4_LT2_sum },
+      { from: 'From U4LT 1(Ring 21-24)', to: 'TotalLT3', value: PDB07_U4 },   // Verified
+      { from: 'From U4LT 2(Card1-8 & Card9-14+1Breaker)', to: 'TotalLT3', value:  U4_LT2_sum },   // Verified
       // adjusted PLC branches
       ...plcLegs,
 
        // -------- NEW bottom legs (show transfers/bridges) --------
-      { from: 'TotalLT3', to: 'CD1+CD2->To U4LT2(Card1-8 & Card9-14)', value: toU4LT2 },
-      { from: 'TotalLT3', to: 'PDB 07 TOTAL',     value: PDB07_sum },
-      { from: 'TotalLT3', to: 'PDB 08 TOTAL',     value: PDB08_sum },
-      { from: 'TotalLT3', to: 'Card PDB1 TOTAL',  value: CardPDB1_sum },
+      { from: 'TotalLT3', to: 'PDBCD1->To U4LT2(Card1-8)', value: PDB1CD1_U5 },
+      { from: 'TotalLT3', to: 'PDBCD2->To U4LT2(Card9-14+1B.)', value: PDB2CD2_U5 },
+
     ];
   
     return sankeyData;

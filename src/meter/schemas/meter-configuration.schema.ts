@@ -22,3 +22,7 @@ export class MeterConfiguration {
 }
 
 export const MeterConfigurationSchema = SchemaFactory.createForClass(MeterConfiguration);
+
+// meter-configuration.schema.ts
+MeterConfigurationSchema.index({ assignedAt: -1 });
+MeterConfigurationSchema.index({ meterId: 1, assignedAt: -1 });

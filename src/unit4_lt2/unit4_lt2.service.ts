@@ -162,26 +162,32 @@ export class Unit4LT2Service {
         }
       }
     }
-    // ---------- apply cross-feed subtractions on LT2 ----------
-    const minusByMeter: Record<string, number> = {
-      // U9_GW01: Card 9~14+1 Breaker  ← subtract PDB2CD2_U4 + PDB08_U4
-      U9_GW01: +(Number(PDB2CD2_U4 + PDB08_U4).toFixed(2)),
+  const minusByMeter: Record<string, number> = {
+  // keep subtraction only for Ring 5~8
+  U15_GW01: +(Number(PDB10_U4).toFixed(2)),
+  };
+  // Force these meters to display summed values (no subtraction)
+  const overrideByMeter: Record<string, number> = {
+    U9_GW01:  +(Number(PDB2CD2_sum).toFixed(2)), // Card 9~14+1 Breaker -> PDB2CD2_sum
+    U5_GW01:  +(Number(PDB1CD1_sum).toFixed(2)), // Card 1~8 -> PDB1CD1_sum
+  };
+  const plcLegs = Object.entries(meterMap).map(([meter, label]) => {
+    const key  = `${meter}_Del_ActiveEnergy`;
+    const base = +(Number(consumptionTotals[key] || 0).toFixed(2));
 
-      // U5_GW01: Card 1~8              ← subtract PDB1CD1_U4 + CardPDB1_U4
-      U5_GW01: +(Number(PDB1CD1_U4 + CardPDB1_U4).toFixed(2)),
+    // If an override exists, use it directly
+    if (Object.prototype.hasOwnProperty.call(overrideByMeter, meter)) {
+      const ov = +(Number(overrideByMeter[meter]).toFixed(2));
+      return { from: 'TotalLT2', to: label, value: Math.max(0, ov) };
+    }
 
-      // U15_GW01: Ring 5~8             ← subtract PDB10_U4
-      U15_GW01: +(Number(PDB10_U4).toFixed(2)),
-    };
+    // Otherwise, keep (reduced) subtraction logic
+    const minus = +(Number(minusByMeter[meter] || 0).toFixed(2));
+    const raw   = +(base - minus).toFixed(2);
+    const value = Math.max(0, Math.abs(raw) < 1e-9 ? 0 : raw);
+    return { from: 'TotalLT2', to: label, value };
+  });
 
-      const plcLegs = Object.entries(meterMap).map(([meter, label]) => {
-      const key   = `${meter}_Del_ActiveEnergy`;
-      const base  = +(Number(consumptionTotals[key] || 0).toFixed(2));
-      const minus = +(Number(minusByMeter[meter] || 0).toFixed(2));
-      const raw   = +(base - minus).toFixed(2);
-      const value = Math.max(0, Math.abs(raw) < 1e-9 ? 0 : raw); // no negatives / -0
-      return { from: 'TotalLT2', to: label, value };
-    });
 
     // ---------------- Prepare Sankey Data ----------------
     const tf2 = +(consumptionTotals['U13_GW01_Del_ActiveEnergy'] || 0).toFixed(2);
@@ -194,17 +200,18 @@ export class Unit4LT2Service {
       { from: 'Diesel+JGS Incoming',     to: 'TotalLT2', value: GasGen },
 
       // NEW generation legs
-      { from: 'From U5 LT1(Comber M/C 1-14 & Card M/C 8-14)', to: 'TotalLT2', value: PDB12CD12_sum },
+      { from: 'From U5LT1(ComberM/C1-14 & CardM/C8-14)', to: 'TotalLT2', value: PDB12CD12_sum },   // verified
     
 
       // Adjusted PLC branches (after subtractions)
       ...plcLegs,
 
       // NEW bottom/output legs (exports)
-      { from: 'TotalLT2', to: 'PDB1 CD1 TOTAL', value: PDB1CD1_sum },
-      { from: 'TotalLT2', to: 'PDB2 CD2 TOTAL', value: PDB2CD2_sum },
-      { from: 'TotalLT2', to: 'PDB08+Card1->To U5LT1(CardM/C8-14 & ComberM/C1-14)', value: ToU5LT1_sum }, 
-      { from: 'TotalLT2', to: 'PDB10->To U5 LT2(Auto Cone 10-12)',                 value: ToU5LT2_sum },
+      // { from: 'TotalLT2', to: 'PDB1 CD1 TOTAL', value: PDB1CD1_sum },
+      // { from: 'TotalLT2', to: 'PDB2 CD2 TOTAL', value: PDB2CD2_sum },
+      { from: 'TotalLT2', to: 'PDB08->To U5LT1(ComberM/C1-14)', value: PDB08_U4 },     // verified
+      { from: 'TotalLT2', to: 'CardPDB1->To U5LT1(CardM/C8-14)', value: CardPDB1_U4 },   // verified
+      { from: 'TotalLT2', to: 'PDB10->To U5LT2(AutoCone 10-18)', value: ToU5LT2_sum },    // verified
     ];
     return sankeyData;
   }

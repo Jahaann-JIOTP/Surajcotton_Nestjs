@@ -21,6 +21,7 @@ export class MeterToggle {
 
 export const MeterToggleSchema = SchemaFactory.createForClass(MeterToggle);
 
-
+// ✅ Add indexes *after* SchemaFactory
+MeterToggleSchema.index({ meterId: 1 }, { unique: true });
 
 
