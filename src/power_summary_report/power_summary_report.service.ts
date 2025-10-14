@@ -18,7 +18,7 @@ export class PowerSummaryReportService {
   // 🔹 Mapping function for area to meterIds
   private getMeterIdsForArea(area: string): string[] {
     const areaMapping: Record<string, string[]> = {
-      Unit_4: ['U19_PLC', 'U21_PLC', 'U13_GW01', 'U11_GW01'],
+      Unit_4: ['U19_PLC', 'U21_PLC', 'U13_GW01', 'U11_GW01', 'U24_GW01'],
       Unit_5:["U13_GW02", "U16_GW03", "U6_GW02","U17_GW03"],
       ALL:['U19_PLC', 'U21_PLC', 'U13_GW01', 'U11_GW01', "U13_GW02", "U16_GW03", "U6_GW02","U17_GW03"]
     
@@ -145,6 +145,7 @@ console.log("📌 endISO:", endISO);
     wapdaexport: 0,
     solar1: 0,
     solar2: 0,
+    solarunit4:0,
     totalGeneration: 0,
     trafo1Loss: 0,
     trafo2Loss: 0,
@@ -165,6 +166,7 @@ console.log("📌 endISO:", endISO);
       let dailyTotal = 0;
       let solar1 = 0, solar2 = 0;
       let wapda1 = 0, wapdaexport = 0;
+      let solarunit4 = 0;
       let trafo1Loss = 0, trafo2Loss = 0, trafo3Loss = 0, trafo4Loss = 0;
 
       const getValue = (tag: string) => {
@@ -186,6 +188,10 @@ console.log("📌 endISO:", endISO);
             if (unitArea === 'Unit_4' && meterId === 'U23_GW01') {
               if (suffix === 'ActiveEnergy_Exp_kWh') wapdaexport += consumption;
               else wapda1 += consumption;
+            }
+             if (unitArea === 'Unit_4') {
+              if (meterId === 'U24_GW01') solarunit4 += consumption;
+
             }
 
             if (unitArea === 'Unit_5') {
@@ -213,6 +219,7 @@ console.log("📌 endISO:", endISO);
 
       mergedResult.wapda1 += this.round2(wapda1);
       mergedResult.wapdaexport += this.round2(wapdaexport);
+      mergedResult.solarunit4 += this.round2(solarunit4);
       mergedResult.solar1 += this.round2(solar1);
       mergedResult.solar2 += this.round2(solar2);
       mergedResult.totalGeneration += this.round2(totalGeneration);
@@ -239,7 +246,7 @@ mergedResult.end_time = endISO;
 
 
 if (area === 'Unit_4') {
-  fieldsToKeep = ['start_time', 'end_time','area', 'unit4_consumption', 'total_consumption', 'wapda1', 'wapdaexport', 'total_generation', 'unaccountable_energy'];
+  fieldsToKeep = ['start_time', 'end_time','area', 'unit4_consumption', 'total_consumption', 'wapda1', 'wapdaexport','solarunit4', 'total_generation', 'unaccountable_energy'];
 } else if (area === 'Unit_5') {
   fieldsToKeep = [
      'start_time', 'end_time','area',  'unit5_consumption', 'total_consumption',
@@ -250,7 +257,7 @@ if (area === 'Unit_4') {
 } else if (area === 'ALL') {
   fieldsToKeep = [
     'start_time', 'end_time','area',  'unit4_consumption', 'unit5_consumption', 'total_consumption',
-    'wapda1', 'wapdaexport', 'solar1', 'solar2', 
+    'wapda1', 'wapdaexport', 'solar1', 'solar2', 'solarunit4',
     'trafo1Loss', 'trafo2Loss', 'trafo3Loss', 'trafo4Loss', 'transformerLosses',
     'total_generation', 'unaccountable_energy'
   ];

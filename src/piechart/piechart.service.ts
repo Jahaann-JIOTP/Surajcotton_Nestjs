@@ -68,11 +68,18 @@ export class PieChartService {
       const data = await this.pieChartModel
         .find({ UNIXtimestamp: { $gte: startUnix, $lte: endUnix } })
         .select(
-          'UNIXtimestamp U19_PLC_Del_ActiveEnergy U11_GW01_Del_ActiveEnergy ' +
-            'U6_GW02_Del_ActiveEnergy U17_GW03_Del_ActiveEnergy ' +
-            'U23_GW01_Del_ActiveEnergy U27_PLC_Del_ActiveEnergy ' +
-            'U22_PLC_Del_ActiveEnergy U26_PLC_Del_ActiveEnergy',
-        )
+  'UNIXtimestamp ' +
+  'U19_PLC_Del_ActiveEnergy ' +
+  'U11_GW01_Del_ActiveEnergy ' +
+  'U6_GW02_Del_ActiveEnergy ' +
+  'U17_GW03_Del_ActiveEnergy ' +
+  'U24_GW01_Del_ActiveEnergy ' +
+  'U23_GW01_Del_ActiveEnergy ' +
+  'U27_PLC_Del_ActiveEnergy ' +
+  'U22_PLC_Del_ActiveEnergy ' +
+  'U26_PLC_Del_ActiveEnergy'
+)
+
         .sort({ UNIXtimestamp: 1 })
         .lean()
         .exec();
@@ -127,24 +134,31 @@ export class PieChartService {
         return diff;
       };
 
-      const getConsumption = (arr: number[], key: string): number => {
-        if (arr.length < 2) return 0;
-        const first = clean(arr[0]);
-        const last = clean(arr[arr.length - 1]);
-        let diff = last - first;
+     const getConsumption = (arr: number[], key: string): number => {
+  if (arr.length < 2) return 0;
+  const first = clean(arr[0]);
+  const last = clean(arr[arr.length - 1]);
+  let diff = last - first;
 
-        // console.log(`⚡ ${key}: first=${first}, last=${last}, diff=${diff}`);
+  // if (key === 'U24_GW01_Del_ActiveEnergy') {
+  //   console.log('⚡ [U24 DEBUG] first:', first, 'last:', last, 'diff(before rules):', diff);
+  // }
 
-        diff = applyDiffRules(diff);
-        // console.log(`✅ ${key}: final consumption=${diff}`);
-        return +diff.toFixed(2);
-      };
+  diff = applyDiffRules(diff);
+
+  // if (key === 'U24_GW01_Del_ActiveEnergy') {
+  //   console.log('✅ [U24 DEBUG] final consumption:', diff);
+  // }
+
+  return +diff.toFixed(2);
+};
+
 
       // -----------------------------
       // Groups
       // -----------------------------
       const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
-      const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
+      const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy','U24_GW01_Del_ActiveEnergy'];
       const WapdaImportKeys = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
       const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];
 
