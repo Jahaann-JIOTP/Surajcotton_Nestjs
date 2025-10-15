@@ -72,11 +72,11 @@ export class Unit5LT4Service {
      U7_GW03: 'Spare 1',
      U8_GW03: 'Spare 2',
      U9_GW03: 'Ring Frame 13-15',
-     U10_GW03: 'Auto Con-linker Conner M/S 10-12',
+     U10_GW03: 'Auto Con 10-18',
      U11_GW03: 'Baling Press',
      U12_GW03: 'Ring Frame 16-18',
      U13_GW03: 'Fiber Deposit Plant',
-     U14_GW03: 'MLDB2 Ring Con',
+     U14_GW03: 'MLDB2 Ring Con (Lighting)',
      U15_GW03: 'Deep Valve Turbine',
      U18_GW03: 'PF Panel',
     };

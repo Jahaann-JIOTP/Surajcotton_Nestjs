@@ -105,18 +105,18 @@ export class Unit4LT2Service {
 
     // ---------------- Meter setup ----------------
     const meterMap: Record<string, string> = {
-      U1_GW01: 'Drying Simplex AC',
+      U1_GW01: 'A/C Back Process',
       U2_GW01: 'Weikel Cond',
       U3_GW01: 'Winding AC',
       U4_GW01: 'Mills RES-CLNY& Workshop',
-      U5_GW01: 'Card 1~8',
+      U5_GW01: 'Card (1-4) (9-12)',
       U18_GW01: 'Colony',
       U8_GW01: 'Blow Room',
-      U9_GW01: 'Card 9~14+1 Breaker',
+      U9_GW01: 'Card (5-8) (13-14)',
       U10_GW01: 'Winding 1~6',
-      U7_GW01: 'Power House 2nd Source',
+      U7_GW01: 'Power House 2nd Source (HFO)',
       // U12_GW01: 'Card Filter',
-      U14_GW01: 'D/R Card Filter',
+      U14_GW01: 'B/R Card Filter',
       U15_GW01: 'Ring 5~8',
       U16_GW01: 'Ring 13~16',
       U17_GW01: 'Ring 9~12',

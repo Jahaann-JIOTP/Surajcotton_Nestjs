@@ -103,22 +103,22 @@ export class Unit5LT3Service {
       // U4_GW02: 'PDB 8',
       
       U7_GW02: 'Ring 1-3',
-      U8_GW02: 'A/C Plant spinning',
+      U8_GW02: 'AC Supply Fan',
       U9_GW02: 'Blow Room L1',
       U10_GW02: 'Ring Frames 4-6',
       U11_GW02: 'A/C Plant Blowing',
       U12_GW02: 'MLDB1 Blower room card',
       U5_GW02: 'PF Panel',
       U14_GW02: 'Comber MCS 1-14',
-      U15_GW02: 'AC Plant spinning',
+      U15_GW02: 'AC Return Fan',
       U16_GW02: 'Water Chiller',
       U17_GW02: 'Card M/C 8-14',
-      U18_GW02: 'Auto Con-link Conner 1-9',
+      U18_GW02: 'Auto Con 1-9',
       U19_GW02: 'Card M/C 1-7',
       U20_GW02: 'AC Plant winding',
-      U21_GW02: 'Simplex M/C S1-5',
+      U21_GW02: 'Simplex M/C 1~6 + 1~5 Breaker Machines',
       U22_GW02: 'Spare 2',
-      U23_GW02: 'Draw Frame Finish',
+      U23_GW02: 'Draw Frame Finish 1~8',
     };
 
     const meterFields = [

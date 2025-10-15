@@ -56,10 +56,10 @@ export class Unit4LT1Service {
     // ---------------- Meter setup ----------------  U18_PLC: 'Ring AC (Bypass)' removed by miss mehak at 30-sept
     const meterMap: Record<string, string> = {
       U1_PLC: 'Transport', U2_PLC: 'Unit 05 Lighting', U3_PLC: 'Light Outside', U4_PLC: 'Light Inside',
-      U5_PLC: 'Power House', U6_PLC: 'Turbine', U8_PLC: 'Drawing Finisher 1~6+2 Breaker',
+      U5_PLC: 'Power House (2nd Source Gas)', U6_PLC: 'Turbine', U8_PLC: 'Drawing Finisher 1~6+2 Breaker',
       U9_PLC: 'Winding 7~9', U10_PLC: 'Ring 1~4', U11_PLC: 'Ring 16~20', U12_PLC: 'Ring 21~24',
-      U13_PLC: 'Comber 1~10+ Uni Lap 1-2', U14_PLC: 'Compressor', U15_PLC: 'Simplex 1~6',
-      U16_PLC: 'Compressor 2', U17_PLC: 'Ring AC', U20_PLC: 'Compressor (Bypass)',
+      U13_PLC: 'Comber 1~10+ Uni Lap 1-2', U14_PLC: 'Compressor 119kw', U15_PLC: 'Simplex 1~6',
+      U16_PLC: 'Compressor 303kw', U17_PLC: 'Ring AC', U20_PLC: 'Compressor 119kw',
     };
 
     const meterFields = [
