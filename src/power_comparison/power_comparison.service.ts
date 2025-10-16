@@ -42,8 +42,9 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
   // const solarTags = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
   const solarTags = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy', 'U24_GW01_Del_ActiveEnergy'];
 
-  const unit4Tags = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy'];
+  const unit4Tags = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy','U24_GW01_Del_ActiveEnergy'];
   const unit5Tags = ['U6_GW02_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
+  const Aux_consumptionTags = ['U25_PLC_Del_ActiveEnergy'];
   const Trafo1IncomingTags = ['U23_GW01_Del_ActiveEnergy'];
   const Trafo2IncomingTags = ['U22_GW01_Del_ActiveEnergy'];
   const Trafo3IncomingTags = ['U20_GW03_Del_ActiveEnergy'];
@@ -87,7 +88,7 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       $group: {
         _id: "$hourStart",
         ...Object.fromEntries(
-          [...htTags, ...ltTags, ...wapdaTags, ...solarTags, ...unit4Tags, ...unit5Tags, ...Trafo1IncomingTags, ...Trafo2IncomingTags,
+          [...htTags, ...ltTags, ...wapdaTags, ...solarTags, ...unit4Tags, ...unit5Tags, ...Aux_consumptionTags, ...Trafo1IncomingTags, ...Trafo2IncomingTags,
             ...Trafo3IncomingTags, ...Trafo4IncomingTags, ...Trafo1outgoingTags, ...Trafo2outgoingTags, ...Trafo3outgoingTags,
              ...Trafo4outgoingTags, Wapda2Tags, ...NiigataTags, ...JMSTags, ...PH_ICTags].flatMap(tag => [
             [`first_${tag}`, { $first: { $ifNull: [`$${tag}`, 0] } }],
@@ -149,6 +150,16 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       unit4Total += diff;
     }
 
+    let Aux_consumptionTotal = 0;
+    for (const tag of Aux_consumptionTags) {
+      const first = entry[`first_${tag}`] || 0;
+      const last = entry[`last_${tag}`] || 0;
+      let diff = last - first;
+      if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
+      Aux_consumptionTotal += diff;
+    }
+
+    
     let unit5Total = 0;
     for (const tag of unit5Tags) {
       const first = entry[`first_${tag}`] || 0;
@@ -278,7 +289,7 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
     // const transformerlosses = t1and2losses+ t3losses + t4losses;
     const HT_Transmissioin_Losses = (Wapda2+ Niigata + JMS)- (Trafo3Incoming + Trafo4Incoming + PH_IC );
     const losses = TrasformerLosses + HT_Transmissioin_Losses;
-    const totalConsumption = unit4Total + unit5Total;
+    const totalConsumption = unit4Total + unit5Total + Aux_consumptionTotal ;
     const totalGeneration = htTotal + ltTotal + wapdaTotal + solarTotal;
 
 
@@ -296,7 +307,7 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       losses : +losses.toFixed(2),
       total_consumption: +totalConsumption.toFixed(2),
       total_generation: +totalGeneration.toFixed(2),
-      unaccountable_energy: +(totalGeneration- totalConsumption).toFixed(2),
+       unaccountable_energy: +(totalGeneration - totalConsumption).toFixed(2),
       efficiency: +((totalConsumption / totalGeneration) * 100 || 0).toFixed(2),
     };
   });
@@ -338,8 +349,9 @@ async getDailyPowerAverages(startDate: string, endDate: string) {
     LT: ['U19_PLC', 'U11_GW01'],
     wapda: ['U23_GW01', 'U27_PLC'],
     solar: ['U6_GW02', 'U17_GW03','U24_GW01'],
-    unit4: ['U19_PLC', 'U21_PLC', 'U11_GW01', 'U13_GW01'],
+    unit4: ['U19_PLC', 'U21_PLC', 'U11_GW01', 'U13_GW01', 'U24_GW01'],
     unit5: ['U6_GW02', 'U13_GW02', 'U16_GW03', 'U17_GW03'],
+    aux: ['U25_PLC'],
     Trafo1Incoming: ['U23_GW01'],
     Trafo2Incoming: ['U22_GW01'],
     Trafo3Incoming: ['U20_GW03'],
@@ -429,6 +441,7 @@ async getDailyPowerAverages(startDate: string, endDate: string) {
   const solar = sum(meterGroupKeys.solar);
   const unit4 = sum(meterGroupKeys.unit4);
   const unit5 = sum(meterGroupKeys.unit5);
+  const aux = sum(meterGroupKeys.aux);
   const Trafo1Incoming = sum(meterGroupKeys.Trafo1Incoming);
   const Trafo2Incoming = sum(meterGroupKeys.Trafo2Incoming);
   const Trafo3Incoming = sum(meterGroupKeys.Trafo3Incoming);
@@ -459,9 +472,9 @@ async getDailyPowerAverages(startDate: string, endDate: string) {
 // console.log("🔍 Transformer Losses:", TrasformerLosses);
 // console.log("🔍 HT Transmission Losses:", HT_Transmissioin_Losses);
 // console.log("🔍 Losses (Final):", losses);
-  const totalConsumption = unit4 + unit5;
+  const totalConsumption = unit4 + unit5 + aux;
   const totalgeneration = ht + lt + wapda + solar;
-  const unaccountable_energy = totalgeneration - totalConsumption;
+  const unaccountable_energy =totalgeneration -  totalConsumption;
   const efficiency = totalgeneration > 0 ? (totalConsumption / totalgeneration) * 100 : 0;
 
   const dailyResults = [{
@@ -524,7 +537,7 @@ if (now.isBefore(endMomentPlanned)) {
 
 
   type EnergyGroupKey =
-    | 'HT' | 'LT' | 'wapda' | 'solar' | 'unit4' | 'unit5'
+    | 'HT' | 'LT' | 'wapda' | 'solar' | 'unit4' | 'unit5' | 'aux'
     | 'Trafo1Incoming' | 'Trafo2Incoming' | 'Trafo3Incoming' | 'Trafo4Incoming'
     | 'Trafo1outgoing' | 'Trafo2outgoing' | 'Trafo3outgoing' | 'Trafo4outgoing'
     | 'Wapda2' | 'Niigata' | 'JMS' | 'PH_IC';
@@ -534,8 +547,9 @@ if (now.isBefore(endMomentPlanned)) {
     LT: ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'],
     wapda: ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'],
     solar: ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy', 'U24_GW01_Del_ActiveEnergy'],
-    unit4: ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy'],
+    unit4: ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy', 'U24_GW01_Del_ActiveEnergy'],
     unit5: ['U6_GW02_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'],
+    aux: ['U25_PLC_Del_ActiveEnergy'],
     Trafo1Incoming: ['U23_GW01_Del_ActiveEnergy'],
     Trafo2Incoming: ['U22_GW01_Del_ActiveEnergy'],
     Trafo3Incoming: ['U20_GW03_Del_ActiveEnergy'],
@@ -617,7 +631,7 @@ if (now.isBefore(endMomentPlanned)) {
       if (!results[monthStr]) {
         results[monthStr] = {
           date: monthStr,
-          HT: 0, LT: 0, wapda: 0, solar: 0, unit4: 0, unit5: 0,
+          HT: 0, LT: 0, wapda: 0, solar: 0, unit4: 0, unit5: 0, aux: 0,
           Trafo1Incoming: 0, Trafo2Incoming: 0, Trafo3Incoming: 0, Trafo4Incoming: 0,
           Trafo1outgoing: 0, Trafo2outgoing: 0, Trafo3outgoing: 0, Trafo4outgoing: 0,
           Wapda2: 0, Niigata: 0, JMS: 0, PH_IC: 0,
@@ -633,7 +647,7 @@ if (now.isBefore(endMomentPlanned)) {
 
   // ✅ Final calculations
   for (const month of Object.values(results)) {
-    month.total_consumption = +(month.unit4 + month.unit5).toFixed(2);
+    month.total_consumption = +(month.unit4 + month.unit5 +month.aux ).toFixed(2);
     month.total_generation = +(month.HT + month.LT + month.wapda + month.solar).toFixed(2);
     month.unaccountable_energy = +(month.total_generation - month.total_consumption).toFixed(2);
     month.efficiency = month.total_generation > 0

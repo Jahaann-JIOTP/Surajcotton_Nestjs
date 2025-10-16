@@ -149,13 +149,13 @@ export class AlarmsService {
 
   getMappedLocation(): Record<string, string[]> {
     return {
-      Unit_4: ['LT1', 'LT2', 'HT Room'],
+      Unit_4: ['LT1', 'LT2', 'Unit 4 HT Room'],
       'Unit_4.LT1': [
         'Transport',
         'Unit 5 Lightning',
         'Lightning Outside',
         'Lightning Inside',
-        'Power House',
+        'Power House (2nd Source Gas)',
         'Turbine',
         'Main Meter',
         'Drawing Finisher 1~6+2 Breaker',
@@ -164,12 +164,12 @@ export class AlarmsService {
         'Ring 16~20',
         'Ring 21~24',
         'Comber 1-10 + Uni-Lap 1-2',
-        'Compressor',
+        'Compressor (119kw)',
         'Simplex 1~6',
-        'Compressor 2',
+        'Compressor (303kw)',
         'Ring AC',
         'Diesel + JGS Incoming',
-        'Compressor (Bypass)',
+        'Compressor 119kw',
         'Wapda + HFO + JMS Incoming',
         'Ring AC (Bypass)',
       ],
@@ -306,7 +306,7 @@ export class AlarmsService {
         'U4_PLC_Power_Phase_C',
       ],
       //U5_PLC
-      'Unit_4.LT1.Power House': [
+      'Unit_4.LT1.Power House (2nd Source Gas)': [
         'U5_PLC_Voltage_AB',
         'U5_PLC_Voltage_BC',
         'U5_PLC_Voltage_CA',
@@ -603,7 +603,7 @@ export class AlarmsService {
         'U13_PLC_Power_Phase_C',
       ],
       //U14_PLC
-      'Unit_4.LT1.Compressor': [
+      'Unit_4.LT1.Compressor (119kw)': [
         'U14_PLC_Voltage_AB',
         'U14_PLC_Voltage_BC',
         'U14_PLC_Voltage_CA',
@@ -669,7 +669,7 @@ export class AlarmsService {
         'U15_PLC_Power_Phase_C',
       ],
       //U16_PLC
-      'Unit_4.LT1.Compressor 2': [
+      'Unit_4.LT1.Compressor (303kw)': [
         'U16_PLC_Voltage_AB',
         'U16_PLC_Voltage_BC',
         'U16_PLC_Voltage_CA',
@@ -801,7 +801,7 @@ export class AlarmsService {
         'U19_PLC_Power_Phase_C',
       ],
       //U20_PLC
-      'Unit_4.LT1.Compressor (Bypass)': [
+      'Unit_4.LT1.Compressor 119kw': [
         'U20_PLC_Voltage_AB',
         'U20_PLC_Voltage_BC',
         'U20_PLC_Voltage_CA',
@@ -868,20 +868,20 @@ export class AlarmsService {
       ],
       'Unit_4.LT2': [
         'Solar 352.50 kW',
-        'Drying Simplex AC',
+        'A/C Back Process',
         'Weikel Cond',
         'Winding AC',
         'Mills RES-CLNY& Workshop',
-        'Card 1-8',
+        'Card (1-4) (9-12)',
         'Colony',
         'Diesel + JGS Incoming',
         'Blow Room',
-        'Card 9-14 + 1 Breaker',
+        'Card (5-8) (13-14)',
         'Winding 1-6',
-        'Power House 2nd Source',
-        'Card Filter',
+        'Power House 2nd Source (HFO)',
+        'Card Filter (Bypass)',
         'Wapda + HFO + JMS Incoming',
-        'D/R Card Filter',
+        'B/R Card Filter',
         'Ring 5-8',
         'Ring 13-16',
         'Ring 9-12',
@@ -923,7 +923,7 @@ export class AlarmsService {
         'U24_GW01_Power_Phase_C',
       ],
       //U1_GW01
-      'Unit_4.LT2.Drying Simplex AC': [
+      'Unit_4.LT2.A/C Back Process': [
         'U1_GW01_Voltage_AB',
         'U1_GW01_Voltage_BC',
         'U1_GW01_Voltage_CA',
@@ -1055,7 +1055,7 @@ export class AlarmsService {
         'U4_GW01_Power_Phase_C',
       ],
       //U5_GW01
-      'Unit_4.LT2.Card 1-8': [
+      'Unit_4.LT2.Card (1-4) (9-12)': [
         'U5_GW01_Voltage_AB',
         'U5_GW01_Voltage_BC',
         'U5_GW01_Voltage_CA',
@@ -1187,7 +1187,7 @@ export class AlarmsService {
         'U8_GW01_Power_Phase_C',
       ],
       //U9_GW01
-      'Unit_4.LT2.Card 9-14 + 1 Breaker': [
+      'Unit_4.LT2.Card (5-8) (13-14)': [
         'U9_GW01_Voltage_AB',
         'U9_GW01_Voltage_BC',
         'U9_GW01_Voltage_CA',
@@ -1253,7 +1253,7 @@ export class AlarmsService {
         'U10_GW01_Power_Phase_C',
       ],
       //U11_GW01
-      'Unit_4.LT2.Power House 2nd Source': [
+      'Unit_4.LT2.Power House 2nd Source (HFO)': [
         'U11_GW01_Voltage_AB',
         'U11_GW01_Voltage_BC',
         'U11_GW01_Voltage_CA',
@@ -1286,7 +1286,7 @@ export class AlarmsService {
         'U11_GW01_Power_Phase_C',
       ],
       //U12_GW01
-      'Unit_4.LT2.Card Filter': [
+      'Unit_4.LT2.Card Filter (Bypass)': [
         'U12_GW01_Voltage_AB',
         'U12_GW01_Voltage_BC',
         'U12_GW01_Voltage_CA',
@@ -1352,7 +1352,7 @@ export class AlarmsService {
         'U13_GW01_Power_Phase_C',
       ],
       //U14_GW01
-      'Unit_4.LT2.D/R Card Filter': [
+      'Unit_4.LT2.B/R Card Filter': [
         'U14_GW01_Voltage_AB',
         'U14_GW01_Voltage_BC',
         'U14_GW01_Voltage_CA',
@@ -1615,8 +1615,8 @@ export class AlarmsService {
         'U21_GW01_Power_Phase_B',
         'U21_GW01_Power_Phase_C',
       ],
-      'Unit_4.HT Room': ['P/H IC', 'WAPDA IC'],
-      'Unit_4.HT Room.P/H IC': [
+      'Unit_4.Unit 4 HT Room': ['P/H IC', 'WAPDA IC'],
+      'Unit_4.Unit 4 HT Room.P/H IC': [
         'U22_GW01_Voltage_AB',
         'U22_GW01_Voltage_BC',
         'U22_GW01_Voltage_CA',
@@ -1648,7 +1648,7 @@ export class AlarmsService {
         'U22_GW01_Power_Phase_B',
         'U22_GW01_Power_Phase_C',
       ],
-      'Unit_4.HT Room.WAPDA IC': [
+      'Unit_4.Unit 4 HT Room.WAPDA IC': [
         'U23_GW01_Voltage_AB',
         'U23_GW01_Voltage_BC',
         'U23_GW01_Voltage_CA',
@@ -1680,7 +1680,7 @@ export class AlarmsService {
         'U23_GW01_Power_Phase_B',
         'U23_GW01_Power_Phase_C',
       ],
-      Unit_5: ['LT1', 'LT2', 'HT Room'],
+      Unit_5: ['LT1', 'LT2', 'Unit 5 HT Room'],
       'Unit_5.LT1': [
         'PDB1 CD1',
         'PDB2 CD2',
@@ -1689,22 +1689,22 @@ export class AlarmsService {
         'PF Panel',
         'Solar 1236.39 Kw',
         'Ring 1-3',
-        'A/C Plant Spinning',
+        'AC Supply Fan',
         'Blow Room L1',
         'Ring Frames 4-6',
         'A/C Plant Blowing',
         'MLDB1 Blower Room Card',
         'TF #1',
         'Comber MCS 1-14',
-        'AC Plant spinning',
+        'AC Return Fan',
         'Water Chiller',
         'Card M/C 8-14',
-        'Auto Con-link Conner 1-9',
+        'Auto Con 1-9',
         'Card M/C 1-7',
         'AC Plant Winding',
-        'Simplex M/C S1-5',
+        'Simplex M/C 1~6 + 1~5 Breaker Machines',
         'Spare 2',
-        'Draw Frame Finish',
+        'Draw Frame Finish 1~8',
       ],
       //U1_GW02
       'Unit_5.LT1.PDB1 CD1': [
@@ -1938,7 +1938,7 @@ export class AlarmsService {
         'U7_GW02_Power_Phase_C',
       ],
       //U8_GW02
-      'Unit_5.LT1.A/C Plant Spinning': [
+      'Unit_5.LT1.AC Supply Fan': [
         'U8_GW02_Voltage_AB',
         'U8_GW02_Voltage_BC',
         'U8_GW02_Voltage_CA',
@@ -2169,7 +2169,7 @@ export class AlarmsService {
         'U14_GW02_Power_Phase_C',
       ],
       //U15_GW02
-      'Unit_5.LT1.AC Plant spinning': [
+      'Unit_5.LT1.AC Return Fan': [
         'U15_GW02_Voltage_AB',
         'U15_GW02_Voltage_BC',
         'U15_GW02_Voltage_CA',
@@ -2268,7 +2268,7 @@ export class AlarmsService {
         'U17_GW02_Power_Phase_C',
       ],
       //U18_GW02
-      'Unit_5.LT1.Auto Con-link Conner 1-9': [
+      'Unit_5.LT1.Auto Con 1-9': [
         'U18_GW02_Voltage_AB',
         'U18_GW02_Voltage_BC',
         'U18_GW02_Voltage_CA',
@@ -2367,7 +2367,7 @@ export class AlarmsService {
         'U20_GW02_Power_Phase_C',
       ],
       //U21_GW02
-      'Unit_5.LT1.Simplex M/C S1-5': [
+      'Unit_5.LT1.Simplex M/C 1~6 + 1~5 Breaker Machines': [
         'U21_GW02_Voltage_AB',
         'U21_GW02_Voltage_BC',
         'U21_GW02_Voltage_CA',
@@ -2433,7 +2433,7 @@ export class AlarmsService {
         'U22_GW02_Power_Phase_C',
       ],
       //U23_GW02
-      'Unit_5.LT1.Draw Frame Finish': [
+      'Unit_5.LT1.Draw Frame Finish 1~8': [
         'U23_GW02_Voltage_AB',
         'U23_GW02_Voltage_BC',
         'U23_GW02_Voltage_CA',
@@ -2475,11 +2475,11 @@ export class AlarmsService {
         'Spare 1',
         'Spare 2',
         'Ring Frame 13-15',
-        'Auto Con-linker Conner M/S 10-12',
+        'Auto Con 10-18',
         'Baling Press',
         'Ring Frame 16-18',
         'Fiber Deposit Plant',
-        'MLDB2 Ring Con',
+        'MLDB2 Ring Con (Lighting)',
         'Deep Valve Turbine',
         'TF #2',
         'Solar 1017 Kw',
@@ -2785,7 +2785,7 @@ export class AlarmsService {
         'U9_GW03_Power_Phase_C',
       ],
       //U10_GW03
-      'Unit_5.LT2.Auto Con-linker Conner M/S 10-12': [
+      'Unit_5.LT2.Auto Con 10-18': [
         'U10_GW03_Voltage_AB',
         'U10_GW03_Voltage_BC',
         'U10_GW03_Voltage_CA',
@@ -2917,7 +2917,7 @@ export class AlarmsService {
         'U13_GW03_Power_Phase_C',
       ],
       //U14_GW03
-      'Unit_5.LT2.MLDB2 Ring Con': [
+      'Unit_5.LT2.MLDB2 Ring Con (Lighting)': [
         'U14_GW03_Voltage_AB',
         'U14_GW03_Voltage_BC',
         'U14_GW03_Voltage_CA',
@@ -3145,8 +3145,8 @@ export class AlarmsService {
         'U23_GW03_Power_Phase_B',
         'U23_GW03_Power_Phase_C',
       ],
-      'Unit_5.HT Room': ['T/F 2', 'T/F 1', 'Main Incoming'],
-      'Unit_5.HT Room.T/F 2': [
+      'Unit_5.Unit 5 HT Room': ['T/F 2', 'T/F 1', 'Main Incoming (Unit 5)'],
+      'Unit_5.Unit 5 HT Room.T/F 2': [
         'U19_GW03_Voltage_AB',
         'U19_GW03_Voltage_BC',
         'U19_GW03_Voltage_CA',
@@ -3178,7 +3178,7 @@ export class AlarmsService {
         'U19_GW03_Power_Phase_B',
         'U19_GW03_Power_Phase_C',
       ],
-      'Unit_5.HT Room.T/F 1': [
+      'Unit_5.Unit 5 HT Room.T/F 1': [
         'U20_GW03_Voltage_AB',
         'U20_GW03_Voltage_BC',
         'U20_GW03_Voltage_CA',
@@ -3210,7 +3210,7 @@ export class AlarmsService {
         'U20_GW03_Power_Phase_B',
         'U20_GW03_Power_Phase_C',
       ],
-      'Unit_5.HT Room.Main Incoming': [
+      'Unit_5.Unit 5 HT Room.Main Incoming (Unit 5)': [
         'U21_GW03_Voltage_AB',
         'U21_GW03_Voltage_BC',
         'U21_GW03_Voltage_CA',
@@ -3243,7 +3243,7 @@ export class AlarmsService {
         'U21_GW03_Power_Phase_C',
       ],
       HFO: ['HFO'],
-      'HFO.HFO': ['HFO1', 'O/G 2', 'O/G 1', 'HFO AUX', 'I-GG', 'WAPDA 2'],
+      'HFO.HFO': ['HFO1', 'O/G 2 (Unit 5)', 'O/G 1 (Unit 4)', 'HFO AUX', 'I-GG', 'WAPDA 2'],
       'HFO.HFO.HFO1': [
         'U22_PLC_Voltage_AB',
         'U22_PLC_Voltage_BC',
@@ -3278,7 +3278,7 @@ export class AlarmsService {
         'U22_PLC_Power_Phase_B',
         'U22_PLC_Power_Phase_C',
       ],
-      'HFO.HFO.O/G 2': [
+      'HFO.HFO.O/G 2 (Unit 5)': [
         'U23_PLC_Voltage_AB',
         'U23_PLC_Voltage_BC',
         'U23_PLC_Voltage_CA',
@@ -3312,7 +3312,7 @@ export class AlarmsService {
         'U23_PLC_Power_Phase_B',
         'U23_PLC_Power_Phase_C',
       ],
-      'HFO.HFO.O/G 1': [
+      'HFO.HFO.O/G 1 (Unit 4)': [
         'U24_PLC_Voltage_AB',
         'U24_PLC_Voltage_BC',
         'U24_PLC_Voltage_CA',

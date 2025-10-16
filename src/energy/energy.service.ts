@@ -291,7 +291,7 @@ const sumGroup = (keys: string[]) =>
 
 
 
-    let unaccoutable_energy= (Unit4_LT1+Unit4_LT2+Unit5_LT1+Unit5_LT2)-(U4_Consumption+ U5_Consumption);
+    let unaccoutable_energy= (totalenergyinput)-(totalenergyoutput);
     // let unaccountable = totalConsumption - production;
 
     return {
