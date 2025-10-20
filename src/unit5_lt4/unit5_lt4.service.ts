@@ -165,7 +165,7 @@ const plcLegs = Object.entries(meterMap).map(([meter, label]) => {
 
     const sankeyData = [
       { from: 'TF #2', to: 'TotalLT4', value: tf4 },
-      { from: 'Solar 1017', to: 'TotalLT4', value: solar2 },
+      { from: 'Solar 1066.985 Kw', to: 'TotalLT4', value: solar2 },
     // NEW input/generation leg
       { from: 'From U4 LT2(Ring5-8 )', to: 'TotalLT4', value: PDB10_U4 },
 

@@ -36,7 +36,7 @@ export class ConsumptionEnergyService {
 
 private async calculateConsumption(range: { start: string; end: string }) {
    const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
-    const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy' , 'U24_GW01_Del_ActiveEnergy'];
+    const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy' , 'U24_GW01_Del_ActiveEnergy', 'U28_PLC_Del_ActiveEnergy'];
     const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];                                                                         //is may sum show karvana ha nilgata or jms ka jab us k tags ayain gay
     const WapdaImportKeys = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
 // const TR2Keys = ["U19_PLC_Del_ActiveEnergy"];
@@ -158,7 +158,7 @@ private async calculateConsumption(range: { start: string; end: string }) {
 
 async calculateConsumption1(range: { start: string; end: string }): Promise<number> {
    const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
-    const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy', 'U24_GW01_Del_ActiveEnergy'];
+    const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy', 'U24_GW01_Del_ActiveEnergy' , 'U28_PLC_Del_ActiveEnergy'];
     const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];                                                                         //is may sum show karvana ha nilgata or jms ka jab us k tags ayain gay
     const WapdaImportKeys = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
   // const TR2Keys = ["U19_PLC_Del_ActiveEnergy"];
@@ -364,7 +364,8 @@ async getTodayGeneration(): Promise<HourlyData[]> {
     "U26_PLC_Del_ActiveEnergy",
     "U23_GW01_Del_ActiveEnergy",
     "U27_PLC_Del_ActiveEnergy",
-    'U24_GW01_Del_ActiveEnergy'
+    'U24_GW01_Del_ActiveEnergy',
+    'U28_PLC_Del_ActiveEnergy'
 
 
 

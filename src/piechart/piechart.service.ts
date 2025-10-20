@@ -45,56 +45,27 @@ export class PieChartService {
       const startUnix = startOfDay.unix();
       const endUnix = endOfDay.unix();
 
-      // console.log('📌 Input startTimestamp:', startTimestamp);
-      // console.log('📌 Input endTimestamp  :', endTimestamp);
-      // console.log(
-      //   '🕕 Query Start (6AM)     :',
-      //   startOfDay.format('YYYY-MM-DD HH:mm:ss'),
-      //   '(',
-      //   startUnix,
-      //   ')',
-      // );
-      // console.log(
-      //   '🕕 Query End (next 6AM)  :',
-      //   endOfDay.format('YYYY-MM-DD HH:mm:ss'),
-      //   '(',
-      //   endUnix,
-      //   ')',
-      // );
-
       // -----------------------------
       // Query DB
       // -----------------------------
       const data = await this.pieChartModel
         .find({ UNIXtimestamp: { $gte: startUnix, $lte: endUnix } })
         .select(
-  'UNIXtimestamp ' +
-  'U19_PLC_Del_ActiveEnergy ' +
-  'U11_GW01_Del_ActiveEnergy ' +
-  'U6_GW02_Del_ActiveEnergy ' +
-  'U17_GW03_Del_ActiveEnergy ' +
-  'U24_GW01_Del_ActiveEnergy ' +
-  'U23_GW01_Del_ActiveEnergy ' +
-  'U27_PLC_Del_ActiveEnergy ' +
-  'U22_PLC_Del_ActiveEnergy ' +
-  'U26_PLC_Del_ActiveEnergy'
-)
-
+          'UNIXtimestamp ' +
+          'U19_PLC_Del_ActiveEnergy ' +
+          'U11_GW01_Del_ActiveEnergy ' +
+          'U6_GW02_Del_ActiveEnergy ' +
+          'U17_GW03_Del_ActiveEnergy ' +
+          'U24_GW01_Del_ActiveEnergy ' +
+          'U23_GW01_Del_ActiveEnergy ' +
+          'U27_PLC_Del_ActiveEnergy ' +
+          'U22_PLC_Del_ActiveEnergy ' +
+          'U26_PLC_Del_ActiveEnergy ' +
+          'U28_PLC_Del_ActiveEnergy' // ✅ Added new solar meter
+        )
         .sort({ UNIXtimestamp: 1 })
         .lean()
         .exec();
-
-      // console.log('📊 Docs found:', data.length);
-      if (data.length) {
-        // console.log(
-        //   '🔍 First doc time:',
-        //   moment.unix(data[0].UNIXtimestamp).tz('Asia/Karachi').format('YYYY-MM-DD HH:mm:ss'),
-        // );
-        // console.log(
-        //   '🔍 Last doc time :',
-        //   moment.unix(data[data.length - 1].UNIXtimestamp).tz('Asia/Karachi').format('YYYY-MM-DD HH:mm:ss'),
-        // );
-      }
 
       if (data.length === 0) {
         return [
@@ -134,31 +105,27 @@ export class PieChartService {
         return diff;
       };
 
-     const getConsumption = (arr: number[], key: string): number => {
-  if (arr.length < 2) return 0;
-  const first = clean(arr[0]);
-  const last = clean(arr[arr.length - 1]);
-  let diff = last - first;
-
-  // if (key === 'U24_GW01_Del_ActiveEnergy') {
-  //   console.log('⚡ [U24 DEBUG] first:', first, 'last:', last, 'diff(before rules):', diff);
-  // }
-
-  diff = applyDiffRules(diff);
-
-  // if (key === 'U24_GW01_Del_ActiveEnergy') {
-  //   console.log('✅ [U24 DEBUG] final consumption:', diff);
-  // }
-
-  return +diff.toFixed(2);
-};
-
+      const getConsumption = (arr: number[], key: string): number => {
+        if (arr.length < 2) return 0;
+        const first = clean(arr[0]);
+        const last = clean(arr[arr.length - 1]);
+        let diff = last - first;
+        diff = applyDiffRules(diff);
+        return +diff.toFixed(2);
+      };
 
       // -----------------------------
       // Groups
       // -----------------------------
       const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
-      const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy','U24_GW01_Del_ActiveEnergy'];
+
+      const SolarGenerationKeys = [
+        'U6_GW02_Del_ActiveEnergy',
+        'U17_GW03_Del_ActiveEnergy',
+        'U24_GW01_Del_ActiveEnergy',
+        'U28_PLC_Del_ActiveEnergy', // ✅ Added here
+      ];
+
       const WapdaImportKeys = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
       const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];
 
@@ -172,7 +139,6 @@ export class PieChartService {
         const subData = keys.map((key) => {
           const arr = buildConsumptionArray(key);
           if (!arr.length) {
-            // console.log(`❌ ${key}: no values found in range`);
             return { name: key, value: 0 };
           }
           const consumption = getConsumption(arr, key);
@@ -181,7 +147,6 @@ export class PieChartService {
 
         const rawSum = subData.reduce((sum, item) => sum + item.value, 0);
         const groupSum = +applyDiffRules(rawSum).toFixed(2);
-        // console.log(`📦 Group total (${keys.join(',')}): ${groupSum}`);
         return { subData, groupSum };
       };
 

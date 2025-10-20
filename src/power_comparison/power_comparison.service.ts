@@ -40,9 +40,9 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
   const ltTags = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
   const wapdaTags = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
   // const solarTags = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
-  const solarTags = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy', 'U24_GW01_Del_ActiveEnergy'];
+  const solarTags = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy', 'U24_GW01_Del_ActiveEnergy', 'U28_PLC_Del_ActiveEnergy'];
 
-  const unit4Tags = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy','U24_GW01_Del_ActiveEnergy'];
+  const unit4Tags = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U13_GW01_Del_ActiveEnergy','U24_GW01_Del_ActiveEnergy', 'U28_PLC_Del_ActiveEnergy'];
   const unit5Tags = ['U6_GW02_Del_ActiveEnergy', 'U13_GW02_Del_ActiveEnergy', 'U16_GW03_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy'];
   const Aux_consumptionTags = ['U25_PLC_Del_ActiveEnergy'];
   const Trafo1IncomingTags = ['U23_GW01_Del_ActiveEnergy'];
@@ -348,8 +348,8 @@ async getDailyPowerAverages(startDate: string, endDate: string) {
     HT: ['U22_PLC', 'U26_PLC'],
     LT: ['U19_PLC', 'U11_GW01'],
     wapda: ['U23_GW01', 'U27_PLC'],
-    solar: ['U6_GW02', 'U17_GW03','U24_GW01'],
-    unit4: ['U19_PLC', 'U21_PLC', 'U11_GW01', 'U13_GW01', 'U24_GW01'],
+    solar: ['U6_GW02', 'U17_GW03','U24_GW01', 'U28_PLC'],
+    unit4: ['U19_PLC', 'U21_PLC', 'U11_GW01', 'U13_GW01', 'U24_GW01', 'U28_PLC'],
     unit5: ['U6_GW02', 'U13_GW02', 'U16_GW03', 'U17_GW03'],
     aux: ['U25_PLC'],
     Trafo1Incoming: ['U23_GW01'],

@@ -26,7 +26,7 @@ export class TrendsService {
         'U1_GW01', 'U2_GW01', 'U3_GW01', 'U4_GW01', 'U5_GW01', 'U6_GW01', 'U7_GW01',
         'U8_GW01', 'U9_GW01', 'U10_GW01', 'U11_GW01', 'U12_GW01', 'U13_GW01', 'U14_GW01',
         'U15_GW01', 'U16_GW01', 'U17_GW01', 'U18_GW01', 'U19_GW01', 'U20_GW01', 'U21_GW01',
-        'U22_GW01', 'U23_GW01','U24_GW01',
+        'U22_GW01', 'U23_GW01','U24_GW01','U28_PLC',
       ],
     },
     'Unit 5': {

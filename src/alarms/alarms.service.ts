@@ -868,6 +868,7 @@ export class AlarmsService {
       ],
       'Unit_4.LT2': [
         'Solar 352.50 kW',
+        'Solar 52.17 kW',
         'A/C Back Process',
         'Weikel Cond',
         'Winding AC',
@@ -921,6 +922,38 @@ export class AlarmsService {
         'U24_GW01_Power_Phase_A',
         'U24_GW01_Power_Phase_B',
         'U24_GW01_Power_Phase_C',
+      ],
+      'Unit_4.LT2.Solar 52.17 kW': [
+        'U28_PLC_Voltage_AB',
+        'U28_PLC_Voltage_BC',
+        'U28_PLC_Voltage_CA',
+        'U28_PLC_Current_A',
+        'U28_PLC_Current_B',
+        'U28_PLC_Current_C',
+        'U28_PLC_PowerFactor_A',
+        'U28_PLC_PowerFactor_B',
+        'U28_PLC_PowerFactor_C',
+        'U28_PLC_ActivePower_Total',
+        'U28_PLC_ReactivePower_Total',
+        'U28_PLC_ApparentPower_Total',
+        'U28_PLC_Del_ActiveEnergy',
+        'U28_PLC_Rec_Active_Energy',
+        'U28_PLC_Harmonics_V1_THD',
+        'U28_PLC_Harmonics_V2_THD',
+        'U28_PLC_Harmonics_V3_THD',
+        'U28_PLC_Harmonics_I1_THD',
+        'U28_PLC_Harmonics_I2_THD',
+        'U28_PLC_Harmonics_I3_THD',
+        'U28_PLC_Voltage_AN',
+        'U28_PLC_Voltage_BN',
+        'U28_PLC_Voltage_CN',
+        'U28_PLC_Voltage_LN_Avg',
+        'U28_PLC_Voltage_Avg',
+        'U28_PLC_Current_Avg',
+        'U28_PLC_PowerFactor_Avg',
+        'U28_PLC_Power_Phase_A',
+        'U28_PLC_Power_Phase_B',
+        'U28_PLC_Power_Phase_C',
       ],
       //U1_GW01
       'Unit_4.LT2.A/C Back Process': [
@@ -1687,7 +1720,7 @@ export class AlarmsService {
         'Card PDB 01',
         'PDB 08',
         'PF Panel',
-        'Solar 1236.39 Kw',
+        'Solar 1184.55 Kw',
         'Ring 1-3',
         'AC Supply Fan',
         'Blow Room L1',
@@ -1872,7 +1905,7 @@ export class AlarmsService {
         'U5_GW02_Power_Phase_C',
       ],
       //U6_GW02
-      'Unit_5.LT1.Solar 1236.39 Kw': [
+      'Unit_5.LT1.Solar 1184.55 Kw': [
         'U6_GW02_Voltage_AB',
         'U6_GW02_Voltage_BC',
         'U6_GW02_Voltage_CA',
@@ -2482,7 +2515,7 @@ export class AlarmsService {
         'MLDB2 Ring Con (Lighting)',
         'Deep Valve Turbine',
         'TF #2',
-        'Solar 1017 Kw',
+        'Solar 1066.985 kW',
         'PF Panel',
         'PDB 07',
         'PDB 10',
@@ -3016,7 +3049,7 @@ export class AlarmsService {
         'U16_GW03_Power_Phase_C',
       ],
       //U17_GW03
-      'Unit_5.LT2.Solar 1017 Kw': [
+      'Unit_5.LT2.Solar 1066.985 kW': [
         'U17_GW03_Voltage_AB',
         'U17_GW03_Voltage_BC',
         'U17_GW03_Voltage_CA',

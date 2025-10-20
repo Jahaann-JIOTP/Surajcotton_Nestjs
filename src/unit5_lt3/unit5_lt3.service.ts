@@ -191,7 +191,7 @@ export class Unit5LT3Service {
 
     const sankeyData = [
       { from: 'TF #1', to: 'TotalLT3', value: tf3 },
-      { from: 'Solar 1236.39 Kw', to: 'TotalLT3', value: solar },
+      { from: 'Solar 1184.55 Kw', to: 'TotalLT3', value: solar },
        // NEW INPUT LEG (generation side)
       { from: 'From U4LT 1(Ring 21-24)', to: 'TotalLT3', value: PDB07_U4 },   // Verified
       { from: 'From U4LT 2(Card1-8 & Card9-14+1Breaker)', to: 'TotalLT3', value:  U4_LT2_sum },   // Verified

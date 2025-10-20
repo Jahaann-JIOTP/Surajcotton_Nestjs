@@ -130,6 +130,7 @@ export class Unit4LT2Service {
       'U13_GW01_Del_ActiveEnergy', // TF2
       'U11_GW01_Del_ActiveEnergy',  // Gas Gen
       'U24_GW01_Del_ActiveEnergy',
+      'U28_PLC_Del_ActiveEnergy',
       ...Object.keys(meterMap).map(m => `${m}_Del_ActiveEnergy`),
     ];
 
@@ -194,6 +195,7 @@ export class Unit4LT2Service {
     const tf2 = +(consumptionTotals['U13_GW01_Del_ActiveEnergy'] || 0).toFixed(2);
     const GasGen = +(consumptionTotals['U11_GW01_Del_ActiveEnergy'] || 0).toFixed(2);
     const Solar = +(consumptionTotals['U24_GW01_Del_ActiveEnergy'] || 0).toFixed(2);
+    const Solar52 = +(consumptionTotals['U28_PLC_Del_ActiveEnergy'] || 0).toFixed(2);
 // changed id U11 to U7
 
     const sankeyData = [
@@ -201,6 +203,7 @@ export class Unit4LT2Service {
       { from: 'WAPDA+HFO+JMS Incoming', to: 'TotalLT2', value: tf2 },
       { from: 'Diesel+JGS Incoming',     to: 'TotalLT2', value: GasGen },
       { from: 'Solar 352.50 kW',     to: 'TotalLT2', value: Solar },
+      { from: 'Solar 52.17 kW',     to: 'TotalLT2', value: Solar52 },
 
       // NEW generation legs
       { from: 'From U5LT1(ComberM/C1-14 & CardM/C8-14)', to: 'TotalLT2', value: PDB12CD12_sum },   // verified

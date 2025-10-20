@@ -21,7 +21,7 @@ export class EnergyService {
        
         
         "U1_GW01", "U2_GW01", "U3_GW01", "U4_GW01", "U5_GW01", "U6_GW01", "U7_GW01", "U8_GW01", "U9_GW01", "U10_GW01", "U11_GW01",
-        "U12_GW01", "U13_GW01", "U14_GW01", "U15_GW01", "U16_GW01", "U17_GW01", "U18_GW01", "U19_GW01", "U20_GW01", "U21_GW01", "U22_GW01", "U23_GW01","U24_GW01",
+        "U12_GW01", "U13_GW01", "U14_GW01", "U15_GW01", "U16_GW01", "U17_GW01", "U18_GW01", "U19_GW01", "U20_GW01", "U21_GW01", "U22_GW01", "U23_GW01","U24_GW01","U28_PLC",
         
         "U1_GW02","U2_GW02", "U3_GW02", "U4_GW02", "U5_GW02", "U6_GW02", "U7_GW02","U8_GW02", "U9_GW02", "U10_GW02", "U11_GW02", "U12_GW02", "U13_GW02", "U14_GW02",
         "U15_GW02", "U16_GW02", "U17_GW02", "U18_GW02", "U19_GW02", "U20_GW02", "U21_GW02", "U22_GW02", "U23_GW02",
@@ -32,7 +32,7 @@ export class EnergyService {
 
     const suffixes: string[] = ['Del_ActiveEnergy', 'ActivePower_Total', 'ActiveEnergy_Imp_kWh', 'ActiveEnergy_Exp_kWh'];
     const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
-    const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy' , 'U24_GW01_Del_ActiveEnergy'];
+    const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy' , 'U24_GW01_Del_ActiveEnergy', 'U28_PLC_Del_ActiveEnergy'];
     const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];                                                                         //is may sum show karvana ha nilgata or jms ka jab us k tags ayain gay
     const WapdaImportKeys = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
     const Wapda1Keys = ['U23_GW01_Del_ActiveEnergy'];
@@ -53,6 +53,7 @@ export class EnergyService {
     const Solar1Keys = ['U6_GW02_Del_ActiveEnergy'];
     const Solar2Keys = ['U17_GW03_Del_ActiveEnergy'];
     const solarunit4Keys = ['U24_GW01_Del_ActiveEnergy'];
+    const solar52Keys = ['U28_PLC_Del_ActiveEnergy'];
     const PH_ICKeys = ['U22_GW01_Del_ActiveEnergy'];
     const Unit4_LT1Keys = ['U1_PLC_Del_ActiveEnergy', 'U2_PLC_Del_ActiveEnergy', 'U3_PLC_Del_ActiveEnergy',
     'U4_PLC_Del_ActiveEnergy', 'U5_PLC_Del_ActiveEnergy', 'U6_PLC_Del_ActiveEnergy', 'U7_PLC_Del_ActiveEnergy',
@@ -109,7 +110,7 @@ export class EnergyService {
         ];
 
 
-    const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U24_GW01_Del_ActiveEnergy'];
+    const U4_ConsumptionKeys = ['U19_PLC_Del_ActiveEnergy', 'U21_PLC_Del_ActiveEnergy','U13_GW01_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy', 'U24_GW01_Del_ActiveEnergy', 'U28_PLC_Del_ActiveEnergy'];
     const U5_ConsumptionKeys=["U13_GW02_Del_ActiveEnergy", "U16_GW03_Del_ActiveEnergy", "U6_GW02_Del_ActiveEnergy","U17_GW03_Del_ActiveEnergy"]
     // ✅ Time window
 //  const startMoment = moment.tz(`${start} 06:00:00`, "YYYY-MM-DD HH:mm:ss", "Asia/Karachi");
@@ -260,6 +261,7 @@ const sumGroup = (keys: string[]) =>
     let Solar1 = sumGroup(Solar1Keys);
     let Solar2 = sumGroup(Solar2Keys);
     let solarunit4 = sumGroup(solarunit4Keys);
+    let solar52 = sumGroup(solar52Keys);
     let Aux_consumption= sumGroup(Aux_consumptionKeys);
     let U4_Consumption = sumGroup(U4_ConsumptionKeys);
     let U5_Consumption = sumGroup(U5_ConsumptionKeys);
@@ -334,6 +336,7 @@ const sumGroup = (keys: string[]) =>
     Solar1: Solar1.toFixed(2),
     Solar2: Solar2.toFixed(2),
     solarunit4: solarunit4.toFixed(2),
+    solar52: solar52.toFixed(2),
     Aux_consumption: Aux_consumption.toFixed(2),
     Total_Generation: totalGeneration.toFixed(2),
     totalgeneration1: totalgeneration1.toFixed(2),
