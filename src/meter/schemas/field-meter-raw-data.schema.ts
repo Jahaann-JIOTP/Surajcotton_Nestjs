@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-@Schema({ strict: false, collection: 'FM_raw'})   // FM_raw
+@Schema({ strict: false, collection: 'FM_Raw_Prod'})   // For local server FM_raw   // for production server FM_Raw_Prod
 export class FieldMeterRawData extends Document {
   @Prop()
   meterId: string;
