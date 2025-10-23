@@ -5,7 +5,6 @@ import * as moment from 'moment';
 import { Unit5LT4 } from './schemas/unit5_LT4.schema';
 import { MeterService } from 'src/meter/meter.service';
 
-
 @Injectable()
 export class Unit5LT4Service {
   constructor(
@@ -22,12 +21,15 @@ export class Unit5LT4Service {
 
     // ---------------- Determine start & end ISO ----------------
     if (payload.startTime && payload.endTime) {
-      // Custom time window
-      let startMoment = moment.tz(`${payload.startDate} ${payload.startTime}`, "YYYY-MM-DD HH:mm", TZ)
-    .startOf('minute').toDate();
-      let endMoment = moment.tz(`${payload.endDate} ${payload.endTime}`, "YYYY-MM-DD HH:mm", TZ)
-    .endOf('minute').toDate();
-    
+      const startMoment = moment
+        .tz(`${payload.startDate} ${payload.startTime}`, 'YYYY-MM-DD HH:mm', TZ)
+        .startOf('minute')
+        .toDate();
+
+      const endMoment = moment
+        .tz(`${payload.endDate} ${payload.endTime}`, 'YYYY-MM-DD HH:mm', TZ)
+        .endOf('minute')
+        .toDate();
 
       startISO = startMoment.toISOString();
       endISO = endMoment.toISOString();
@@ -38,74 +40,63 @@ export class Unit5LT4Service {
       endISO = `${nextDay}T06:00:59.999+05:00`;
     }
 
-    // console.log("📌 Start ISO:", startISO);
-    // console.log("📌 End ISO:", endISO);
-
-    // -------------------- Call existing daily-consumption function (6am→6am window handled inside it) ---------------------
+    // ---------------- Fetch Meter-Wise Consumption ----------------
     const fmCons = await this.meterService.getMeterWiseConsumption(
       payload.startDate,
       payload.endDate,
-      { startTime: payload.startTime, endTime: payload.endTime }
+      { startTime: payload.startTime, endTime: payload.endTime },
     );
 
-    // ----------------- 1- This value will be used to display a new leg in generation side as From U4 LT 2
+    // ---------------- Custom Source Values ----------------
     const PDB10_U4 = +(Number(fmCons?.U4_U23_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
-    // console.log(PDB10_U4)
-
-    // ----------------- 2- This value will be used to subscrat the value from the U10_GW03: 'Auto Con-linker Conner M/S 10-12',
     const PDB10_U5 = +(Number(fmCons?.U5_U23_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
-    // console.log(PDB10_U5)
-
-    // ----------------- 3- This value will be used to display a new leg in consumption side for PDB 10 TOTAL 
     const PDB10_sum = Math.max(0, +(PDB10_U4 + PDB10_U5).toFixed(2));
-    // console.log(PDB10_sum)
 
-
-    // ---------------- Meter setup ----------------
+    // ---------------- Meter Map ----------------
     const meterMap: Record<string, string> = {
-     U1_GW03: 'Ring Frame 7-9',
-     U2_GW03: 'Yarn Conditioning M/C',
-     U3_GW03: 'MLDB3 Single room quarter',
-     U4_GW03: 'Roving transport system',
-     U5_GW03: 'ring Frame 10-12',
-     U6_GW03: 'Spare 3',
-     U7_GW03: 'Spare 1',
-     U8_GW03: 'Spare 2',
-     U9_GW03: 'Ring Frame 13-15',
-     U10_GW03: 'Auto Con 10-18',
-     U11_GW03: 'Baling Press',
-     U12_GW03: 'Ring Frame 16-18',
-     U13_GW03: 'Fiber Deposit Plant',
-     U14_GW03: 'MLDB2 Ring Con (Lighting)',
-     U15_GW03: 'Deep Valve Turbine',
-     U18_GW03: 'PF Panel',
+      U1_GW03: 'Ring Frame 7-9',
+      U2_GW03: 'Yarn Conditioning M/C',
+      U3_GW03: 'MLDB3 Single room quarter',
+      U4_GW03: 'Roving transport system',
+      U5_GW03: 'Ring Frame 10-12',
+      U6_GW03: 'Spare 3',
+      U7_GW03: 'Spare 1',
+      U8_GW03: 'Spare 2',
+      U9_GW03: 'Ring Frame 13-15',
+      U10_GW03: 'Auto Con 10-18',
+      U11_GW03: 'Baling Press',
+      U12_GW03: 'Ring Frame 16-18',
+      U13_GW03: 'Fiber Deposit Plant',
+      U14_GW03: 'MLDB2 Ring Con (Lighting)',
+      U15_GW03: 'Deep Valve Turbine',
+      U18_GW03: 'PF Panel',
     };
 
     const meterFields = [
       'U16_GW03_Del_ActiveEnergy', // TF3
-      'U17_GW03_Del_ActiveEnergy', // solar
+      'U17_GW03_Del_ActiveEnergy', // Solar
       ...Object.keys(meterMap).map((m) => `${m}_Del_ActiveEnergy`),
     ];
 
-    // ---------------- Aggregation pipeline ----------------
+    // ---------------- Aggregation ----------------
     const projection: any = {};
-    meterFields.forEach(field => {
+    meterFields.forEach((field) => {
       projection[`first_${field}`] = { $first: `$${field}` };
       projection[`last_${field}`] = { $last: `$${field}` };
     });
 
     const pipeline: any[] = [
-      { $addFields: { ts: { $toDate: "$timestamp" } } },
+      { $addFields: { ts: { $toDate: '$timestamp' } } },
       { $match: { ts: { $gte: new Date(startISO), $lte: new Date(endISO) } } },
-      { $sort: { ts: 1 } }, // ensures $first/$last are correct
+      { $sort: { ts: 1 } },
       { $group: { _id: null, ...projection } },
     ];
 
     const results = await this.unitModel.aggregate(pipeline).exec();
 
-    // ---------------- Sum consumption ----------------
+    // ---------------- Consumption Calculation ----------------
     const consumptionTotals: Record<string, number> = {};
-    meterFields.forEach(field => consumptionTotals[field] = 0);
+    meterFields.forEach((field) => (consumptionTotals[field] = 0));
 
     for (const entry of results) {
       for (const field of meterFields) {
@@ -118,63 +109,54 @@ export class Unit5LT4Service {
       }
     }
 
-    const minusByMeter: Record<string, number> = {}; // no subtraction now from Auto Con-linker Conner M/S 10-12
-    const overrideByMeter: Record<string, number> = {   // displaying the PDB_10 TOTAL value in Auto Con-linker Conner M/S 10-12 insteat of its original value
-      U10_GW03: PDB10_sum,
+    // ---------------- Overrides and Subtractions ----------------
+    const minusByMeter: Record<string, number> = {};
+    const overrideByMeter: Record<string, number> = {
+      U10_GW03: PDB10_sum, // replace U10_GW03 with PDB10_sum
     };
 
-
-    // ---------------- Prepare Sankey Data ----------------
+    // ---------------- Prepare Sankey Legs ----------------
     const tf4 = +consumptionTotals['U16_GW03_Del_ActiveEnergy'].toFixed(2);
     const solar2 = +consumptionTotals['U17_GW03_Del_ActiveEnergy'].toFixed(2);
     const totalLT4 = +(tf4 + solar2).toFixed(2);
 
+    const plcLegs = Object.entries(meterMap).map(([meter, label]) => {
+      const key = `${meter}_Del_ActiveEnergy`;
+      const base = +(Number(consumptionTotals[key] || 0).toFixed(2));
 
-  // Build one Sankey leg per PLC meter
-const plcLegs = Object.entries(meterMap).map(([meter, label]) => {
-  // Compose the raw-data field name used in your collection, e.g. "U10_GW03_Del_ActiveEnergy"
-  const key  = `${meter}_Del_ActiveEnergy`;
+      if (Object.prototype.hasOwnProperty.call(overrideByMeter, meter)) {
+        const ov = +(Number(overrideByMeter[meter]).toFixed(2));
+        return { from: 'TotalLT4', to: label, value: Math.max(0, ov) };
+      }
 
-  // Base consumption for this meter (last - first), already computed into `consumptionTotals`
-  // Ensure it's a number and round to 2 decimals; unary + converts string → number
-  const base = +(Number(consumptionTotals[key] || 0).toFixed(2));
+      const minus = +(Number(minusByMeter[meter] || 0).toFixed(2));
+      const raw = +(base - minus).toFixed(2);
+      const value = Math.max(0, Math.abs(raw) < 1e-9 ? 0 : raw);
 
-  // If this meter has a forced value (override), use that instead of its own base consumption.
-  // In your case, U10_GW03 is overridden to PDB10_sum.
-  if (Object.prototype.hasOwnProperty.call(overrideByMeter, meter)) {
-    // Pull the override, round to 2 decimals, coerce to number
-    const ov = +(Number(overrideByMeter[meter]).toFixed(2));
-    // Return the Sankey leg object for this meter using the override (never negative)
-    return { from: 'TotalLT4', to: label, value: Math.max(0, ov) };
-  }
+      return { from: 'TotalLT4', to: label, value };
+    });
 
-  // Otherwise, optionally subtract a correction (minus). Here we’ve emptied minusByMeter,
-  // but the code remains generic for future meters that might need a subtraction.
-  const minus = +(Number(minusByMeter[meter] || 0).toFixed(2));
-
-  // Raw value = base - minus; round to 2 decimals and coerce to number
-  const raw   = +(base - minus).toFixed(2);
-
-  // Final value for Sankey: clamp tiny -0.00 to 0 and prevent negatives
-  const value = Math.max(0, Math.abs(raw) < 1e-9 ? 0 : raw);
-
-  // Return the Sankey leg for this meter
-  return { from: 'TotalLT4', to: label, value };
-});
-
-
+    // ---------------- Base Sankey Structure ----------------
     const sankeyData = [
       { from: 'TF #2', to: 'TotalLT4', value: tf4 },
       { from: 'Solar 1066.985 Kw', to: 'TotalLT4', value: solar2 },
-    // NEW input/generation leg
       { from: 'From U4 LT2(Ring5-8 )', to: 'TotalLT4', value: PDB10_U4 },
-
-      // Adjusted PLC branches (includes the U10_GW03 subtraction)
       ...plcLegs,
-
-      // NEW bottom/output summary leg
-      // { from: 'TotalLT4', to: 'PDB 10 TOTAL', value: PDB10_sum },
     ];
+
+    // ---------------- Calculate Unaccounted Energy ----------------
+    const totalInput = +(tf4 + solar2 + PDB10_U4).toFixed(2);
+    const totalOutput = plcLegs.reduce((sum, leg) => sum + leg.value, 0);
+    const unaccounted = +(totalInput - totalOutput).toFixed(2);
+
+    if (unaccounted !== 0) {
+      sankeyData.push({
+        from: 'TotalLT4',
+        to: 'Unaccounted Energy',
+        value: Math.max(0, unaccounted),
+      });
+    }
+
     return sankeyData;
   }
 }

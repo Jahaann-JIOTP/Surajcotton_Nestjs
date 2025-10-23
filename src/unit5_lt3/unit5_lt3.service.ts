@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import * as moment from 'moment';
+import * as moment from 'moment-timezone';
 import { Unit5LT3 } from './schemas/unit5_LT3.schema';
 import { MeterService } from 'src/meter/meter.service';
-
 
 @Injectable()
 export class Unit5LT3Service {
@@ -17,91 +16,56 @@ export class Unit5LT3Service {
   async getSankeyData(payload: { startDate: string; endDate: string; startTime?: string; endTime?: string }) {
     const TZ = 'Asia/Karachi';
 
+    // ---------------- Determine start & end ISO ----------------
     let startISO: string;
     let endISO: string;
 
-    // ---------------- Determine start & end ISO ----------------
     if (payload.startTime && payload.endTime) {
-      // Custom time window
-      let startMoment = moment.tz(`${payload.startDate} ${payload.startTime}`, "YYYY-MM-DD HH:mm", TZ)
-    .startOf('minute').toDate();
-      let endMoment = moment.tz(`${payload.endDate} ${payload.endTime}`, "YYYY-MM-DD HH:mm", TZ)
-    .endOf('minute').toDate();
-    
+      const startMoment = moment
+        .tz(`${payload.startDate} ${payload.startTime}`, 'YYYY-MM-DD HH:mm', TZ)
+        .startOf('minute')
+        .toDate();
+      const endMoment = moment
+        .tz(`${payload.endDate} ${payload.endTime}`, 'YYYY-MM-DD HH:mm', TZ)
+        .endOf('minute')
+        .toDate();
 
       startISO = startMoment.toISOString();
       endISO = endMoment.toISOString();
     } else {
-      // Default 6AM → 6AM next day
       startISO = `${payload.startDate}T06:00:00.000+05:00`;
       const nextDay = moment(payload.endDate).add(1, 'day').format('YYYY-MM-DD');
       endISO = `${nextDay}T06:00:59.999+05:00`;
     }
 
-    // console.log("📌 Start ISO:", startISO);
-    // console.log("📌 End ISO:", endISO);
-
-        // -------------------- Call existing daily-consumption function (6am→6am window handled inside it) ---------------------
+    // -------------------- Fetch Meter-wise Consumption ---------------------
     const fmCons = await this.meterService.getMeterWiseConsumption(
       payload.startDate,
       payload.endDate,
       { startTime: payload.startTime, endTime: payload.endTime }
     );
 
-    // --------------- 1- This value will be added in a new leg in generation side -  as From Unit4 LT 1 (Ring 21- 24)
+    // ---------- Cross-unit legs ----------
     const PDB07_U4 = +(Number(fmCons?.U4_U22_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
-    // console.log(PDB07_U4)
-
-    // --------------- 2-  This value will be subscrated from U18_GW02: 'Auto Con-link Conner 1-9',
     const PDB07_U5 = +(Number(fmCons?.U5_U22_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
-    // console.log(PDB07_U5)
-
-    // --------------- 3-  This value will be subscrated from  U14_GW02: 'Comber MCS 1-14',
     const PDB08_U5 = +(Number(fmCons?.U5_U4_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
-    // console.log(PDB08_U5)
-
-    // --------------- 4-  This value will be subscrated from  U17_GW02: 'Card M/C 8-14',
     const CardPDB1_U5 = +(Number(fmCons?.U5_U3_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
-    // console.log(CardPDB1_U5)
-
-    // --------------- 5-  This value will be subscrated from U17_GW02: 'Card M/C 8-14',,
     const PDB1CD1_U5 = +(Number(fmCons?.U5_U1_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
-    // console.log(PDB1CD1_U5)
-
-    // --------------- 5-  This value will be subscrated from  U14_GW02: 'Comber MCS 1-14',
     const PDB2CD2_U5 = +(Number(fmCons?.U5_U2_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
-    // console.log(PDB2CD2_U5)
-
-    // --------------- 6-  This value will be used for full consumption leg CardPDB1
     const CardPDB1_U4 = +(Number(fmCons?.U4_U3_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
-    // console.log(CardPDB1_U4)
-
-    // --------------- 7-  This value will be used for full consumption of PDB 08 leg 
     const PDB08_U4 = +(Number(fmCons?.U4_U4_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
-    // console.log(PDB08_U4)
-
-        // --------------- 8-  This value will be used to show generation U14_GW02: 'Comber MCS 1-14',
     const PDB2CD2_U4 = +(Number(fmCons?.U4_U2_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
-    // console.log(PDB2CD2_U4)
-
-     // --------------- 9-  This value will be used to show generation from U4 LT 2 17_GW02: 'Card M/C 8-14',,
     const PDB1CD1_U4 = +(Number(fmCons?.U4_U1_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
-    // console.log(PDB1CD1_U4)
 
-
-    // ---------- bottom-leg sums (rounded, non-negative) ----------
-    const toU4LT2   = Math.max(0, +(PDB1CD1_U5 + PDB2CD2_U5).toFixed(2));
+    // ---------- bottom-leg sums ----------
+    const toU4LT2 = Math.max(0, +(PDB1CD1_U5 + PDB2CD2_U5).toFixed(2));
     const PDB07_sum = Math.max(0, +(PDB07_U5 + PDB07_U4).toFixed(2));
     const PDB08_sum = Math.max(0, +(PDB08_U5 + PDB08_U4).toFixed(2));
     const CardPDB1_sum = Math.max(0, +(CardPDB1_U5 + CardPDB1_U4).toFixed(2));
-    const U4_LT2_sum = Math.max(0, +(CardPDB1_U4 + PDB08_U4).toFixed(2));   // CORRECTED
+    const U4_LT2_sum = Math.max(0, +(CardPDB1_U4 + PDB08_U4).toFixed(2));
+
     // ---------------- Meter setup ----------------
-  const meterMap: Record<string, string> = {
-      // U1_GW02: 'PDB CD1',
-      // U2_GW02: 'PDB CD2',
-      // U3_GW02: 'Card PDB 01',
-      // U4_GW02: 'PDB 8',
-      
+    const meterMap: Record<string, string> = {
       U7_GW02: 'Ring 1-3',
       U8_GW02: 'AC Supply Fan',
       U9_GW02: 'Blow Room L1',
@@ -124,7 +88,7 @@ export class Unit5LT3Service {
     const meterFields = [
       'U13_GW02_Del_ActiveEnergy', // TF3
       'U6_GW02_Del_ActiveEnergy',  // Solar
-      ...Object.keys(meterMap).map((m) => `${m}_Del_ActiveEnergy`),
+      ...Object.keys(meterMap).map(m => `${m}_Del_ActiveEnergy`),
     ];
 
     // ---------------- Aggregation pipeline ----------------
@@ -135,17 +99,17 @@ export class Unit5LT3Service {
     });
 
     const pipeline: any[] = [
-      { $addFields: { ts: { $toDate: "$timestamp" } } },
+      { $addFields: { ts: { $toDate: '$timestamp' } } },
       { $match: { ts: { $gte: new Date(startISO), $lte: new Date(endISO) } } },
-      { $sort: { ts: 1 } }, // ensures $first/$last are correct
+      { $sort: { ts: 1 } },
       { $group: { _id: null, ...projection } },
     ];
 
     const results = await this.unitModel.aggregate(pipeline).exec();
 
-    // ---------------- Sum consumption ----------------
+    // ---------------- Calculate consumptions ----------------
     const consumptionTotals: Record<string, number> = {};
-    meterFields.forEach(field => consumptionTotals[field] = 0);
+    meterFields.forEach(f => (consumptionTotals[f] = 0));
 
     for (const entry of results) {
       for (const field of meterFields) {
@@ -153,57 +117,52 @@ export class Unit5LT3Service {
         const last = entry[`last_${field}`] || 0;
         const consumption = last - first;
         if (!isNaN(consumption) && consumption >= 0) {
-          consumptionTotals[field] += parseFloat(consumption.toFixed(2));
+          consumptionTotals[field] += +consumption.toFixed(2);
         }
       }
     }
 
-    // ---------------- Prepare Sankey Data ----------------
     const tf3 = +consumptionTotals['U13_GW02_Del_ActiveEnergy'].toFixed(2);
     const solar = +consumptionTotals['U6_GW02_Del_ActiveEnergy'].toFixed(2);
-    
-   // No subtractions anymore
-    const minusByMeter: Record<string, number> = {};
-     // Force specific meters to display totals instead of their own base
+    const totalGeneration = tf3 + solar + PDB07_U4 + U4_LT2_sum; // All incoming sources
+
     const overrideByMeter: Record<string, number> = {
-      U18_GW02: PDB07_sum,      // Auto Con-link Conner 1-9  ← show PDB07_sum
-      U17_GW02: CardPDB1_sum,   // Card M/C 8-14             ← show CardPDB1_sum
-      U14_GW02: PDB08_sum,      // Comber MCS 1-14           ← show PDB08_sum
+      U18_GW02: PDB07_sum, // Auto Con-link Conner 1-9
+      U17_GW02: CardPDB1_sum, // Card M/C 8-14
+      U14_GW02: PDB08_sum, // Comber MCS 1-14
     };
 
-  const plcLegs = Object.entries(meterMap).map(([meter, label]) => {
-    const key  = `${meter}_Del_ActiveEnergy`;
-    const base = +(Number(consumptionTotals[key] || 0).toFixed(2));
+    const plcLegs = Object.entries(meterMap).map(([meter, label]) => {
+      const key = `${meter}_Del_ActiveEnergy`;
+      const base = +(Number(consumptionTotals[key] || 0).toFixed(2));
+      const value = overrideByMeter[meter]
+        ? Math.max(0, +overrideByMeter[meter].toFixed(2))
+        : Math.max(0, +base.toFixed(2));
+      return { from: 'TotalLT3', to: label, value };
+    });
 
-    // If an override exists, use it directly
-    if (Object.prototype.hasOwnProperty.call(overrideByMeter, meter)) {
-      const ov = +(Number(overrideByMeter[meter]).toFixed(2));
-      return { from: 'TotalLT3', to: label, value: Math.max(0, ov) };
-    }
+    // ---------------- Calculate Total Consumption ----------------
+    let totalConsumption = 0;
+    Object.keys(meterMap).forEach(m => {
+      const key = `${m}_Del_ActiveEnergy`;
+      const val = +(Number(consumptionTotals[key] || 0).toFixed(2));
+      totalConsumption += overrideByMeter[m] ? overrideByMeter[m] : val;
+    });
 
-    // Otherwise keep generic path (minus is empty now, but kept for future flexibility)
-    const minus = +(Number(minusByMeter[meter] || 0).toFixed(2));
-    const raw   = +(base - minus).toFixed(2);
-    const value = Math.max(0, Math.abs(raw) < 1e-9 ? 0 : raw);
-    return { from: 'TotalLT3', to: label, value };
-  });
+    const unaccountedEnergy = Math.max(0, +(totalGeneration - totalConsumption - toU4LT2).toFixed(2));
 
-
+    // ---------------- Final Sankey Data ----------------
     const sankeyData = [
       { from: 'TF #1', to: 'TotalLT3', value: tf3 },
       { from: 'Solar 1184.55 Kw', to: 'TotalLT3', value: solar },
-       // NEW INPUT LEG (generation side)
-      { from: 'From U4LT 1(Ring 21-24)', to: 'TotalLT3', value: PDB07_U4 },   // Verified
-      { from: 'From U4LT 2(Card1-8 & Card9-14+1Breaker)', to: 'TotalLT3', value:  U4_LT2_sum },   // Verified
-      // adjusted PLC branches
+      { from: 'From U4LT 1 (Ring 21–24)', to: 'TotalLT3', value: PDB07_U4 },
+      { from: 'From U4LT 2 (Card1–8 & Card9–14+1B)', to: 'TotalLT3', value: U4_LT2_sum },
       ...plcLegs,
-
-       // -------- NEW bottom legs (show transfers/bridges) --------
-      { from: 'TotalLT3', to: 'PDBCD1->To U4LT2(Card1-8)', value: PDB1CD1_U5 },
-      { from: 'TotalLT3', to: 'PDBCD2->To U4LT2(Card9-14+1B.)', value: PDB2CD2_U5 },
-
+      { from: 'TotalLT3', to: 'PDBCD1 → U4LT2 (Card1–8)', value: PDB1CD1_U5 },
+      { from: 'TotalLT3', to: 'PDBCD2 → U4LT2 (Card9–14+1B)', value: PDB2CD2_U5 },
+      { from: 'TotalLT3', to: 'Unaccounted Energy', value: unaccountedEnergy },
     ];
-  
+
     return sankeyData;
   }
 }
