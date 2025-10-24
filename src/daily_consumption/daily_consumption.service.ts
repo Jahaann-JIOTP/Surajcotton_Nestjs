@@ -65,8 +65,8 @@ export class DailyConsumptionService {
 
     private unit5Lt1Meters = [
     { energy: 'U9_GW02_Del_ActiveEnergy', power: 'U9_GW02_ActivePower_Total', powerFactor: 'U9_GW02_PowerFactor_Avg', voltage: 'U9_GW02_Voltage_Avg', metername: 'Blow Room L1', deptname: 'Blow Room', MCS: '1', installedLoad: '144.5' },
-    { energy: 'U19_GW02_Del_ActiveEnergy', power: 'U19_GW02_ActivePower_Total', powerFactor: 'U19_GW02_PowerFactor_Avg', voltage: 'U19_GW02_Voltage_Avg', metername: 'Card Machine 1-7', deptname: 'Card', MCS: '7', installedLoad: '20.9' },
-    { energy: 'U17_GW02_Del_ActiveEnergy', power: 'U17_GW02_ActivePower_Total', powerFactor: 'U17_GW02_PowerFactor_Avg', voltage: 'U17_GW02_Voltage_Avg', metername: 'Carding Machine 8-14', deptname: 'Card', MCS: '7', installedLoad: '20.9' },
+    { energy: 'U19_GW02_Del_ActiveEnergy', power: 'U19_GW02_ActivePower_Total', powerFactor: 'U19_GW02_PowerFactor_Avg', voltage: 'U19_GW02_Voltage_Avg', metername: 'Card M/C 1-7', deptname: 'Card', MCS: '7', installedLoad: '20.9' },
+    { energy: 'U17_GW02_Del_ActiveEnergy', power: 'U17_GW02_ActivePower_Total', powerFactor: 'U17_GW02_PowerFactor_Avg', voltage: 'U17_GW02_Voltage_Avg', metername: 'Card M/C 8-14', deptname: 'Card', MCS: '7', installedLoad: '20.9' },
     { energy: 'U23_GW02_Del_ActiveEnergy', power: 'U23_GW02_ActivePower_Total', powerFactor: 'U23_GW02_PowerFactor_Avg', voltage: 'U23_GW02_Voltage_Avg', metername: 'Draw Frame Finish 1~8', deptname: 'Drawing Finisher 1-8', MCS: '8', installedLoad: '13.6' },
     { energy: 'U21_GW02_Del_ActiveEnergy', power: 'U21_GW02_ActivePower_Total', powerFactor: 'U21_GW02_PowerFactor_Avg', voltage: 'U21_GW02_Voltage_Avg', metername: 'Simplex M/C 1~6 + 1~5 Breaker Machines', deptname: 'Drawing Simplex + Breaker', MCS: '8', installedLoad: '34' },
     { energy: 'U10_GW02_Del_ActiveEnergy', power: 'U10_GW02_ActivePower_Total', powerFactor: 'U10_GW02_PowerFactor_Avg', voltage: 'U10_GW02_Voltage_Avg', metername: 'Ring Frames 4-6', deptname: 'Ring Dept', MCS: '3', installedLoad: '141' },
@@ -76,7 +76,7 @@ export class DailyConsumptionService {
     { energy: 'U20_GW02_Del_ActiveEnergy', power: 'U20_GW02_ActivePower_Total', powerFactor: 'U20_GW02_PowerFactor_Avg', voltage: 'U20_GW02_Voltage_Avg', metername: 'AC Plant Winding', deptname: 'A/C Auto Cone(Winding)', MCS: '1', installedLoad: '70' },
     { energy: 'U8_GW02_Del_ActiveEnergy', power: 'U8_GW02_ActivePower_Total', powerFactor: 'U8_GW02_PowerFactor_Avg', voltage: 'U8_GW02_Voltage_Avg', metername: 'AC Supply Fan', deptname: 'AC_Ring', MCS: '14', installedLoad: '476' },
     { energy: 'U15_GW02_Del_ActiveEnergy', power: 'U15_GW02_ActivePower_Total', powerFactor: 'U15_GW02_PowerFactor_Avg', voltage: 'U15_GW02_Voltage_Avg', metername: 'AC Return Fan', deptname: 'AC_Ring', MCS: '9', installedLoad: '476' },
-    { energy: 'U11_GW02_Del_ActiveEnergy', power: 'U11_GW02_ActivePower_Total', powerFactor: 'U11_GW02_PowerFactor_Avg', voltage: 'U11_GW02_Voltage_Avg', metername: 'AC Plant Blowing', deptname: 'A/C Back Process', MCS: '1', installedLoad: '75' },
+    { energy: 'U11_GW02_Del_ActiveEnergy', power: 'U11_GW02_ActivePower_Total', powerFactor: 'U11_GW02_PowerFactor_Avg', voltage: 'U11_GW02_Voltage_Avg', metername: 'A/C Plant Blowing', deptname: 'A/C Back Process', MCS: '1', installedLoad: '75' },
 
    
   
@@ -85,11 +85,11 @@ export class DailyConsumptionService {
 
       private unit5Lt2Meters = [
     { energy: 'U4_GW03_Del_ActiveEnergy', power: 'U4_GW03_ActivePower_Total', powerFactor: 'U4_GW03_PowerFactor_Avg', voltage: 'U4_GW03_Voltage_Avg', metername: 'Roving Transport System', deptname: 'R. Transport System', MCS: '1', installedLoad: '30' },
-    { energy: 'U1_GW03_Del_ActiveEnergy', power: 'U1_GW03_ActivePower_Total', powerFactor: 'U1_GW03_PowerFactor_Avg', voltage: 'U1_GW03_Voltage_Avg', metername: 'Ring Frame 7 to 9', deptname: 'Ring Dept', MCS: '3', installedLoad: '141' },
-    { energy: 'U5_GW03_Del_ActiveEnergy', power: 'U5_GW03_ActivePower_Total', powerFactor: 'U5_GW03_PowerFactor_Avg', voltage: 'U5_GW03_Voltage_Avg', metername: 'Ring Frame 10 to 12', deptname: 'Ring Dept', MCS: '3', installedLoad: '141' },
-    { energy: 'U9_GW03_Del_ActiveEnergy', power: 'U9_GW03_ActivePower_Total', powerFactor: 'U9_GW03_PowerFactor_Avg', voltage: 'U9_GW03_Voltage_Avg', metername: 'Ring Frame 13 to 15', deptname: 'Ring Dept', MCS: '3', installedLoad: '141' },
-    { energy: 'U12_GW03_Del_ActiveEnergy', power: 'U12_GW03_ActivePower_Total', powerFactor: 'U12_GW03_PowerFactor_Avg', voltage: 'U12_GW03_Voltage_Avg', metername: 'Ring Frame 16 to 18', deptname: 'Ring Dept', MCS: '3', installedLoad: '141' },
-    { energy: 'U2_GW03_Del_ActiveEnergy', power: 'U2_GW03_ActivePower_Total', powerFactor: 'U2_GW03_PowerFactor_Avg', voltage: 'U2_GW03_Voltage_Avg', metername: 'Yarn Conditioning Machine', deptname: 'Conditioning Machine', MCS: '1', installedLoad: '17' },
+    { energy: 'U1_GW03_Del_ActiveEnergy', power: 'U1_GW03_ActivePower_Total', powerFactor: 'U1_GW03_PowerFactor_Avg', voltage: 'U1_GW03_Voltage_Avg', metername: 'Ring Frame 7-9', deptname: 'Ring Dept', MCS: '3', installedLoad: '141' },
+    { energy: 'U5_GW03_Del_ActiveEnergy', power: 'U5_GW03_ActivePower_Total', powerFactor: 'U5_GW03_PowerFactor_Avg', voltage: 'U5_GW03_Voltage_Avg', metername: 'Ring Frame 10-12', deptname: 'Ring Dept', MCS: '3', installedLoad: '141' },
+    { energy: 'U9_GW03_Del_ActiveEnergy', power: 'U9_GW03_ActivePower_Total', powerFactor: 'U9_GW03_PowerFactor_Avg', voltage: 'U9_GW03_Voltage_Avg', metername: 'Ring Frame 13-15', deptname: 'Ring Dept', MCS: '3', installedLoad: '141' },
+    { energy: 'U12_GW03_Del_ActiveEnergy', power: 'U12_GW03_ActivePower_Total', powerFactor: 'U12_GW03_PowerFactor_Avg', voltage: 'U12_GW03_Voltage_Avg', metername: 'Ring Frame 16-18', deptname: 'Ring Dept', MCS: '3', installedLoad: '141' },
+    { energy: 'U2_GW03_Del_ActiveEnergy', power: 'U2_GW03_ActivePower_Total', powerFactor: 'U2_GW03_PowerFactor_Avg', voltage: 'U2_GW03_Voltage_Avg', metername: 'Yarn Conditioning M/C', deptname: 'Conditioning Machine', MCS: '1', installedLoad: '17' },
     { energy: 'U6_GW03_Del_ActiveEnergy', power: 'U6_GW03_ActivePower_Total', powerFactor: 'U6_GW03_PowerFactor_Avg', voltage: 'U6_GW03_Voltage_Avg', metername: 'Spare 3', deptname: 'Comber + Uni Lap', MCS: '14', installedLoad: '19.9' },
     { energy: 'U14_GW03_Del_ActiveEnergy', power: 'U14_GW03_ActivePower_Total', powerFactor: 'U14_GW03_PowerFactor_Avg', voltage: 'U14_GW03_Voltage_Avg', metername: 'MLDB2 Ring Con (Lighting)', deptname: 'Mills Lighting', MCS: '1490', installedLoad: '27' },
     { energy: 'U13_GW03_Del_ActiveEnergy', power: 'U13_GW03_ActivePower_Total', powerFactor: 'U13_GW03_PowerFactor_Avg', voltage: 'U13_GW03_Voltage_Avg', metername: 'Fiber Deposit Plant', deptname: 'B/Card + Comber Filter', MCS: '1', installedLoad: '160' },
