@@ -145,17 +145,19 @@ export class Unit5LT4Service {
     ];
 
     // ---------------- Calculate Unaccounted Energy ----------------
-    const totalInput = +(tf4 + solar2 + PDB10_U4).toFixed(2);
-    const totalOutput = plcLegs.reduce((sum, leg) => sum + leg.value, 0);
-    const unaccounted = +(totalInput - totalOutput).toFixed(2);
+    // ---------------- Calculate Unaccounted Energy ----------------
+const totalInput = +(tf4 + solar2 + PDB10_sum).toFixed(2);
+const totalOutput = plcLegs.reduce((sum, leg) => sum + leg.value, 0);
+const unaccounted = +(totalInput - totalOutput).toFixed(2);
 
-    if (unaccounted !== 0) {
-      sankeyData.push({
-        from: 'TotalLT4',
-        to: 'Unaccounted Energy',
-        value: Math.max(0, unaccounted),
-      });
-    }
+// ✅ Show both positive and negative unaccounted values
+if (unaccounted !== 0) {
+  sankeyData.push({
+    from: 'TotalLT4',
+    to: 'Unaccounted Energy',
+    value: +unaccounted.toFixed(2),
+  });
+}
 
     return sankeyData;
   }

@@ -251,10 +251,7 @@ Object.keys(meterMap).forEach((m) => {
     console.log(totalConsumption);
 
     // Compute unaccounted energy
-    const unaccountedEnergy = Math.max(
-      0,
-      +(totalGeneration - totalConsumption).toFixed(2)
-    );
+    const unaccountedEnergy = +(totalGeneration - totalConsumption).toFixed(2);
     // changed id U11 to U7
 
     const sankeyData = [

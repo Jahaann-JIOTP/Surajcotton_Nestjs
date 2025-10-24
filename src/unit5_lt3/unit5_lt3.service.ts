@@ -149,7 +149,7 @@ export class Unit5LT3Service {
       totalConsumption += overrideByMeter[m] ? overrideByMeter[m] : val;
     });
 
-    const unaccountedEnergy = Math.max(0, +(totalGeneration - totalConsumption - toU4LT2).toFixed(2));
+    const unaccountedEnergy = +(totalGeneration - totalConsumption - toU4LT2).toFixed(2);
 
     // ---------------- Final Sankey Data ----------------
     const sankeyData = [

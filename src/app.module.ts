@@ -17,6 +17,7 @@ import { meter_dataModule } from './meter_data/meter_data.module';
 import { EnergyUsageReportModule } from './energy_usage_report/energy_usage_report.module';
 import {EnergyconsumptionreportModule } from './energy_consumption_report/energy_consumption_report.module';
 import { Unit4Lt1Module } from './unit4_lt1/unit4_lt1.module';
+import { sankeyModule } from './sankey/sankey.module';
 import { ProductionMonthwiseModule } from './production-monthwise/production-monthwise.module';
 import { ConsumptionEnergyModule } from './consumption_energy/consumption_energy.module';
 import { GenerationEnergyModule } from './generation_energy/generation_energy.module';
@@ -58,6 +59,7 @@ import { PlantsTrendsModule } from './plants_trends/plants_trends.module';
     EnergyUsageReportModule,
     EnergyconsumptionreportModule,
     Unit4Lt1Module,
+    sankeyModule,
     ProductionMonthwiseModule,
     ConsumptionEnergyModule,
     GenerationEnergyModule,

@@ -117,7 +117,7 @@ export class Unit4LT1Service {
     const ltGen = +consumptionTotals['U19_PLC_Del_ActiveEnergy'].toFixed(2); // Diesel+JGS
 
     const totalGeneration = tf1 + ltGen;
-    //  console.log(totalGeneration);
+     console.log(totalGeneration);
 
     // total consumption (sum of all meters except generation)
     let totalConsumption = 0;
@@ -127,10 +127,10 @@ export class Unit4LT1Service {
       totalConsumption += m === 'U12_PLC' ? ring2124Adj : val;
     });
      totalConsumption += PDB07_U4;
-    // console.log(totalConsumption);
+    console.log(totalConsumption);
 
     // compute unaccounted energy
-    const unaccountedEnergy = Math.max(0, +(totalGeneration - totalConsumption).toFixed(2));
+    const unaccountedEnergy = +(totalGeneration - totalConsumption).toFixed(2);
 
     // ---------------- Construct Sankey Data ----------------
     const sankeyData = [
