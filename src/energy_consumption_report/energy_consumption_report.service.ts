@@ -7,9 +7,6 @@ import { DailyProduction } from './schemas/daily-production.schema';
 import { FieldMeterProcess } from './schemas/field-meter-process.schema';
 import * as moment from 'moment-timezone';
 
-// -------------------------------
-// Type Definitions
-// -------------------------------
 export interface SummaryByDept {
   date: string;
   startTimestamp: string;
@@ -28,7 +25,6 @@ export class EnergyconsumptionreportService {
     private fieldMeterModel: Model<FieldMeterProcess>,
   ) {}
 
-  // ✅ Sanitize to prevent NaN, Infinity, or extreme values
   private sanitizeValue(value: number): number {
     if (!isFinite(value) || isNaN(value)) return 0;
     const minThreshold = 1e-6;
@@ -44,7 +40,7 @@ export class EnergyconsumptionreportService {
     const areaKeys = area === 'ALL' ? ['Unit_4', 'Unit_5'] : [area];
 
     // -------------------------------
-    // 🧱 Unified process mapping
+    // 🧱 Process Mappings
     // -------------------------------
     const processMappings: Record<string, Record<string, string[]>> = {
       Card_Breaker: { Unit_4: ['U5_GW01', 'U9_GW01'] },
@@ -82,18 +78,17 @@ export class EnergyconsumptionreportService {
     };
 
     // -------------------------------
-    // 🕓 Build Full Date Range (6AM → 6AM)
+    // 🕓 Build Full Date Range
     // -------------------------------
     const startISO = moment.tz(`${start_date} ${start_time}`, 'YYYY-MM-DD HH:mm', TZ)
       .startOf('minute')
       .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
-
     const endISO = moment.tz(`${end_date} ${end_time}`, 'YYYY-MM-DD HH:mm', TZ)
       .endOf('minute')
       .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
 
     // -------------------------------
-    // 🔍 Get First and Last Doc for Entire Range
+    // 🔍 Get First and Last Doc
     // -------------------------------
     const [docs] = await this.costModel.aggregate([
       { $match: { timestamp: { $gte: startISO, $lte: endISO } } },
@@ -126,10 +121,7 @@ export class EnergyconsumptionreportService {
         const meterKey = `${meterId}_${suffix}`;
         const startVal = this.sanitizeValue(first[meterKey]);
         const endVal = this.sanitizeValue(last[meterKey]);
-        // ✅ Prevent negative differences due to meter reset
-        const consumption = endVal >= startVal
-          ? this.sanitizeValue(endVal - startVal)
-          : 0;
+        const consumption = endVal >= startVal ? this.sanitizeValue(endVal - startVal) : 0;
         processMaps[process][unitKey] += consumption;
       }
     };
@@ -140,9 +132,6 @@ export class EnergyconsumptionreportService {
       }
     }
 
-    // -------------------------------
-    // 🧾 Build Summary Result
-    // -------------------------------
     const result: SummaryByDept = {
       date: start_date,
       startTimestamp: firstDoc.timestamp,
@@ -161,34 +150,18 @@ export class EnergyconsumptionreportService {
     }
 
     // -------------------------------
-    // ✅ Daily LT1/LT2 Logic
+    // ✅ Daily LT1/LT2 Logic (same as before)
     // -------------------------------
     const dailyConsumption: { date: string; [key: string]: number | string }[] = [];
 
     const LT1Mapping = {
-      Unit_4: [
-        'U1_PLC', 'U2_PLC', 'U3_PLC', 'U4_PLC', 'U5_PLC', 'U6_PLC', 'U7_PLC',
-        'U8_PLC', 'U9_PLC', 'U10_PLC', 'U11_PLC', 'U12_PLC', 'U13_PLC', 'U14_PLC',
-        'U15_PLC', 'U16_PLC', 'U17_PLC', 'U18_PLC', 'U20_PLC',
-      ],
-      Unit_5: [
-        'U7_GW02', 'U8_GW02', 'U9_GW02', 'U10_GW02', 'U11_GW02', 'U12_GW02',
-        'U14_GW02', 'U15_GW02', 'U16_GW02', 'U17_GW02', 'U18_GW02', 'U19_GW02',
-        'U20_GW02', 'U21_GW02', 'U22_GW02', 'U23_GW02',
-      ],
+      Unit_4: ['U1_PLC', 'U2_PLC', 'U3_PLC', 'U4_PLC', 'U5_PLC', 'U6_PLC', 'U7_PLC', 'U8_PLC', 'U9_PLC', 'U10_PLC', 'U11_PLC', 'U12_PLC', 'U13_PLC', 'U14_PLC', 'U15_PLC', 'U16_PLC', 'U17_PLC', 'U18_PLC', 'U20_PLC'],
+      Unit_5: ['U7_GW02', 'U8_GW02', 'U9_GW02', 'U10_GW02', 'U11_GW02', 'U12_GW02', 'U14_GW02', 'U15_GW02', 'U16_GW02', 'U17_GW02', 'U18_GW02', 'U19_GW02', 'U20_GW02', 'U21_GW02', 'U22_GW02', 'U23_GW02'],
     };
 
     const LT2Mapping = {
-      Unit_4: [
-        'U1_GW01', 'U2_GW01', 'U3_GW01', 'U4_GW01', 'U5_GW01', 'U6_GW01', 'U7_GW01',
-        'U8_GW01', 'U9_GW01', 'U10_GW01', 'U14_GW01', 'U15_GW01', 'U16_GW01',
-        'U17_GW01', 'U18_GW01', 'U19_GW01', 'U20_GW01', 'U21_GW01',
-      ],
-      Unit_5: [
-        'U1_GW03', 'U2_GW03', 'U3_GW03', 'U4_GW03', 'U5_GW03', 'U6_GW03', 'U7_GW03',
-        'U8_GW03', 'U9_GW03', 'U10_GW03', 'U11_GW03', 'U12_GW03', 'U13_GW03',
-        'U14_GW03', 'U15_GW03', 'U18_GW03',
-      ],
+      Unit_4: ['U1_GW01', 'U2_GW01', 'U3_GW01', 'U4_GW01', 'U5_GW01', 'U6_GW01', 'U7_GW01', 'U8_GW01', 'U9_GW01', 'U10_GW01', 'U14_GW01', 'U15_GW01', 'U16_GW01', 'U17_GW01', 'U18_GW01', 'U19_GW01', 'U20_GW01', 'U21_GW01'],
+      Unit_5: ['U1_GW03', 'U2_GW03', 'U3_GW03', 'U4_GW03', 'U5_GW03', 'U6_GW03', 'U7_GW03', 'U8_GW03', 'U9_GW03', 'U10_GW03', 'U11_GW03', 'U12_GW03', 'U13_GW03', 'U14_GW03', 'U15_GW03', 'U18_GW03'],
     };
 
     const start = moment(start_date);
@@ -234,22 +207,124 @@ export class EnergyconsumptionreportService {
         dayRecord[`${unit}_LT1`] = +lt1Total.toFixed(2);
         dayRecord[`${unit}_LT2`] = +lt2Total.toFixed(2);
         dayRecord[`${unit}_Total`] = +(lt1Total + lt2Total).toFixed(2);
-        
       }
-              // ✅ Grand Total (after both units processed)
-        dayRecord['Grand_Total'] = +(
-          (dayRecord['Unit_4_Total'] || 0) + (dayRecord['Unit_5_Total'] || 0)
-        ).toFixed(2);
 
+      dayRecord['Grand_Total'] = +(
+        (dayRecord['Unit_4_Total'] || 0) + (dayRecord['Unit_5_Total'] || 0)
+      ).toFixed(2);
 
       dailyConsumption.push(dayRecord);
     }
 
     // -------------------------------
+    // 🧾 Department Summary
+    // -------------------------------
+    const departmentInfo = {
+      "Blow Room": { u4mcs: 2, u5mcs: 2, u4Lpd: 151, u5Lpd: 144.5 },
+      "Card +Breaker": { u4mcs: 15, u5mcs: 0, u4Lpd: 292, u5Lpd: 0 },
+      "Card": { u4mcs: 0, u5mcs: 14, u4Lpd: 0, u5Lpd: 306.6 },
+      "Comber + Lap former": { u4mcs: 12, u5mcs: 17, u4Lpd: 84, u5Lpd: 318.2 },
+      "Drawing Finsher+Breaker": { u4mcs: 8, u5mcs: 0, u4Lpd: 94, u5Lpd: 0 },
+      "Drawing Finsher": { u4mcs: 0, u5mcs: 8, u4Lpd: 0, u5Lpd: 77.6 },
+      "Drawing Simplex ": { u4mcs: 6, u5mcs: 0, u4Lpd: 108, u5Lpd: 0 },
+      "Drawing simplex+Breaker": { u4mcs: 0, u5mcs: 8, u4Lpd: 0, u5Lpd: 209.3 },
+      "R.Transport System": { u4mcs: 1, u5mcs: 1, u4Lpd: 30, u5Lpd: 30 },
+      "Ring Dept": { u4mcs: 24, u5mcs: 18, u4Lpd: 1920, u5Lpd: 2554 },
+      "Winding": { u4mcs: 9, u5mcs: 18, u4Lpd: 377, u5Lpd: 471.1 },
+      "B/Card + Comber Filter": { u4mcs: 3, u5mcs: 3, u4Lpd: 203, u5Lpd: 274 },
+      "Back Process A/C": { u4mcs: 1, u5mcs: 1, u4Lpd: 142, u5Lpd: 239.1 },
+      "Ring A/C": { u4mcs: 1, u5mcs: 1, u4Lpd: 333, u5Lpd: 476 },
+      "Winding A/C": { u4mcs: 1, u5mcs: 1, u4Lpd: 98, u5Lpd: 100.5 },
+      "Air Compressor": { u4mcs: 1, u5mcs: 1, u4Lpd: 119, u5Lpd: 303 },
+      "Deep Well Turbine": { u4mcs: 1, u5mcs: 1, u4Lpd: 22, u5Lpd: 22 },
+      "Bailing Press ": { u4mcs: 1, u5mcs: 1, u4Lpd: 15, u5Lpd: 15 },
+      "Mills Lighting ": { u4mcs: 1, u5mcs: 1, u4Lpd: 60, u5Lpd: 30 },
+      "Residential Colony": { u4mcs: 1, u5mcs: 1, u4Lpd: 60, u5Lpd: 0 },
+      "Conditioning Machine ": { u4mcs: 1, u5mcs: 1, u4Lpd: 72, u5Lpd: 72 },
+      "Lab + Offices": { u4mcs: 2, u5mcs: 0, u4Lpd: 8, u5Lpd: 0 },
+      "HFO+JMS Auxiliary": { u4mcs: 1, u5mcs: 0, u4Lpd: 250, u5Lpd: 0 },
+      "Spare/PF panels": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
+    };
+    // 🔧 Department name to process key mapping (internal link to processMappings)
+  const deptProcessKeyMap: Record<string, string> = {
+    "Blow Room": "BlowRoom",
+    "Card +Breaker": "Card_Breaker",
+    "Card": "Carding",
+    "Comber + Lap former": "Comberandunilap",
+    "Drawing Finsher+Breaker": "DrawingFinisherand2Breaker",
+    "Drawing Finsher": "DrawingFinisher1to8Breaker",
+    "Drawing Simplex ": "DrawingSimplex",
+    "Drawing simplex+Breaker": "DrawingSimplex_Breaker",
+    "R.Transport System": "RTransportSystem",
+    "Ring Dept": "Ring",
+    "Winding": "AutoCone_Winding10to18",
+    "B/Card + Comber Filter": "B_CardandComberFilter",
+    "Back Process A/C": "AC_BackProcess",
+    "Ring A/C": "AC_Ring",
+    "Winding A/C": "AC_AutoCone_Winding",
+    "Air Compressor": "AirCompressor",
+    "Deep Well Turbine": "Deep_Well_Turbine",
+    "Bailing Press ": "BailingPress",
+    "Mills Lighting ": "Mills_Lighting",
+    "Residential Colony": "Residentialcolony",
+    "Conditioning Machine ": "Conditioning_Machine",
+    "Lab + Offices": "Lab_and_Offices",
+    "HFO+JMS Auxiliary": "Power_House2ndSourceHFO",
+    "Spare/PF panels": "Spare",
+  };
+
+    // ✅ Generate Department Summary dynamically
+const summaryByDept = Object.entries(departmentInfo).map(([name, info]) => {
+  const processKey = deptProcessKeyMap[name];
+  if (!processKey) return { name, note: "No mapping found" };
+
+  const u4Consumption = result[`unit_4${processKey}_consumption`] || 0;
+  const u5Consumption = result[`unit_5${processKey}_consumption`] || 0;
+  const u4AvgConsumption = result[`unit_4${processKey}_avgconsumption`] || 0;
+  const u5AvgConsumption = result[`unit_5${processKey}_avgconsumption`] || 0;
+
+  const u4ConectedLoadPerMcs = info.u4mcs ? +(info.u4Lpd / info.u4mcs).toFixed(2) : 0;
+  const u5ConectedLoadPerMcs = info.u5mcs ? +(info.u5Lpd / info.u5mcs).toFixed(2) : 0;
+
+  const u4RunnigLoad =
+    info.u4Lpd && typeof u4AvgConsumption === 'number'
+      ? Number((u4AvgConsumption / info.u4mcs).toFixed(2))
+      : 0;
+
+  const u5RunningLoad =
+    info.u5Lpd && typeof u5AvgConsumption === 'number'
+      ? Number((u5AvgConsumption / info.u5mcs).toFixed(2))
+      : 0;
+
+  const dept: any = { name };
+
+  if (area === 'ALL' || area === 'Unit_4') {
+    dept.u4Mcs = info.u4mcs;
+    dept.u4ConectedLoadPerDept = info.u4Lpd;
+    dept.u4ConectedLoadPerMcs = u4ConectedLoadPerMcs;
+    dept.u4RunnigLoad = u4RunnigLoad;
+    dept.u4AvgConsumption = u4AvgConsumption;
+    dept.u4Consumption = u4Consumption;
+  }
+
+  if (area === 'ALL' || area === 'Unit_5') {
+    dept.u5Mcs = info.u5mcs;
+    dept.u5ConectedLoadPerDept = info.u5Lpd;
+    dept.u5ConectedLoadPerMcs = u5ConectedLoadPerMcs;
+    dept.u5RunningLoad = u5RunningLoad;
+    dept.u5AvgConsumption = u5AvgConsumption;
+    dept.u5Consumption = u5Consumption;
+  }
+
+  return dept;
+
+    });
+
+    // -------------------------------
     // ✅ Final Return
     // -------------------------------
     return {
-      summarybydept: [result],
+      summarybydept: summaryByDept,
       dailyConsumption,
     };
   }
