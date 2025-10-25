@@ -43,9 +43,9 @@ export class EnergyconsumptionreportService {
     // 🧱 Process Mappings
     // -------------------------------
     const processMappings: Record<string, Record<string, string[]>> = {
-      Card_Breaker: { Unit_4: ['U5_GW01', 'U9_GW01'] },
-      BlowRoom: { Unit_4: ['U8_GW01'], Unit_5: ['U12_GW02', 'U9_GW02'] },
-      Carding: { Unit_5: ['U19_GW02', 'U17_GW02'] },
+      Card_Breaker: {Unit_4: ['U5_GW01', 'U9_GW01'] },
+      BlowRoom: { Unit_4: ['U8_GW01'], Unit_5: ['U9_GW02'] },
+      Card: { Unit_5: ['U19_GW02', 'U17_GW02'] },
       Comberandunilap: { Unit_4: ['U13_PLC'], Unit_5: ['U14_GW02', 'U6_GW03'] },
       DrawingFinisherand2Breaker: { Unit_4: ['U8_PLC'] },
       DrawingFinisher1to8Breaker: { Unit_5: ['U23_GW02'] },
@@ -54,7 +54,7 @@ export class EnergyconsumptionreportService {
       RTransportSystem: { Unit_4: ['U1_PLC'], Unit_5: ['U4_GW03'] },
       Ring: {
         Unit_4: [
-          'U10_PLC', 'U11_PLC', 'U12_PLC', 'U15_GW01', 'U17_GW01', 'U16_GW01', 'U22_GW02',
+          'U10_PLC', 'U11_PLC', 'U12_PLC', 'U15_GW01', 'U17_GW01', 'U16_GW01',
         ],
         Unit_5: ['U10_GW02', 'U7_GW02', 'U1_GW03', 'U5_GW03', 'U9_GW03', 'U12_GW03'],
       },
@@ -66,8 +66,8 @@ export class EnergyconsumptionreportService {
       AirCompressor: { Unit_4: ['U14_PLC', 'U20_PLC'], Unit_5: ['U16_PLC'] },
       Deep_Well_Turbine: { Unit_4: ['U6_PLC'], Unit_5: ['U15_GW03'] },
       BailingPress: { Unit_4: ['U20_GW01'], Unit_5: ['U11_GW03'] },
-      Mills_Lighting: { Unit_4: ['U4_PLC', 'U3_PLC'], Unit_5: ['U14_GW03', 'U2_PLC'] },
-      Residentialcolony: { Unit_4: ['U18_GW01'], Unit_5: ['U3_GW03'] },
+      Mills_Lighting: { Unit_4: ['U4_PLC', 'U3_PLC'], Unit_5: ['U14_GW03', 'U12_GW02', 'U2_PLC'] },
+      Residentialcolony: { Unit_4: ['U18_GW01', 'U4_GW01'], Unit_5: ['U3_GW03'] },
       Conditioning_Machine: { Unit_4: ['U2_GW01'], Unit_5: ['U2_GW03'] },
       Workshop: { Unit_4: ['U4_GW01'] },
       Lab_and_Offices: { Unit_4: ['U19_GW01'] },
@@ -156,35 +156,58 @@ export class EnergyconsumptionreportService {
     const dailyConsumption: { date: string; [key: string]: number | string }[] = [];
 
     const LT1Mapping = {
-      Unit_4: ['U1_PLC', 'U2_PLC', 'U3_PLC', 'U4_PLC', 'U5_PLC', 'U6_PLC', 'U7_PLC', 'U8_PLC', 'U9_PLC', 'U10_PLC', 'U11_PLC', 'U12_PLC', 'U13_PLC', 'U14_PLC', 'U15_PLC', 'U16_PLC', 'U17_PLC', 'U18_PLC', 'U20_PLC'],
-      Unit_5: ['U7_GW02', 'U8_GW02', 'U9_GW02', 'U10_GW02', 'U11_GW02', 'U12_GW02', 'U14_GW02', 'U15_GW02', 'U16_GW02', 'U17_GW02', 'U18_GW02', 'U19_GW02', 'U20_GW02', 'U21_GW02', 'U22_GW02', 'U23_GW02'],
+      Unit_4: ['U19_PLC', 'U21_PLC'],
+      Unit_5: ['U6_GW02', 'U13_GW02'],
     };
 
     const LT2Mapping = {
-      Unit_4: ['U1_GW01', 'U2_GW01', 'U3_GW01', 'U4_GW01', 'U5_GW01', 'U6_GW01', 'U7_GW01', 'U8_GW01', 'U9_GW01', 'U10_GW01', 'U14_GW01', 'U15_GW01', 'U16_GW01', 'U17_GW01', 'U18_GW01', 'U19_GW01', 'U20_GW01', 'U21_GW01'],
-      Unit_5: ['U1_GW03', 'U2_GW03', 'U3_GW03', 'U4_GW03', 'U5_GW03', 'U6_GW03', 'U7_GW03', 'U8_GW03', 'U9_GW03', 'U10_GW03', 'U11_GW03', 'U12_GW03', 'U13_GW03', 'U14_GW03', 'U15_GW03', 'U18_GW03'],
+      Unit_4: ['U11_GW01', 'U13_GW01', 'U24_GW01', 'U28_PLC'],
+      Unit_5: ['U16_GW03', 'U17_GW03'],
     };
 
-    const start = moment(start_date);
-    const end = moment(end_date);
+   const start = moment(start_date);
+const end = moment(end_date);
 
-    // ✅ Revised daily loop — ensures 6AM→6AM range logic
-for (let m = moment(start); m.isBefore(end); m.add(1, 'day')) {
-  const dayStartISO = moment.tz(`${m.format('YYYY-MM-DD')} 06:00:00`, TZ)
-    .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+// 🧩 Detect same-date but different-time case
+const sameDate = moment(start_date).isSame(end_date, 'day');
+const timeDiff = !moment(start_time, 'HH:mm').isSame(moment(end_time, 'HH:mm'));
+const isSingleDayRun = sameDate && timeDiff;
 
-  const dayEndISO = moment(dayStartISO)
-    .add(24, 'hours') // Exactly 6AM to next 6AM (not endOf('minute'))
-    .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+// ✅ Revised daily loop — respects user times
+for (let m = moment(start); m.isBefore(end) || isSingleDayRun; m.add(1, 'day')) {
+  let dayStartISO: string;
+  let dayEndISO: string;
 
-  // 🧩 Fetch first and last docs within 6AM–6AM
+  // 🎯 If single-day (same date), use user's start_time and end_time
+  if (isSingleDayRun) {
+    dayStartISO = moment
+      .tz(`${start_date} ${start_time}`, 'YYYY-MM-DD HH:mm', TZ)
+      .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+
+    dayEndISO = moment
+      .tz(`${end_date} ${end_time}`, 'YYYY-MM-DD HH:mm', TZ)
+      .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+  } else {
+    // 🌅 Multi-day case: use standard 6 AM → 6 AM range
+    dayStartISO = moment
+      .tz(`${m.format('YYYY-MM-DD')} 06:00:00`, TZ)
+      .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+
+    dayEndISO = moment(dayStartISO)
+      .add(24, 'hours')
+      .add(2, 'minutes')
+      .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+  }
+
+  console.log(dayStartISO);
+  console.log(dayEndISO);
+
+  // 🧩 Fetch first and last docs in range
   const [dayDocs] = await this.costModel.aggregate([
     { $match: { timestamp: { $gte: dayStartISO, $lte: dayEndISO } } },
     { $sort: { timestamp: 1 } },
     { $group: { _id: null, first: { $first: '$$ROOT' }, last: { $last: '$$ROOT' } } },
   ]);
-  console.log(dayStartISO);
-  console.log(dayEndISO);
 
   const firstDayDoc = dayDocs?.first;
   const lastDayDoc = dayDocs?.last;
@@ -193,7 +216,7 @@ for (let m = moment(start); m.isBefore(end); m.add(1, 'day')) {
   const dayRecord: any = { date: m.format('YYYY-MM-DD') };
   const selectedUnits = area === 'ALL' ? ['Unit_4', 'Unit_5'] : [area];
 
-  // 🧮 LT1/LT2 calculation continues as before
+  // 🧮 LT1/LT2 calculation
   for (const unit of selectedUnits) {
     let lt1Total = 0;
     let lt2Total = 0;
@@ -220,6 +243,11 @@ for (let m = moment(start); m.isBefore(end); m.add(1, 'day')) {
   ).toFixed(2);
 
   dailyConsumption.push(dayRecord);
+
+  // 🛑 Stop after one iteration if it's a single-day query
+  if (isSingleDayRun) break;
+
+
 }
 
     // -------------------------------
@@ -259,7 +287,7 @@ for (let m = moment(start); m.isBefore(end); m.add(1, 'day')) {
   const deptProcessKeyMap: Record<string, string> = {
     "Blow Room": "BlowRoom",
     "Card +Breaker": "Card_Breaker",
-    "Card": "Carding",
+    "Card": "Card",
     "Comber + Lap former": "Comberandunilap",
     "Drawing Finsher+Breaker": "DrawingFinisherand2Breaker",
     "Drawing Finsher": "DrawingFinisher1to8Breaker",
