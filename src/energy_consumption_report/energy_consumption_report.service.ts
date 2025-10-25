@@ -71,9 +71,10 @@ export class EnergyconsumptionreportService {
       Conditioning_Machine: { Unit_4: ['U2_GW01'], Unit_5: ['U2_GW03'] },
       Workshop: { Unit_4: ['U4_GW01'] },
       Lab_and_Offices: { Unit_4: ['U19_GW01'] },
-      Power_House2ndSourceGas: { Unit_4: ['U5_PLC'] },
-      Power_House2ndSourceHFO: { Unit_4: ['U11_GW01'] },
-      WaterChiller: { Unit_5: ['U16_GW02'] },
+      "Power_House 2nd Source Gas": { Unit_4: ['U5_PLC'] },
+      "Power_House 2nd Source HFO": { Unit_4: ['U11_GW01'] },
+      "Water Chiller": { Unit_5: ['U16_GW02'] },
+      "HFO + JMS Auxiliary": { Unit_4: ['U25_PLC'] },
       Spare: { Unit_4: ['U6_GW01', 'U21_GW01'], Unit_5: ['U7_GW03', 'U8_GW03'] },
     };
 
@@ -167,54 +168,59 @@ export class EnergyconsumptionreportService {
     const start = moment(start_date);
     const end = moment(end_date);
 
-    for (let m = moment(start); m.isSameOrBefore(end); m.add(1, 'day')) {
-      const dayStartISO = moment.tz(`${m.format('YYYY-MM-DD')} 06:00:00`, TZ)
-        .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
-      const dayEndISO = moment(dayStartISO)
-        .add(1, 'day')
-        .endOf('minute')
-        .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+    // ✅ Revised daily loop — ensures 6AM→6AM range logic
+for (let m = moment(start); m.isBefore(end); m.add(1, 'day')) {
+  const dayStartISO = moment.tz(`${m.format('YYYY-MM-DD')} 06:00:00`, TZ)
+    .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
 
-      const [dayDocs] = await this.costModel.aggregate([
-        { $match: { timestamp: { $gte: dayStartISO, $lte: dayEndISO } } },
-        { $sort: { timestamp: 1 } },
-        { $group: { _id: null, first: { $first: '$$ROOT' }, last: { $last: '$$ROOT' } } },
-      ]);
+  const dayEndISO = moment(dayStartISO)
+    .add(24, 'hours') // Exactly 6AM to next 6AM (not endOf('minute'))
+    .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
 
-      const firstDayDoc = dayDocs?.first;
-      const lastDayDoc = dayDocs?.last;
-      if (!firstDayDoc || !lastDayDoc) continue;
+  // 🧩 Fetch first and last docs within 6AM–6AM
+  const [dayDocs] = await this.costModel.aggregate([
+    { $match: { timestamp: { $gte: dayStartISO, $lte: dayEndISO } } },
+    { $sort: { timestamp: 1 } },
+    { $group: { _id: null, first: { $first: '$$ROOT' }, last: { $last: '$$ROOT' } } },
+  ]);
+  console.log(dayStartISO);
+  console.log(dayEndISO);
 
-      const dayRecord: any = { date: m.format('YYYY-MM-DD') };
-      const selectedUnits = area === 'ALL' ? ['Unit_4', 'Unit_5'] : [area];
+  const firstDayDoc = dayDocs?.first;
+  const lastDayDoc = dayDocs?.last;
+  if (!firstDayDoc || !lastDayDoc) continue;
 
-      for (const unit of selectedUnits) {
-        let lt1Total = 0;
-        let lt2Total = 0;
+  const dayRecord: any = { date: m.format('YYYY-MM-DD') };
+  const selectedUnits = area === 'ALL' ? ['Unit_4', 'Unit_5'] : [area];
 
-        for (const id of LT1Mapping[unit] || []) {
-          const key = `${id}_${suffix}`;
-          const diff = this.sanitizeValue(lastDayDoc[key] - firstDayDoc[key]);
-          lt1Total += diff > 0 ? diff : 0;
-        }
+  // 🧮 LT1/LT2 calculation continues as before
+  for (const unit of selectedUnits) {
+    let lt1Total = 0;
+    let lt2Total = 0;
 
-        for (const id of LT2Mapping[unit] || []) {
-          const key = `${id}_${suffix}`;
-          const diff = this.sanitizeValue(lastDayDoc[key] - firstDayDoc[key]);
-          lt2Total += diff > 0 ? diff : 0;
-        }
-
-        dayRecord[`${unit}_LT1`] = +lt1Total.toFixed(2);
-        dayRecord[`${unit}_LT2`] = +lt2Total.toFixed(2);
-        dayRecord[`${unit}_Total`] = +(lt1Total + lt2Total).toFixed(2);
-      }
-
-      dayRecord['Grand_Total'] = +(
-        (dayRecord['Unit_4_Total'] || 0) + (dayRecord['Unit_5_Total'] || 0)
-      ).toFixed(2);
-
-      dailyConsumption.push(dayRecord);
+    for (const id of LT1Mapping[unit] || []) {
+      const key = `${id}_${suffix}`;
+      const diff = this.sanitizeValue(lastDayDoc[key] - firstDayDoc[key]);
+      lt1Total += diff > 0 ? diff : 0;
     }
+
+    for (const id of LT2Mapping[unit] || []) {
+      const key = `${id}_${suffix}`;
+      const diff = this.sanitizeValue(lastDayDoc[key] - firstDayDoc[key]);
+      lt2Total += diff > 0 ? diff : 0;
+    }
+
+    dayRecord[`${unit}_LT1`] = +lt1Total.toFixed(2);
+    dayRecord[`${unit}_LT2`] = +lt2Total.toFixed(2);
+    dayRecord[`${unit}_Total`] = +(lt1Total + lt2Total).toFixed(2);
+  }
+
+  dayRecord['Grand_Total'] = +(
+    (dayRecord['Unit_4_Total'] || 0) + (dayRecord['Unit_5_Total'] || 0)
+  ).toFixed(2);
+
+  dailyConsumption.push(dayRecord);
+}
 
     // -------------------------------
     // 🧾 Department Summary
@@ -242,8 +248,12 @@ export class EnergyconsumptionreportService {
       "Residential Colony": { u4mcs: 1, u5mcs: 1, u4Lpd: 60, u5Lpd: 0 },
       "Conditioning Machine ": { u4mcs: 1, u5mcs: 1, u4Lpd: 72, u5Lpd: 72 },
       "Lab + Offices": { u4mcs: 2, u5mcs: 0, u4Lpd: 8, u5Lpd: 0 },
-      "HFO+JMS Auxiliary": { u4mcs: 1, u5mcs: 0, u4Lpd: 250, u5Lpd: 0 },
+       "Power_House 2nd Source Gas": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
+      "Power_House 2nd Source HFO": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
+      "Water Chiller": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0  },
+      "HFO + JMS Auxiliary": { u4mcs: 1, u5mcs: 0, u4Lpd: 250, u5Lpd: 0 },
       "Spare/PF panels": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
+      
     };
     // 🔧 Department name to process key mapping (internal link to processMappings)
   const deptProcessKeyMap: Record<string, string> = {
@@ -269,7 +279,10 @@ export class EnergyconsumptionreportService {
     "Residential Colony": "Residentialcolony",
     "Conditioning Machine ": "Conditioning_Machine",
     "Lab + Offices": "Lab_and_Offices",
-    "HFO+JMS Auxiliary": "Power_House2ndSourceHFO",
+    "Power_House 2nd Source Gas":"Power_House 2nd Source Gas",
+    "Power_House 2nd Source HFO" : "Power_House 2nd Source HFO",
+    "Water Chiller" : "Water Chiller",
+    "HFO + JMS Auxiliary": "HFO + JMS Auxiliary",
     "Spare/PF panels": "Spare",
   };
 
