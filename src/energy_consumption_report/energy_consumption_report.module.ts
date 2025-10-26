@@ -9,6 +9,7 @@ import { EnergyconsumptionreportController } from './energy_consumption_report.c
 import { EnergyconsumptionreportService } from './energy_consumption_report.service';
 import { DailyProduction, DailyProductionSchema } from './schemas/daily-production.schema';
 import { FieldMeterProcess, FieldMeterProcessSchema } from './schemas/field-meter-process.schema';
+import { MeterModule } from 'src/meter/meter.module';
 
 
 @Module({
@@ -21,7 +22,9 @@ import { FieldMeterProcess, FieldMeterProcessSchema } from './schemas/field-mete
 
     ],
 'surajcotton'),
+MeterModule, 
   ],
+   // ✅ Add this line here
   controllers: [EnergyconsumptionreportController],
   providers: [EnergyconsumptionreportService],
 })
