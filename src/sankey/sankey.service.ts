@@ -3,12 +3,20 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as moment from 'moment-timezone';
 import { sankey } from './schemas/sankey.schema';
+import { Unit4LT1Service } from '../unit4_lt1/unit4_lt1.service';
+import { Unit4LT2Service } from '../unit4_lt2/unit4_lt2.service';
+import { Unit5LT3Service } from '../unit5_lt3/unit5_lt3.service';
+import { Unit5LT4Service } from '../unit5_lt4/unit5_lt4.service';
 
 @Injectable()
 export class sankeyService {
   constructor(
     @InjectModel(sankey.name, 'surajcotton')
     private readonly unitModel: Model<sankey>,
+     private readonly unit4LT1Service: Unit4LT1Service,
+     private readonly unit4LT2Service: Unit4LT2Service,
+     private readonly Unit5LT3Service: Unit5LT3Service,
+     private readonly Unit5LT4Service: Unit5LT4Service,
   ) {}
 // main sankey
   async getmainSankey(payload: { startDate: string; endDate: string; startTime: string; endTime: string }) {
@@ -30,8 +38,8 @@ export class sankeyService {
     const startISO = startMoment.toISOString();
     const endISO = endMoment.toISOString();
 
-    console.log('📌 Start ISO:', startISO);
-    console.log('📌 End ISO:', endISO);
+    // console.log('📌 Start ISO:', startISO);
+    // console.log('📌 End ISO:', endISO);
 
     // ---------------- Generation mapping (only visible nodes) ----------------
     const generationMap: Record<string, string[]> = {
@@ -169,7 +177,38 @@ export class sankeyService {
 
     const totalConsumed = Object.values(unitConsumptionTotals).reduce((a, b) => a + b, 0);
     const totalOut = totalConsumed + TransformerLosses + HT_Transmission_Losses;
-    const unaccounted = Math.max(0, +(totalGeneration - totalConsumed).toFixed(2));
+    // ---------------- Compute Unaccounted Energy from LT1 and LT2 ----------------
+      let unaccountedFromLT1 = 0;
+      let unaccountedFromLT2 = 0;
+      let unaccountedFromLT3 = 0;
+      let unaccountedFromLT4 = 0;
+
+      try {
+        const lt1Data = await this.unit4LT1Service.getSankeyData(payload);
+        const nodeLT1 = lt1Data.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT1) unaccountedFromLT1 = nodeLT1.value || 0;
+
+        const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
+        const nodeLT2 = lt2Data.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
+
+        const lt3Data = await this.Unit5LT3Service.getSankeyData(payload);
+        const nodeLT3 = lt3Data.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
+
+        const lt4Data = await this.Unit5LT4Service.getSankeyData(payload);
+        const nodeLT4 = lt4Data.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
+
+        // console.log('✅ Unaccounted Energy (LT1 Unit 4):', unaccountedFromLT1);
+        // console.log('✅ Unaccounted Energy (LT2 Unit 4):', unaccountedFromLT2);
+        // console.log('✅ Unaccounted Energy (LT1 Unit 5):', unaccountedFromLT3);
+        // console.log('✅ Unaccounted Energy (LT2 Unit 5):', unaccountedFromLT4);
+      } catch (err) {
+        console.warn('⚠️ Error fetching LT1/LT2 unaccounted energy:', err.message);
+      }
+
+    const unaccountedTotal = +(unaccountedFromLT1 + unaccountedFromLT2 + unaccountedFromLT3 + unaccountedFromLT4).toFixed(2);
 
     sankeyData.push({
       from: 'Total Generation',
@@ -179,7 +218,7 @@ export class sankeyService {
     sankeyData.push({
       from: 'Total Generation',
       to: 'Unaccounted Energy',
-      value: unaccounted,
+      value: unaccountedTotal,
     });
 
     return sankeyData;
@@ -428,14 +467,46 @@ async getLossesSankey(payload: { startDate: string; endDate: string; startTime: 
     (Wapda2 + Niigata + JMS) - (Trafo3Incoming + Trafo4Incoming + PH_IC);
 
   const losses = TransformerLosses + HT_Transmission_Losses;
-  const unaccounted = Math.max(0, losses * 0.25);
+   // ---------------- Compute Unaccounted Energy from LT1 and LT2 ----------------
+      let unaccountedFromLT1 = 0;
+      let unaccountedFromLT2 = 0;
+      let unaccountedFromLT3 = 0;
+      let unaccountedFromLT4 = 0;
+
+      try {
+        const lt1Data = await this.unit4LT1Service.getSankeyData(payload);
+        const nodeLT1 = lt1Data.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT1) unaccountedFromLT1 = nodeLT1.value || 0;
+
+        const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
+        const nodeLT2 = lt2Data.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
+
+        const lt3Data = await this.Unit5LT3Service.getSankeyData(payload);
+        const nodeLT3 = lt3Data.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
+
+        const lt4Data = await this.Unit5LT4Service.getSankeyData(payload);
+        const nodeLT4 = lt4Data.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
+
+        // console.log('✅ Unaccounted Energy (LT1 Unit 4):', unaccountedFromLT1);
+        // console.log('✅ Unaccounted Energy (LT2 Unit 4):', unaccountedFromLT2);
+        // console.log('✅ Unaccounted Energy (LT1 Unit 5):', unaccountedFromLT3);
+        // console.log('✅ Unaccounted Energy (LT2 Unit 5):', unaccountedFromLT4);
+      } catch (err) {
+        console.warn('⚠️ Error fetching LT1/LT2 unaccounted energy:', err.message);
+      }
+
+    const unaccountedTotal = +(unaccountedFromLT1 + unaccountedFromLT2 + unaccountedFromLT3 + unaccountedFromLT4).toFixed(2);
+
 
   // ---------------- Build Sankey Output ----------------
   const sankeyData = [
     { from: 'Total Generation', to: 'Losses', value: +losses.toFixed(2) },
     { from: 'Losses', to: 'Transformer Losses', value: +TransformerLosses.toFixed(2) },
     { from: 'Losses', to: 'HT Transmission Losses', value: +HT_Transmission_Losses.toFixed(2) },
-    { from: 'Losses', to: 'Unaccounted Energy', value: +unaccounted.toFixed(2) },
+    { from: 'Losses', to: 'Unaccounted Energy', value: +unaccountedTotal.toFixed(2) },
   ];
 
   return sankeyData;

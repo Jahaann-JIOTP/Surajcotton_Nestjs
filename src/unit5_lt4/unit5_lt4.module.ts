@@ -14,5 +14,6 @@ import { MeterModule } from 'src/meter/meter.module';
   ],
   controllers: [Unit5LT4Controller],
   providers: [Unit5LT4Service],
+  exports: [Unit5LT4Service], // ✅ this makes it visible to other modules
 })
 export class Unit5Lt4Module {}
