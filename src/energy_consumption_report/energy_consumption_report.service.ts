@@ -154,7 +154,7 @@ export class EnergyconsumptionreportService {
     const firstDoc = docs?.first;
     const lastDoc = docs?.last;
     if (!firstDoc || !lastDoc)
-      return [{ date: start_date, note: 'No data found for this range' }];
+      return { date: start_date, note: 'No data found for this range' };
 
     // ------------------------------------------------
     // ⚙️ Calculate Consumption (with U12_PLC adjustment)
