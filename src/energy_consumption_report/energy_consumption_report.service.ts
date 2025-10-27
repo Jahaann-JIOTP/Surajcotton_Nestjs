@@ -97,14 +97,14 @@ export class EnergyconsumptionreportService {
     // 🧱 Process Mappings
     // ------------------------------------------------
     const processMappings: Record<string, Record<string, string[]>> = {
-      Card_Breaker: { Unit_4: ['U5_GW01', 'U9_GW01'] },
+      Card_Breaker: { Unit_4: ['U5_GW01', 'U9_GW01'], Unit_5: ['U19_GW02', 'U17_GW02'] },
       BlowRoom: { Unit_4: ['U8_GW01'], Unit_5: ['U9_GW02'] },
-      Card: { Unit_5: ['U19_GW02', 'U17_GW02'] },
+      // Card: { Unit_5: ['U19_GW02', 'U17_GW02'] },
       Comberandunilap: { Unit_4: ['U13_PLC'], Unit_5: ['U14_GW02', 'U6_GW03'] },
-      DrawingFinisherand2Breaker: { Unit_4: ['U8_PLC'] },
-      DrawingFinisher1to8Breaker: { Unit_5: ['U23_GW02'] },
-      DrawingSimplex: { Unit_4: ['U15_PLC'] },
-      DrawingSimplex_Breaker: { Unit_5: ['U21_GW02'] },
+      DrawingFinisherand2Breaker: { Unit_4: ['U8_PLC'],Unit_5: ['U23_GW02'] },
+      // DrawingFinisher1to8Breaker: { Unit_5: ['U23_GW02'] },
+      DrawingSimplex: { Unit_4: ['U15_PLC'],Unit_5: ['U21_GW02'] },
+      // DrawingSimplex_Breaker: { Unit_5: ['U21_GW02'] },
       RTransportSystem: { Unit_4: ['U1_PLC'], Unit_5: ['U4_GW03'] },
       Ring: {
         Unit_4: [
@@ -319,13 +319,13 @@ export class EnergyconsumptionreportService {
     // ------------------------------------------------
     const departmentInfo = {
       "Blow Room": { u4mcs: 2, u5mcs: 2, u4Lpd: 151, u5Lpd: 144.5 },
-      "Card +Breaker": { u4mcs: 15, u5mcs: 0, u4Lpd: 292, u5Lpd: 0 },
-      "Card": { u4mcs: 0, u5mcs: 14, u4Lpd: 0, u5Lpd: 306.6 },
+      "Card +Breaker": { u4mcs: 15, u5mcs: 14, u4Lpd: 292, u5Lpd: 306.6},
+      // "Card": { u4mcs: 0, u5mcs: 14, u4Lpd: 0, u5Lpd: 306.6 },
       "Comber + Lap former": { u4mcs: 12, u5mcs: 17, u4Lpd: 84, u5Lpd: 318.2 },
-      "Drawing Finsher+Breaker": { u4mcs: 8, u5mcs: 0, u4Lpd: 94, u5Lpd: 0 },
-      "Drawing Finsher": { u4mcs: 0, u5mcs: 8, u4Lpd: 0, u5Lpd: 77.6 },
-      "Drawing Simplex ": { u4mcs: 6, u5mcs: 0, u4Lpd: 108, u5Lpd: 0 },
-      "Drawing simplex+Breaker": { u4mcs: 0, u5mcs: 8, u4Lpd: 0, u5Lpd: 209.3 },
+      "Drawing Finsher+Breaker": { u4mcs: 8, u5mcs: 8, u4Lpd: 94, u5Lpd: 77.6 },
+      // "Drawing Finsher": { u4mcs: 0, u5mcs: 8, u4Lpd: 0, u5Lpd: 77.6 },
+      "Drawing Simplex": { u4mcs: 6, u5mcs: 8, u4Lpd: 108, u5Lpd: 209.3 },
+      // "Drawing simplex+Breaker": { u4mcs: 0, u5mcs: 8, u4Lpd: 0, u5Lpd: 209.3 },
       "R.Transport System": { u4mcs: 1, u5mcs: 1, u4Lpd: 30, u5Lpd: 30 },
       "Ring Dept": { u4mcs: 24, u5mcs: 18, u4Lpd: 1920, u5Lpd: 2554 },
       "Winding": { u4mcs: 9, u5mcs: 18, u4Lpd: 377, u5Lpd: 471.1 },
@@ -350,12 +350,12 @@ export class EnergyconsumptionreportService {
     const deptProcessKeyMap: Record<string, string> = {
       "Blow Room": "BlowRoom",
       "Card +Breaker": "Card_Breaker",
-      "Card": "Card",
+      // "Card": "Card",
       "Comber + Lap former": "Comberandunilap",
       "Drawing Finsher+Breaker": "DrawingFinisherand2Breaker",
-      "Drawing Finsher": "DrawingFinisher1to8Breaker",
-      "Drawing Simplex ": "DrawingSimplex",
-      "Drawing simplex+Breaker": "DrawingSimplex_Breaker",
+      // "Drawing Finsher": "DrawingFinisher1to8Breaker",
+      "Drawing Simplex": "DrawingSimplex",
+      // "Drawing simplex+Breaker": "DrawingSimplex_Breaker",
       "R.Transport System": "RTransportSystem",
       "Ring Dept": "Ring",
       "Winding": "AutoCone_Winding10to18",
@@ -378,49 +378,68 @@ export class EnergyconsumptionreportService {
     };
 
     const summaryByDept = Object.entries(departmentInfo).map(([name, info]) => {
-      const processKey = deptProcessKeyMap[name];
-      if (!processKey) return { name, note: 'No mapping found' };
+  const processKey = deptProcessKeyMap[name];
+  if (!processKey) return { name, note: 'No mapping found' };
 
-      const u4Consumption = result[`unit_4${processKey}_consumption`] || 0;
-      const u5Consumption = result[`unit_5${processKey}_consumption`] || 0;
-      const u4AvgConsumption = result[`unit_4${processKey}_avgconsumption`] || 0;
-      const u5AvgConsumption = result[`unit_5${processKey}_avgconsumption`] || 0;
+  const u4Consumption = Number(result[`unit_4${processKey}_consumption`] || 0);
+  const u5Consumption = Number(result[`unit_5${processKey}_consumption`] || 0);
+  const u4AvgConsumption = Number(result[`unit_4${processKey}_avgconsumption`] || 0);
+  const u5AvgConsumption = Number(result[`unit_5${processKey}_avgconsumption`] || 0);
 
-      const u4ConectedLoadPerMcs = info.u4mcs ? +(info.u4Lpd / info.u4mcs).toFixed(2) : 0;
-      const u5ConectedLoadPerMcs = info.u5mcs ? +(info.u5Lpd / info.u5mcs).toFixed(2) : 0;
+  const u4ConectedLoadPerMcs = info.u4mcs ? +(info.u4Lpd / info.u4mcs).toFixed(2) : 0;
+  const u5ConectedLoadPerMcs = info.u5mcs ? +(info.u5Lpd / info.u5mcs).toFixed(2) : 0;
 
-      const u4RunnigLoad =
-        info.u4Lpd && typeof u4AvgConsumption === 'number'
-          ? Number((u4AvgConsumption / info.u4mcs).toFixed(2))
-          : 0;
+  const u4RunnigLoad =
+    info.u4Lpd && typeof u4AvgConsumption === 'number'
+      ? Number((u4AvgConsumption / (info.u4mcs || 1)).toFixed(2))
+      : 0;
 
-      const u5RunningLoad =
-        info.u5Lpd && typeof u5AvgConsumption === 'number'
-          ? Number((u5AvgConsumption / info.u5mcs).toFixed(2))
-          : 0;
+  const u5RunningLoad =
+    info.u5Lpd && typeof u5AvgConsumption === 'number'
+      ? Number((u5AvgConsumption / (info.u5mcs || 1)).toFixed(2))
+      : 0;
 
-      const dept: any = { name };
+  const dept: any = {
+    name, // existing department name
+  };
 
-      if (area === 'ALL' || area === 'Unit_4') {
-        dept.u4Mcs = info.u4mcs;
-        dept.u4ConectedLoadPerDept = info.u4Lpd;
-        dept.u4ConectedLoadPerMcs = u4ConectedLoadPerMcs;
-        dept.u4RunnigLoad = u4RunnigLoad;
-        dept.u4AvgConsumption = u4AvgConsumption;
-        dept.u4Consumption = u4Consumption;
-      }
+  if (area === 'ALL' || area === 'Unit_4') {
+    dept.u4Mcs = info.u4mcs;
+    dept.u4ConectedLoadPerDept = info.u4Lpd;
+    dept.u4ConectedLoadPerMcs = u4ConectedLoadPerMcs;
+    dept.u4RunnigLoad = u4RunnigLoad;
+    dept.u4AvgConsumption = u4AvgConsumption;
+    dept.u4Consumption = u4Consumption;
+  }
 
-      if (area === 'ALL' || area === 'Unit_5') {
-        dept.u5Mcs = info.u5mcs;
-        dept.u5ConectedLoadPerDept = info.u5Lpd;
-        dept.u5ConectedLoadPerMcs = u5ConectedLoadPerMcs;
-        dept.u5RunningLoad = u5RunningLoad;
-        dept.u5AvgConsumption = u5AvgConsumption;
-        dept.u5Consumption = u5Consumption;
-      }
+  if (area === 'ALL' || area === 'Unit_5') {
+    dept.u5Mcs = info.u5mcs;
+    dept.u5ConectedLoadPerDept = info.u5Lpd;
+    dept.u5ConectedLoadPerMcs = u5ConectedLoadPerMcs;
+    dept.u5RunningLoad = u5RunningLoad;
+    dept.u5AvgConsumption = u5AvgConsumption;
+    dept.u5Consumption = u5Consumption;
 
-      return dept;
-    });
+// 🧠 Smart department name for Unit_5
+if (name === 'Card +Breaker') {
+  dept.u5Name = 'Card';
+} else if (name === 'Drawing Finsher+Breaker') {
+  dept.u5Name = 'Drawing Finsher';
+} else if (name === 'Drawing Simplex') {
+  dept.u5Name = 'Drawing simplex+Breaker'; // ✅ Fixed: removed extra space
+} else {
+  dept.u5Name = name;
+}
+  }
+
+  // ✅ Add total consumption (combined)
+  const totalConsumption = Number((u4Consumption + u5Consumption).toFixed(2));
+  dept.totalConsumption = totalConsumption;
+
+  return dept;
+});
+
+
 
     // ------------------------------------------------
     // ✅ Final Return

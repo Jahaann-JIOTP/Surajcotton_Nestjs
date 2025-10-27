@@ -3,6 +3,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Energy, EnergyDocument } from './schemas/energy.schema';
+import { Unit4LT1Service } from '../unit4_lt1/unit4_lt1.service';
+import { Unit4LT2Service } from '../unit4_lt2/unit4_lt2.service';
+import { Unit5LT3Service } from '../unit5_lt3/unit5_lt3.service';
+import { Unit5LT4Service } from '../unit5_lt4/unit5_lt4.service';
 import * as moment from 'moment-timezone';
 
 @Injectable()
@@ -10,6 +14,10 @@ export class EnergyService {
   constructor(
     @InjectModel(Energy.name, 'surajcotton')
     private energyModel: Model<EnergyDocument>,
+    private readonly unit4LT1Service: Unit4LT1Service,
+  private readonly unit4LT2Service: Unit4LT2Service,
+  private readonly Unit5LT3Service: Unit5LT3Service,
+  private readonly Unit5LT4Service: Unit5LT4Service,
   ) {}
 
 
@@ -291,9 +299,67 @@ const sumGroup = (keys: string[]) =>
 
 
 
+let unaccountedFromLT1 = 0;
+let unaccountedFromLT2 = 0;
+let unaccountedFromLT3 = 0;
+let unaccountedFromLT4 = 0;
+
+try {
+ // ✅ Build same 06:00 to next-day 06:00 time window (aligned with energy summary)
+const TZ = "Asia/Karachi";
+const startMoment = moment.tz(`${start} 06:00:00`, "YYYY-MM-DD HH:mm:ss", TZ);
+let endMoment: moment.Moment;
+
+// 🔹 If same day → extend one full day forward
+if (start === end) {
+  endMoment = startMoment.clone().add(1, "day").hour(6).minute(0).second(59).millisecond(999);
+} else {
+  endMoment = moment
+    .tz(`${end} 06:00:00`, "YYYY-MM-DD HH:mm:ss", TZ)
+    .add(1, "day")
+    .hour(6)
+    .minute(0)
+    .second(59)
+    .millisecond(999);
+}
+
+// ✅ Build payload for LT services
+const payload = {
+  startDate: start,
+  endDate: moment(endMoment).format("YYYY-MM-DD"), // 🔹 endDate now next day
+  startTime: "06:00",
+  endTime: "06:00",
+};
+
+// console.log("📅 Unaccounted Energy Payload (Fixed):", payload);
+// console.log("📌 Start ISO:", startMoment.toISOString());
+// console.log("📌 End ISO:", endMoment.toISOString());
 
 
-    let unaccoutable_energy= (totalenergyinput)-(totalenergyoutput);
+  const lt1Data = await this.unit4LT1Service.getSankeyData(payload);
+  const nodeLT1 = lt1Data.find(n => n.to === 'Unaccounted Energy');
+  if (nodeLT1) unaccountedFromLT1 = nodeLT1.value || 0;
+
+  const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
+  const nodeLT2 = lt2Data.find(n => n.to === 'Unaccounted Energy');
+  if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
+
+  const lt3Data = await this.Unit5LT3Service.getSankeyData(payload);
+  const nodeLT3 = lt3Data.find(n => n.to === 'Unaccounted Energy');
+  if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
+
+  const lt4Data = await this.Unit5LT4Service.getSankeyData(payload);
+  const nodeLT4 = lt4Data.find(n => n.to === 'Unaccounted Energy');
+  if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
+
+} catch (err) {
+  // console.warn('⚠️ Error fetching LT unaccounted energy:', err.message);
+}
+
+
+const unaccoutable_energy = +(unaccountedFromLT1 + unaccountedFromLT2 + unaccountedFromLT3 + unaccountedFromLT4).toFixed(2);
+
+    // let unaccoutable_energy= (totalenergyinput)-(totalenergyoutput);
     // let unaccountable = totalConsumption - production;
 
     return {

@@ -300,71 +300,71 @@ const timestampNow = new Date(utcNow.getTime() + 5 * 60 * 60 * 1000)
   }
 }
 
-@Cron('0 */3 * * * *') 
-async storeEvery15Minutes() {
-  try {
-    // 1️⃣ API call
-    const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
-    const apiData = apiRes.data;
+// @Cron('0 */3 * * * *') 
+// async storeEvery15Minutes() {
+//   try {
+//     // 1️⃣ API call
+//     const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
+//     const apiData = apiRes.data;
 
-    // 2️⃣ Round current time to nearest 1-minute slot
-  // 2️⃣ Round current time to nearest 15-minute slot in UTC
-const now = new Date();
-const roundedMinutes = Math.floor(now.getMinutes() / 3) * 3;
-const timestamp15UTC = new Date(now);
-timestamp15UTC.setMinutes(roundedMinutes, 0, 0);
+//     // 2️⃣ Round current time to nearest 1-minute slot
+//   // 2️⃣ Round current time to nearest 15-minute slot in UTC
+// const now = new Date();
+// const roundedMinutes = Math.floor(now.getMinutes() / 3) * 3;
+// const timestamp15UTC = new Date(now);
+// timestamp15UTC.setMinutes(roundedMinutes, 0, 0);
 
-// 🔹 Convert UTC → Karachi (+05:00)
-const timestamp15 = new Date(timestamp15UTC.getTime() + 5 * 60 * 60 * 1000)
-  .toISOString()
-  .replace('Z', '+05:00');
+// // 🔹 Convert UTC → Karachi (+05:00)
+// const timestamp15 = new Date(timestamp15UTC.getTime() + 5 * 60 * 60 * 1000)
+//   .toISOString()
+//   .replace('Z', '+05:00');
 
-    // 3️⃣ Check last doc
-    const lastDoc = await this.fieldMeterRawDataModel.findOne().sort({ timestamp: -1 });
+//     // 3️⃣ Check last doc
+//     const lastDoc = await this.fieldMeterRawDataModel.findOne().sort({ timestamp: -1 });
 
-    //  🔸🔸 get current areas from toggles as fallback when there's no process/raw doc
-    const toggles = await this.toggleModel.find().lean();
-    const areaMap: Record<string, string> = {};
-    for (const t of toggles) {
-      areaMap[`${t.meterId}_Del_ActiveEnergy`] = t.area; // same key shape as raw
-    }
+//     //  🔸🔸 get current areas from toggles as fallback when there's no process/raw doc
+//     const toggles = await this.toggleModel.find().lean();
+//     const areaMap: Record<string, string> = {};
+//     for (const t of toggles) {
+//       areaMap[`${t.meterId}_Del_ActiveEnergy`] = t.area; // same key shape as raw
+//     }
 
-    const realTimeValuesObj: Record<string, { area: string; value: number }> = {};
-    for (const meterId of Object.keys(this.METER_UNIT_MAP)) {
-      const shortId = meterId.replace('_Del_ActiveEnergy', '');
-      const apiValue = apiData[meterId] ?? apiData[shortId] ?? 0;
+//     const realTimeValuesObj: Record<string, { area: string; value: number }> = {};
+//     for (const meterId of Object.keys(this.METER_UNIT_MAP)) {
+//       const shortId = meterId.replace('_Del_ActiveEnergy', '');
+//       const apiValue = apiData[meterId] ?? apiData[shortId] ?? 0;
 
-      realTimeValuesObj[meterId] = {
-        area: (lastDoc as any)?.[meterId]?.area || areaMap[meterId] || 'unit4',
-        value: Math.round(apiValue * 100) / 100,
-      };
-    }
+//       realTimeValuesObj[meterId] = {
+//         area: (lastDoc as any)?.[meterId]?.area || areaMap[meterId] || 'unit4',
+//         value: Math.round(apiValue * 100) / 100,
+//       };
+//     }
 
-    // 4️⃣ Insert with upsert (only one cron doc per minute)
-    const newDoc = await this.fieldMeterRawDataModel.findOneAndUpdate(
-      { timestamp: timestamp15, source: 'cron' }, // unique condition
+//     // 4️⃣ Insert with upsert (only one cron doc per minute)
+//     const newDoc = await this.fieldMeterRawDataModel.findOneAndUpdate(
+//       { timestamp: timestamp15, source: 'cron' }, // unique condition
     
-      {
-        $setOnInsert: {
-          ...realTimeValuesObj,
-          timestamp: timestamp15,
-          source: 'cron',
-        },
-      },
-      { upsert: true, new: true }
-    );
+//       {
+//         $setOnInsert: {
+//           ...realTimeValuesObj,
+//           timestamp: timestamp15,
+//           source: 'cron',
+//         },
+//       },
+//       { upsert: true, new: true }
+//     );
 
-    console.log(`✅ Cron insert complete for ${timestamp15}`);
+//     console.log(`✅ Cron insert complete for ${timestamp15}`);
 
-    // After storing the real-time data, now call the calculateConsumption function
-    await this.calculateConsumption(); // Calling calculateConsumption after storing data
+//     // After storing the real-time data, now call the calculateConsumption function
+//     await this.calculateConsumption(); // Calling calculateConsumption after storing data
 
-    return newDoc;
+//     return newDoc;
 
-  } catch (err) {
-    console.error('❌ Cron error:', err.message);
-  }
-}
+//   } catch (err) {
+//     console.error('❌ Cron error:', err.message);
+//   }
+// }
 
 
 async calculateConsumption(rawId?: string) {

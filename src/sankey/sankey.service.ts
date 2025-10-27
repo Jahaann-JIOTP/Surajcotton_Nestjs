@@ -289,7 +289,7 @@ export class sankeyService {
 
   // ✅ Build Sankey structure
   const sankeyData = [
-    // { from: 'Total Generation', to: 'Unit 4 Consumption', value: +Unit4_Total.toFixed(2) },
+    { from: 'Total Generation', to: 'Unit 4 Consumption', value: +Unit4_Total.toFixed(2) },
     { from: 'Unit 4 Consumption', to: 'LT1', value: +Unit4_LT1_Total.toFixed(2) },
     { from: 'Unit 4 Consumption', to: 'LT2', value: +Unit4_LT2_Total.toFixed(2) },
   ];
@@ -360,7 +360,7 @@ export class sankeyService {
 
   // ✅ Build Sankey structure
   const sankeyData = [
-    // { from: 'Total Generation', to: 'Unit 5 Consumption', value: +Unit5_Total.toFixed(2) },
+    { from: 'Total Generation', to: 'Unit 5 Consumption', value: +Unit5_Total.toFixed(2) },
     { from: 'Unit 5 Consumption', to: 'LT1', value: +Unit5_LT1_Total.toFixed(2) },
     { from: 'Unit 5 Consumption', to: 'LT2', value: +Unit5_LT2_Total.toFixed(2) },
   ];
