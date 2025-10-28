@@ -5,6 +5,10 @@ import { MongoClient } from 'mongodb';
 // import * as moment from 'moment-timezone';
 import * as moment from 'moment';
 import { powercomparisonHistoricalDataDocument } from './schemas/power_comparison.schema';
+import { Unit4LT1Service } from '../unit4_lt1/unit4_lt1.service';
+import { Unit4LT2Service } from '../unit4_lt2/unit4_lt2.service';
+import { Unit5LT3Service } from '../unit5_lt3/unit5_lt3.service';
+import { Unit5LT4Service } from '../unit5_lt4/unit5_lt4.service';
 // import * as moment from 'moment-timezone';
 
 
@@ -13,8 +17,13 @@ export class powercomparisonService {
   
 
   constructor(
-    @InjectModel('power_comparison', 'surajcotton') private readonly conModel: Model<powercomparisonHistoricalDataDocument>,
-  ) {}
+  @InjectModel('power_comparison', 'surajcotton')
+  private readonly conModel: Model<powercomparisonHistoricalDataDocument>,
+  private readonly unit4LT1Service: Unit4LT1Service,
+  private readonly unit4LT2Service: Unit4LT2Service,
+  private readonly unit5LT3Service: Unit5LT3Service,
+  private readonly unit5LT4Service: Unit5LT4Service,
+) {}
 
 
 async getPowerAverages(startDate: string, endDate: string) {
@@ -101,8 +110,8 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
   ];
 
   const data = await collection.aggregate(pipeline).toArray();
-
-  return data.map(entry => {
+  return await Promise.all(
+  data.map(async (entry) => {
     const formattedDate = moment(entry._id).tz("Asia/Karachi").format("YYYY-MM-DD HH:mm");
 
     let htTotal = 0;
@@ -159,7 +168,6 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       Aux_consumptionTotal += diff;
     }
 
-    
     let unit5Total = 0;
     for (const tag of unit5Tags) {
       const first = entry[`first_${tag}`] || 0;
@@ -178,7 +186,7 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       Trafo1Incoming += diff;
     }
 
-      let Trafo2Incoming = 0;
+    let Trafo2Incoming = 0;
     for (const tag of Trafo2IncomingTags) {
       const first = entry[`first_${tag}`] || 0;
       const last = entry[`last_${tag}`] || 0;
@@ -204,7 +212,8 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
       Trafo4Incoming += diff;
     }
-        let Trafo1outgoing = 0;
+
+    let Trafo1outgoing = 0;
     for (const tag of Trafo1outgoingTags) {
       const first = entry[`first_${tag}`] || 0;
       const last = entry[`last_${tag}`] || 0;
@@ -212,7 +221,8 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
       Trafo1outgoing += diff;
     }
-        let Trafo2outgoing = 0;
+
+    let Trafo2outgoing = 0;
     for (const tag of Trafo2outgoingTags) {
       const first = entry[`first_${tag}`] || 0;
       const last = entry[`last_${tag}`] || 0;
@@ -220,7 +230,8 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
       Trafo2outgoing += diff;
     }
-        let Trafo3outgoing = 0;
+
+    let Trafo3outgoing = 0;
     for (const tag of Trafo3outgoingTags) {
       const first = entry[`first_${tag}`] || 0;
       const last = entry[`last_${tag}`] || 0;
@@ -228,7 +239,8 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
       Trafo3outgoing += diff;
     }
-        let Trafo4outgoing = 0;
+
+    let Trafo4outgoing = 0;
     for (const tag of Trafo4outgoingTags) {
       const first = entry[`first_${tag}`] || 0;
       const last = entry[`last_${tag}`] || 0;
@@ -246,7 +258,7 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       Wapda2 += diff;
     }
 
-      let Niigata = 0;
+    let Niigata = 0;
     for (const tag of NiigataTags) {
       const first = entry[`first_${tag}`] || 0;
       const last = entry[`last_${tag}`] || 0;
@@ -255,7 +267,7 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       Niigata += diff;
     }
 
-        let JMS = 0;
+    let JMS = 0;
     for (const tag of JMSTags) {
       const first = entry[`first_${tag}`] || 0;
       const last = entry[`last_${tag}`] || 0;
@@ -263,7 +275,8 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       if (Math.abs(diff) > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
       JMS += diff;
     }
-           let PH_IC = 0;
+
+    let PH_IC = 0;
     for (const tag of PH_ICTags) {
       const first = entry[`first_${tag}`] || 0;
       const last = entry[`last_${tag}`] || 0;
@@ -272,26 +285,76 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       PH_IC += diff;
     }
 
-     const T1andT2incoming = Trafo1Incoming+Trafo2Incoming;
-    const T1andT2outgoing = Trafo1outgoing+Trafo2outgoing;
-    const T1andT2losses = T1andT2incoming-T1andT2outgoing ;
+    const T1andT2incoming = Trafo1Incoming + Trafo2Incoming;
+    const T1andT2outgoing = Trafo1outgoing + Trafo2outgoing;
+    const T1andT2losses = T1andT2incoming - T1andT2outgoing;
     const Trafo3losses = Trafo3Incoming - Trafo3outgoing;
     const Trafo4losses = Trafo4Incoming - Trafo4outgoing;
-    const TrasformerLosses = T1andT2losses+ Trafo3losses + Trafo4losses;
-    // const HT_Transmissioin_Losses = (Wapda2+ Niigata + JMS)- (Trafo3Incoming + Trafo4Incoming + PH_IC );
-    // console.log("HT_Transmissioin_Losses", HT_Transmissi
- 
-    // const t1andt2incoming =  Trafo1Incoming + Trafo2Incoming;
-    // const t1andt2outgoing =  Trafo1outgoing + Trafo2outgoing;
-    // const t1and2losses = t1andt2incoming - t1andt2outgoing;
-    // const t3losses = Trafo3Incoming - Trafo3outgoing;
-    // const t4losses = Trafo4Incoming - Trafo4outgoing;
-    // const transformerlosses = t1and2losses+ t3losses + t4losses;
-    const HT_Transmissioin_Losses = (Wapda2+ Niigata + JMS)- (Trafo3Incoming + Trafo4Incoming + PH_IC );
+    const TrasformerLosses = T1andT2losses + Trafo3losses + Trafo4losses;
+    const HT_Transmissioin_Losses = (Wapda2 + Niigata + JMS) - (Trafo3Incoming + Trafo4Incoming + PH_IC);
     const losses = TrasformerLosses + HT_Transmissioin_Losses;
-    const totalConsumption = unit4Total + unit5Total + Aux_consumptionTotal ;
+    const totalConsumption = unit4Total + unit5Total + Aux_consumptionTotal;
     const totalGeneration = htTotal + ltTotal + wapdaTotal + solarTotal;
 
+    // LT unaccounted energy integration
+    let unaccountedFromLT1 = 0;
+    let unaccountedFromLT2 = 0;
+    let unaccountedFromLT3 = 0;
+    let unaccountedFromLT4 = 0;
+
+    try {
+       // ✅ Build same 06:00 to next-day 06:00 time window (aligned with energy summary)
+      const TZ = "Asia/Karachi";
+      const startMoment = moment.tz(`${startDate} 06:00:00`, "YYYY-MM-DD HH:mm:ss", TZ);
+      let endMoment: moment.Moment;
+      
+      // 🔹 If same day → extend one full day forward
+      if (startDate === endDate) {
+        endMoment = startMoment.clone().add(1, "day").hour(6).minute(0).second(59).millisecond(999);
+      } else {
+        endMoment = moment
+          .tz(`${endDate} 06:00:00`, "YYYY-MM-DD HH:mm:ss", TZ)
+          .add(1, "day")
+          .hour(6)
+          .minute(0)
+          .second(59)
+          .millisecond(999);
+      }
+      
+      // ✅ Build payload for LT services
+      const payload = {
+  startDate: moment(entry._id).format("YYYY-MM-DD"),
+  startTime: moment(entry._id).format("HH:mm"),
+  endDate: moment(entry._id).format("YYYY-MM-DD"),
+  endTime: moment(entry._id).add(1, "hour").format("HH:mm"),
+};
+
+
+      const lt1Data = await this.unit4LT1Service.getSankeyData(payload);
+      const nodeLT1 = lt1Data.find(n => n.to === 'Unaccounted Energy');
+      if (nodeLT1) unaccountedFromLT1 = nodeLT1.value || 0;
+
+      const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
+      const nodeLT2 = lt2Data.find(n => n.to === 'Unaccounted Energy');
+      if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
+
+      const lt3Data = await this.unit5LT3Service.getSankeyData(payload);
+      const nodeLT3 = lt3Data.find(n => n.to === 'Unaccounted Energy');
+      if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
+
+      const lt4Data = await this.unit5LT4Service.getSankeyData(payload);
+      const nodeLT4 = lt4Data.find(n => n.to === 'Unaccounted Energy');
+      if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
+    } catch (err) {
+      console.warn('⚠️ Error fetching LT unaccounted energy:', err.message);
+    }
+
+    const unaccountable_energy = +(
+      unaccountedFromLT1 +
+      unaccountedFromLT2 +
+      unaccountedFromLT3 +
+      unaccountedFromLT4
+    ).toFixed(2);
 
     return {
       date: formattedDate,
@@ -301,18 +364,16 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
       solar: +solarTotal.toFixed(2),
       unit4: +unit4Total.toFixed(2),
       unit5: +unit5Total.toFixed(2),
-      // t1andt2incoming: +t1andt2incoming.toFixed(2),
-      // t1andt2outgoing: +t1andt2outgoing.toFixed(2),
-      // t1and2losses: +t1and2losses.toFixed(2),
-      losses : +losses.toFixed(2),
+      losses: +losses.toFixed(2),
       total_consumption: +totalConsumption.toFixed(2),
       total_generation: +totalGeneration.toFixed(2),
-       unaccountable_energy: +(totalGeneration - totalConsumption).toFixed(2),
+      unaccountable_energy: unaccountable_energy.toFixed(2),
       efficiency: +((totalConsumption / totalGeneration) * 100 || 0).toFixed(2),
     };
-  });
-}
+  })
+); // <-- ✅ closes both map() and Promise.all
 
+}
 
 
   async getPowerData(startDate: string, endDate: string, label: string) {
@@ -474,7 +535,64 @@ async getDailyPowerAverages(startDate: string, endDate: string) {
 // console.log("🔍 Losses (Final):", losses);
   const totalConsumption = unit4 + unit5 + aux;
   const totalgeneration = ht + lt + wapda + solar;
-  const unaccountable_energy =totalgeneration -  totalConsumption;
+   // LT unaccounted energy integration
+    let unaccountedFromLT1 = 0;
+    let unaccountedFromLT2 = 0;
+    let unaccountedFromLT3 = 0;
+    let unaccountedFromLT4 = 0;
+
+    try {
+       // ✅ Build same 06:00 to next-day 06:00 time window (aligned with energy summary)
+      const TZ = "Asia/Karachi";
+      const startMoment = moment.tz(`${startDate} 06:00:00`, "YYYY-MM-DD HH:mm:ss", TZ);
+      let endMoment: moment.Moment;
+      
+      // 🔹 If same day → extend one full day forward
+      if (startDate === endDate) {
+        endMoment = startMoment.clone().add(1, "day").hour(6).minute(0).second(59).millisecond(999);
+      } else {
+        endMoment = moment
+          .tz(`${endDate} 06:00:00`, "YYYY-MM-DD HH:mm:ss", TZ)
+          .add(1, "day")
+          .hour(6)
+          .minute(0)
+          .second(59)
+          .millisecond(999);
+      }
+      
+      // ✅ Build payload for LT services
+      const payload = {
+        startDate: startDate,
+        endDate: moment(endMoment).format("YYYY-MM-DD"), // 🔹 endDate now next day
+        startTime: "06:00",
+        endTime: "06:00",
+      };
+
+      const lt1Data = await this.unit4LT1Service.getSankeyData(payload);
+      const nodeLT1 = lt1Data.find(n => n.to === 'Unaccounted Energy');
+      if (nodeLT1) unaccountedFromLT1 = nodeLT1.value || 0;
+
+      const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
+      const nodeLT2 = lt2Data.find(n => n.to === 'Unaccounted Energy');
+      if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
+
+      const lt3Data = await this.unit5LT3Service.getSankeyData(payload);
+      const nodeLT3 = lt3Data.find(n => n.to === 'Unaccounted Energy');
+      if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
+
+      const lt4Data = await this.unit5LT4Service.getSankeyData(payload);
+      const nodeLT4 = lt4Data.find(n => n.to === 'Unaccounted Energy');
+      if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
+    } catch (err) {
+      console.warn('⚠️ Error fetching LT unaccounted energy:', err.message);
+    }
+
+    const unaccountable_energy = +(
+      unaccountedFromLT1 +
+      unaccountedFromLT2 +
+      unaccountedFromLT3 +
+      unaccountedFromLT4
+    ).toFixed(2);
   const efficiency = totalgeneration > 0 ? (totalConsumption / totalgeneration) * 100 : 0;
 
   const dailyResults = [{
@@ -649,7 +767,65 @@ if (now.isBefore(endMomentPlanned)) {
   for (const month of Object.values(results)) {
     month.total_consumption = +(month.unit4 + month.unit5 +month.aux ).toFixed(2);
     month.total_generation = +(month.HT + month.LT + month.wapda + month.solar).toFixed(2);
-    month.unaccountable_energy = +(month.total_generation - month.total_consumption).toFixed(2);
+     // LT unaccounted energy integration
+    let unaccountedFromLT1 = 0;
+    let unaccountedFromLT2 = 0;
+    let unaccountedFromLT3 = 0;
+    let unaccountedFromLT4 = 0;
+
+    try {
+       // ✅ Build same 06:00 to next-day 06:00 time window (aligned with energy summary)
+      const TZ = "Asia/Karachi";
+      const startMoment = moment.tz(`${startDate} 06:00:00`, "YYYY-MM-DD HH:mm:ss", TZ);
+      let endMoment: moment.Moment;
+      
+      // 🔹 If same day → extend one full day forward
+      if (startDate === endDate) {
+        endMoment = startMoment.clone().add(1, "day").hour(6).minute(0).second(59).millisecond(999);
+      } else {
+        endMoment = moment
+          .tz(`${endDate} 06:00:00`, "YYYY-MM-DD HH:mm:ss", TZ)
+          .add(1, "day")
+          .hour(6)
+          .minute(0)
+          .second(59)
+          .millisecond(999);
+      }
+      
+      // ✅ Build payload for LT services
+      const payload = {
+        startDate: startDate,
+        endDate: moment(endMoment).format("YYYY-MM-DD"), // 🔹 endDate now next day
+        startTime: "06:00",
+        endTime: "06:00",
+      };
+
+      const lt1Data = await this.unit4LT1Service.getSankeyData(payload);
+      const nodeLT1 = lt1Data.find(n => n.to === 'Unaccounted Energy');
+      if (nodeLT1) unaccountedFromLT1 = nodeLT1.value || 0;
+
+      const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
+      const nodeLT2 = lt2Data.find(n => n.to === 'Unaccounted Energy');
+      if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
+
+      const lt3Data = await this.unit5LT3Service.getSankeyData(payload);
+      const nodeLT3 = lt3Data.find(n => n.to === 'Unaccounted Energy');
+      if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
+
+      const lt4Data = await this.unit5LT4Service.getSankeyData(payload);
+      const nodeLT4 = lt4Data.find(n => n.to === 'Unaccounted Energy');
+      if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
+    } catch (err) {
+      console.warn('⚠️ Error fetching LT unaccounted energy:', err.message);
+    }
+
+    const unaccountable_energy = +(
+      unaccountedFromLT1 +
+      unaccountedFromLT2 +
+      unaccountedFromLT3 +
+      unaccountedFromLT4
+    ).toFixed(2);
+    month.unaccountable_energy = unaccountable_energy.toFixed(2);
     month.efficiency = month.total_generation > 0
       ? +((month.total_consumption / month.total_generation) * 100).toFixed(2)
       : 0;
