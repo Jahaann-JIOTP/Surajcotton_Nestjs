@@ -11,16 +11,23 @@ export class DailyConsumptionService {
     @InjectModel(Historical.name, 'surajcotton')
     private historicalModel: Model<Historical>,
   ) {}
+   // ✅ Utility function — automatically adds `info` if missing
+  private withDefaultInfo(meters: any[]) {
+    return meters.map((m) => ({
+      ...m,
+      info: m.info ?? '', // add empty string if info not provided
+    }));
+  }
 
   // 🔹 LT1 meters
   private lt1Meters = [
     { energy: 'U10_PLC_Del_ActiveEnergy', power: 'U10_PLC_ActivePower_Total', powerFactor: 'U10_PLC_PowerFactor_Avg', voltage: 'U10_PLC_Voltage_Avg', metername: 'Ring 1-4', deptname: 'Ring Dept', MCS: '4', installedLoad: '80' },
     { energy: 'U11_PLC_Del_ActiveEnergy', power: 'U11_PLC_ActivePower_Total', powerFactor: 'U11_PLC_PowerFactor_Avg', voltage: 'U11_PLC_Voltage_Avg', metername: 'Ring 16-20', deptname: 'Ring Dept', MCS: '4', installedLoad: '80' },
     { energy: 'U12_PLC_Del_ActiveEnergy', power: 'U12_PLC_ActivePower_Total', powerFactor: 'U12_PLC_PowerFactor_Avg', voltage: 'U12_PLC_Voltage_Avg', metername: 'Ring 21-24', deptname: 'Ring Dept', MCS: '4', installedLoad: '80' },
-    { energy: 'U17_PLC_Del_ActiveEnergy', power: 'U17_PLC_ActivePower_Total', powerFactor: 'U17_PLC_PowerFactor_Avg', voltage: 'U17_PLC_Voltage_Avg', metername: 'Ring AC', deptname: 'AC_Ring', MCS: '02', installedLoad: '347.5' },
-    { energy: 'U18_PLC_Del_ActiveEnergy', power: 'U18_PLC_ActivePower_Total', powerFactor: 'U18_PLC_PowerFactor_Avg', voltage: 'U18_PLC_Voltage_Avg', metername: 'Ring AC (Bypass)', deptname: 'AC_Ring', MCS: '02', installedLoad: '347.5' },
+    { energy: 'U17_PLC_Del_ActiveEnergy', power: 'U17_PLC_ActivePower_Total', powerFactor: 'U17_PLC_PowerFactor_Avg', voltage: 'U17_PLC_Voltage_Avg', metername: 'Ring AC', deptname: 'AC_Ring', MCS: '02', installedLoad: '347.5', info: 'Supply Fans+Return fans+Water Pumps+Dust collector fans' },
+    { energy: 'U18_PLC_Del_ActiveEnergy', power: 'U18_PLC_ActivePower_Total', powerFactor: 'U18_PLC_PowerFactor_Avg', voltage: 'U18_PLC_Voltage_Avg', metername: 'Ring AC (Bypass)', deptname: 'AC_Ring', MCS: '02', installedLoad: '347.5' , info: 'Supply Fans+Return fans+Water Pumps+Dust collector fans' },
     { energy: 'U6_PLC_Del_ActiveEnergy',  power: 'U6_PLC_ActivePower_Total',  powerFactor: 'U6_PLC_PowerFactor_Avg',  voltage: 'U6_PLC_Voltage_Avg',  metername: 'Turbine', deptname: 'Deep Well Turbine', MCS: '1', installedLoad: '22' },
-     { energy: 'U14_PLC_Del_ActiveEnergy', power: 'U14_PLC_ActivePower_Total', powerFactor: 'U14_PLC_PowerFactor_Avg', voltage: 'U14_PLC_Voltage_Avg', metername: 'Compressor 119kw', deptname: 'Air Compressor', MCS: '3', installedLoad: '119' },
+     { energy: 'U14_PLC_Del_ActiveEnergy', power: 'U14_PLC_ActivePower_Total', powerFactor: 'U14_PLC_PowerFactor_Avg', voltage: 'U14_PLC_Voltage_Avg', metername: 'Compressor 119kw', deptname: 'Air Compressor', MCS: '3', installedLoad: '119' , info: 'Compressors 37kw+37kw+45kw' },
     { energy: 'U16_PLC_Del_ActiveEnergy', power: 'U16_PLC_ActivePower_Total', powerFactor: 'U16_PLC_PowerFactor_Avg', voltage: 'U16_PLC_Voltage_Avg', metername: 'Compressor 303kw', deptname: 'Air Compressor', MCS: '3', installedLoad: '303' },
     { energy: 'U4_PLC_Del_ActiveEnergy',  power: 'U4_PLC_ActivePower_Total',  powerFactor: 'U4_PLC_PowerFactor_Avg',  voltage: 'U4_PLC_Voltage_Avg',  metername: 'Lightning Inside', deptname: 'Mills Lighting', MCS: '1340', installedLoad: '25' },
     { energy: 'U3_PLC_Del_ActiveEnergy',  power: 'U3_PLC_ActivePower_Total',  powerFactor: 'U3_PLC_PowerFactor_Avg',  voltage: 'U3_PLC_Voltage_Avg',  metername: 'Lightning Outside', deptname: 'Mills Lighting', MCS: '48', installedLoad: '7' },
@@ -102,29 +109,44 @@ export class DailyConsumptionService {
   // ✅ merged function
 async calculateConsumption(
   dto: ConsumptionDto,
-  line: 'LT1' | 'LT2' |'Unit5-LT1' | 'Unit5-LT2'
+  line: 'LT1' | 'LT2' | 'Unit5-LT1' | 'Unit5-LT2'
 ) {
   let metersConfig;
 
   switch (line) {
     case 'LT1':
-      metersConfig = this.lt1Meters;
+      metersConfig = this.withDefaultInfo(this.lt1Meters);
       break;
     case 'LT2':
-      metersConfig = this.lt2Meters;
+      metersConfig = this.withDefaultInfo(this.lt2Meters);
       break;
-   
     case 'Unit5-LT1':
-      metersConfig = this.unit5Lt1Meters;
+      metersConfig = this.withDefaultInfo(this.unit5Lt1Meters);
       break;
     case 'Unit5-LT2':
-      metersConfig = this.unit5Lt2Meters;
+      metersConfig = this.withDefaultInfo(this.unit5Lt2Meters);
       break;
     default:
       throw new Error(`❌ No metersConfig found for line=${line}`);
   }
 
-  return calculateConsumptionCore(dto, metersConfig, this.historicalModel);
+  // Step 1: get the original calculated result
+  const result = await calculateConsumptionCore(dto, metersConfig, this.historicalModel);
+
+  // Step 2: map info field back to each meter (if present)
+  if (result?.meters && Array.isArray(result.meters)) {
+    result.meters = result.meters.map((meter: any) => {
+      const matchedConfig = metersConfig.find(
+        (cfg) => cfg.metername === meter.metername
+      );
+      return {
+        ...meter,
+        info: matchedConfig?.info ?? '',
+      };
+    });
+  }
+
+  return result;
 }
 
 
