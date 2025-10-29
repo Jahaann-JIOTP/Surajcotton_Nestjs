@@ -135,25 +135,12 @@ export class EnergyconsumptionreportService {
     // ------------------------------------------------
     // 🕓 Date Range
     // ------------------------------------------------
-    // ------------------------------------------------
-// 🕓 Date Range (✅ Fixed Timezone)
-// ------------------------------------------------
-// Convert Asia/Karachi time → UTC before querying MongoDB
-const startISO1 = moment
-  .tz(`${start_date} ${start_time}`, 'YYYY-MM-DD HH:mm', 'Asia/Karachi')
-  .utc()
-  .toISOString();
-
-const endISO1 = moment
-  .tz(`${end_date} ${end_time}`, 'YYYY-MM-DD HH:mm', 'Asia/Karachi')
-  .utc()
-  .toISOString();
- 
-  const startISO = moment.utc(startISO1).tz('Asia/Karachi').format('YYYY-MM-DD HH:mm:ss');
-  const endISO = moment.utc(endISO1).tz('Asia/Karachi').format('YYYY-MM-DD HH:mm:ss');
-  console.log(startISO,'start time')
-  console.log(endISO,'end time')
-  
+    const startISO = moment.tz(`${start_date} ${start_time}`, 'YYYY-MM-DD HH:mm', TZ)
+      .startOf('minute')
+      .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+    const endISO = moment.tz(`${end_date} ${end_time}`, 'YYYY-MM-DD HH:mm', TZ)
+      .endOf('minute')
+      .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
 
     // ------------------------------------------------
     // 🔍 Fetch First/Last Docs
@@ -245,8 +232,8 @@ const endISO1 = moment
     // ------------------------------------------------
     const result: SummaryByDept = {
       date: start_date,
-      startTimestamp: moment.utc(firstDoc.timestamp).tz('Asia/Karachi').format('YYYY-MM-DD HH:mm:ss'),
-  endTimestamp: moment.utc(lastDoc.timestamp).tz('Asia/Karachi').format('YYYY-MM-DD HH:mm:ss'),
+      startTimestamp: firstDoc.timestamp,
+      endTimestamp: lastDoc.timestamp,
     };
 
     const totalHours = Math.max(moment(endISO).diff(moment(startISO), 'hours'), 1);
@@ -278,11 +265,11 @@ const endISO1 = moment
       let dayEndISO: string;
 
       if (isSingleDayRun) {
-        dayStartISO = moment.tz(`${start_date} ${start_time}`, 'YYYY-MM-DD HH:mm', 'Asia/Karachi').utc().toISOString();
-dayEndISO = moment.tz(`${end_date} ${end_time}`, 'YYYY-MM-DD HH:mm', 'Asia/Karachi').utc().toISOString();
+        dayStartISO = moment.tz(`${start_date} ${start_time}`, 'YYYY-MM-DD HH:mm', TZ).format();
+        dayEndISO = moment.tz(`${end_date} ${end_time}`, 'YYYY-MM-DD HH:mm', TZ).format();
       } else {
-        dayStartISO = moment.tz(`${m.format('YYYY-MM-DD')} 06:00:00`, 'Asia/Karachi').utc().toISOString();
-dayEndISO = moment(dayStartISO).add(24, 'hours').add(2, 'minutes').toISOString();
+        dayStartISO = moment.tz(`${m.format('YYYY-MM-DD')} 06:00:00`, TZ).format();
+        dayEndISO = moment(dayStartISO).add(24, 'hours').add(2, 'minutes').format();
       }
 
       const [dayDocs] = await this.costModel.aggregate([
