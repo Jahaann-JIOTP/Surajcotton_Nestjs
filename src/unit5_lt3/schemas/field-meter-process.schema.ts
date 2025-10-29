@@ -11,7 +11,7 @@ interface MeterData {
   lastNonZeroTime?: Date;
 }
 
-@Schema({ collection: 'FM_process', timestamps: true })    // FM_process   for local server  // for production FM_Process_Prod
+@Schema({ collection: 'FM_Process_Prod', timestamps: true })    // FM_process   for local server  // for production FM_Process_Prod
 export class FieldMeterProcess extends Document {
   @Prop({ type: Date, default: () => moment().tz('Asia/Karachi').toDate() })
   timestamp: Date;
