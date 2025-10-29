@@ -81,16 +81,16 @@ export class EnergyconsumptionreportService {
     const PDB10_U5 = +(Number(fmCons?.U5_U23_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
     const PDB10_sum = Math.max(0, +(PDB10_U4 + PDB10_U5).toFixed(2));
 
-    console.log('📊 PDB07_U4:', PDB07_U4);
-    console.log(`📊 PDB CD1 Total = ${PDB1CD1_U4} + ${PDB1CD1_U5} = ${PDB1CD1_Total}`);
-    console.log(`📊 PDB CD2 Total = ${PDB2CD2_U4} + ${PDB2CD2_U5} = ${PDB2CD2_Total}`);
-     console.log(`📊 U4_PDB10 Consumption = ${PDB10_U4}`);
-     console.log(`📊 🆕 PDB08 Total (U4 + U5) = ${PDB08_U4} + ${PDB08_U5} = ${PDB08_Total}`);
+    // console.log('📊 PDB07_U4:', PDB07_U4);
+    // console.log(`📊 PDB CD1 Total = ${PDB1CD1_U4} + ${PDB1CD1_U5} = ${PDB1CD1_Total}`);
+    // console.log(`📊 PDB CD2 Total = ${PDB2CD2_U4} + ${PDB2CD2_U5} = ${PDB2CD2_Total}`);
+    //  console.log(`📊 U4_PDB10 Consumption = ${PDB10_U4}`);
+    //  console.log(`📊 🆕 PDB08 Total (U4 + U5) = ${PDB08_U4} + ${PDB08_U5} = ${PDB08_Total}`);
 
-     console.log(`📊 🆕 PDB08 Total (U4 + U5) = ${CardPDB1_U5} + ${CardPDB1_U4} = ${CardPDB1_sum}`);
-      console.log(`📊 🆕 PDB07_sum  (U4 + U5) = ${PDB07_U4} + ${PDB07_U5} = ${PDB07_sum}`);
+    //  console.log(`📊 🆕 PDB08 Total (U4 + U5) = ${CardPDB1_U5} + ${CardPDB1_U4} = ${CardPDB1_sum}`);
+    //   console.log(`📊 🆕 PDB07_sum  (U4 + U5) = ${PDB07_U4} + ${PDB07_U5} = ${PDB07_sum}`);
 
-      console.log(`📊 🆕 PDB10_sum  (U4 + U5) = ${PDB10_U4} + ${PDB10_U5} = ${PDB10_sum}`);
+    //   console.log(`📊 🆕 PDB10_sum  (U4 + U5) = ${PDB10_U4} + ${PDB10_U5} = ${PDB10_sum}`);
      
 
     // ------------------------------------------------
@@ -135,12 +135,25 @@ export class EnergyconsumptionreportService {
     // ------------------------------------------------
     // 🕓 Date Range
     // ------------------------------------------------
-    const startISO = moment.tz(`${start_date} ${start_time}`, 'YYYY-MM-DD HH:mm', TZ)
-      .startOf('minute')
-      .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
-    const endISO = moment.tz(`${end_date} ${end_time}`, 'YYYY-MM-DD HH:mm', TZ)
-      .endOf('minute')
-      .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+    // ------------------------------------------------
+// 🕓 Date Range (✅ Fixed Timezone)
+// ------------------------------------------------
+// Convert Asia/Karachi time → UTC before querying MongoDB
+const startISO1 = moment
+  .tz(`${start_date} ${start_time}`, 'YYYY-MM-DD HH:mm', 'Asia/Karachi')
+  .utc()
+  .toISOString();
+
+const endISO1 = moment
+  .tz(`${end_date} ${end_time}`, 'YYYY-MM-DD HH:mm', 'Asia/Karachi')
+  .utc()
+  .toISOString();
+ 
+  const startISO = moment.utc(startISO1).tz('Asia/Karachi').format('YYYY-MM-DD HH:mm:ss');
+  const endISO = moment.utc(endISO1).tz('Asia/Karachi').format('YYYY-MM-DD HH:mm:ss');
+  console.log(startISO,'start time')
+  console.log(endISO,'end time')
+  
 
     // ------------------------------------------------
     // 🔍 Fetch First/Last Docs
@@ -181,39 +194,39 @@ export class EnergyconsumptionreportService {
         // ✅ Adjust Ring 21–24 (U12_PLC) consumption in Unit 4
         if (unitKey === 'Unit_4' && meterId === 'U12_PLC') {
           const adjusted = Math.max(0, +(consumption - PDB07_U4).toFixed(2));
-          console.log(`Adjusted Ring21–24 (U12_PLC): ${consumption} - ${PDB07_U4} = ${adjusted}`);
+          // console.log(`Adjusted Ring21–24 (U12_PLC): ${consumption} - ${PDB07_U4} = ${adjusted}`);
           consumption = adjusted;
         }
         // ✅ Replace U5_GW01 with combined PDB CD1 Total (U4 + U5)
         if (meterId === 'U5_GW01') {
-          console.log(`Replaced U5_GW01 with PDB CD1 Total: ${PDB1CD1_Total}`);
+          // console.log(`Replaced U5_GW01 with PDB CD1 Total: ${PDB1CD1_Total}`);
           consumption = PDB1CD1_Total;
         }
          // ✅ Replace U9_GW01 → PDB2 CD2 (U4+U5)
         if (meterId === 'U9_GW01') {
-          console.log(`Replaced U9_GW01 with PDB2 CD2 Total: ${PDB2CD2_Total}`);
+          // console.log(`Replaced U9_GW01 with PDB2 CD2 Total: ${PDB2CD2_Total}`);
           consumption = PDB2CD2_Total;
         }
          if (meterId === 'U15_GW01') {
           const adjusted = Math.max(0, +(consumption - PDB10_U4).toFixed(2));
-          console.log(`Adjusted U15_GW01: ${consumption}-${PDB10_U4}=${adjusted}`);
+          // console.log(`Adjusted U15_GW01: ${consumption}-${PDB10_U4}=${adjusted}`);
           consumption = adjusted;
         }
         if (meterId === 'U14_GW02') {
-          console.log(`Replaced U14_GW02 with PDB08 Total: ${PDB08_Total}`);
+          // console.log(`Replaced U14_GW02 with PDB08 Total: ${PDB08_Total}`);
           consumption = PDB08_Total;
         }
 
          if (meterId === 'U17_GW02') {
-      console.log(`Replaced U17_GW02 with PDB01 (CD1) Total: ${CardPDB1_sum}`);
+      // console.log(`Replaced U17_GW02 with PDB01 (CD1) Total: ${CardPDB1_sum}`);
       consumption = CardPDB1_sum;
     }
     if (meterId === 'U18_GW02') {
-      console.log(`Replaced U18_GW02 with PDB07_sum: ${PDB07_sum}`);
+      // console.log(`Replaced U18_GW02 with PDB07_sum: ${PDB07_sum}`);
       consumption = PDB07_sum;
     }
      if (meterId === 'U10_GW03') {
-      console.log(`Replaced U10_GW03 with PDB10_sum: ${PDB10_sum}`);
+      // console.log(`Replaced U10_GW03 with PDB10_sum: ${PDB10_sum}`);
       consumption = PDB10_sum;
     }
 
@@ -232,8 +245,8 @@ export class EnergyconsumptionreportService {
     // ------------------------------------------------
     const result: SummaryByDept = {
       date: start_date,
-      startTimestamp: firstDoc.timestamp,
-      endTimestamp: lastDoc.timestamp,
+      startTimestamp: moment.utc(firstDoc.timestamp).tz('Asia/Karachi').format('YYYY-MM-DD HH:mm:ss'),
+  endTimestamp: moment.utc(lastDoc.timestamp).tz('Asia/Karachi').format('YYYY-MM-DD HH:mm:ss'),
     };
 
     const totalHours = Math.max(moment(endISO).diff(moment(startISO), 'hours'), 1);
@@ -265,11 +278,11 @@ export class EnergyconsumptionreportService {
       let dayEndISO: string;
 
       if (isSingleDayRun) {
-        dayStartISO = moment.tz(`${start_date} ${start_time}`, 'YYYY-MM-DD HH:mm', TZ).format();
-        dayEndISO = moment.tz(`${end_date} ${end_time}`, 'YYYY-MM-DD HH:mm', TZ).format();
+        dayStartISO = moment.tz(`${start_date} ${start_time}`, 'YYYY-MM-DD HH:mm', 'Asia/Karachi').utc().toISOString();
+dayEndISO = moment.tz(`${end_date} ${end_time}`, 'YYYY-MM-DD HH:mm', 'Asia/Karachi').utc().toISOString();
       } else {
-        dayStartISO = moment.tz(`${m.format('YYYY-MM-DD')} 06:00:00`, TZ).format();
-        dayEndISO = moment(dayStartISO).add(24, 'hours').add(2, 'minutes').format();
+        dayStartISO = moment.tz(`${m.format('YYYY-MM-DD')} 06:00:00`, 'Asia/Karachi').utc().toISOString();
+dayEndISO = moment(dayStartISO).add(24, 'hours').add(2, 'minutes').toISOString();
       }
 
       const [dayDocs] = await this.costModel.aggregate([
