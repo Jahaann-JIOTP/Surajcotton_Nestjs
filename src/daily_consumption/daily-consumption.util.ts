@@ -42,6 +42,7 @@ export async function calculateConsumptionCore(
 ) {
   const { startDate, endDate, startTime, endTime } = dto;
 
+
   let startISO: string;
   let endISO: string;
 
@@ -57,6 +58,7 @@ export async function calculateConsumptionCore(
     const nextDay = moment(endDate).add(1, 'day').format('YYYY-MM-DD');
     endISO = `${nextDay}T06:00:59.999+05:00`;
   }
+ 
 
 
 
