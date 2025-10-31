@@ -282,11 +282,15 @@ const sumGroup = (keys: string[]) =>
     let T1andT2incoming = Trafo1Incoming+Trafo2Incoming;
     let T1andT2outgoing = Trafo1outgoing+Trafo2outgoing;
     let T1andT2losses = T1andT2incoming-T1andT2outgoing ;
+    let T1T2percentage = (T1andT2losses/T1andT2incoming)*100;
     let Trafo1losses = Trafo1Incoming - Trafo1outgoing;
     let Trafo2losses = Trafo2Incoming - Trafo2outgoing;
     let Trafo3losses = Trafo3Incoming - Trafo3outgoing;
+    let T3percentage = (Trafo3losses/Trafo3Incoming)*100;
     let Trafo4losses = Trafo4Incoming - Trafo4outgoing;
+    let T4percentage = (Trafo4losses /Trafo4Incoming)*100;
     let TrasformerLosses = T1andT2losses+ Trafo3losses + Trafo4losses;
+    let TotalTrasformepercentage = (TrasformerLosses/(T1andT2incoming+Trafo3Incoming+Trafo4Incoming))*100;
     let HT_Transmissioin_Losses = (Wapda2+ Niigata + JMS)- (Trafo3Incoming + Trafo4Incoming + PH_IC );
     // console.log("HT_Transmissioin_Losses", HT_Transmissioin_Losses);
     // console.log("Wapda2", Wapda2);
@@ -381,6 +385,7 @@ const unaccoutable_energy = +(unaccountedFromLT1 + unaccountedFromLT2 + unaccoun
     T1andT2incoming: T1andT2incoming.toFixed(2),
     T1andT2outgoing: T1andT2outgoing.toFixed(2),
     T1andT2losses: T1andT2losses.toFixed(2),
+    T1T2unit4percentage: T1T2percentage.toFixed(2),
     // Trafo1Incoming:Trafo1Incoming.toFixed(2),
     // Trafo2Incoming: Trafo2Incoming.toFixed(2),
     Trafo3Incoming: Trafo3Incoming.toFixed(2),
@@ -397,8 +402,11 @@ const unaccoutable_energy = +(unaccountedFromLT1 + unaccountedFromLT2 + unaccoun
     Trafo1losses: Trafo1losses.toFixed(2),
     Trafo2losses: Trafo2losses.toFixed(2),
     Trafo3losses: Trafo3losses.toFixed(2),
+    T1unit5percentage: T3percentage.toFixed(2),
     Trafo4losses: Trafo4losses.toFixed(2),
+    T2unit5percentage: T4percentage.toFixed(2),
     TrasformerLosses: TrasformerLosses.toFixed(2),
+    TotalTrasformepercentage: TotalTrasformepercentage.toFixed(2),
     Solar1: Solar1.toFixed(2),
     Solar2: Solar2.toFixed(2),
     solarunit4: solarunit4.toFixed(2),
