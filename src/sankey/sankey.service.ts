@@ -78,7 +78,7 @@ export class sankeyService {
         'U6_GW02_Del_ActiveEnergy',
         'U17_GW03_Del_ActiveEnergy',
       ],
-      'Aux Consumption': ['U25_PLC_Del_ActiveEnergy'],
+      // 'Aux Consumption': ['U25_PLC_Del_ActiveEnergy'],
     };
 
     // ---------------- Build all required meter fields ----------------
@@ -215,11 +215,11 @@ export class sankeyService {
       to: 'Losses',
       value: +losses.toFixed(2),
     });
-    sankeyData.push({
-      from: 'Total Generation',
-      to: 'Unaccounted Energy',
-      value: unaccountedTotal,
-    });
+    // sankeyData.push({
+    //   from: 'Total Generation',
+    //   to: 'Unaccounted Energy',
+    //   value: unaccountedTotal,
+    // });
 
     return sankeyData;
   }
