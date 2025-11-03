@@ -224,7 +224,7 @@ async getToggleBasedRealTime() {
     }
 
     // 🔹 External API call
-    const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
+    const apiRes = await axios.get('http://43.204.118.114:6881/surajcotton');
     const apiData = apiRes.data || {};
 
     // 🔹 Timestamp unique by minute
@@ -304,7 +304,7 @@ const timestampNow = new Date(utcNow.getTime() + 5 * 60 * 60 * 1000)
 async storeEvery15Minutes() {
   try {
     // 1️⃣ API call
-    const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
+    const apiRes = await axios.get('http://43.204.118.114:6881/surajcotton');
     const apiData = apiRes.data;
 
     // 2️⃣ Round current time to nearest 1-minute slot
