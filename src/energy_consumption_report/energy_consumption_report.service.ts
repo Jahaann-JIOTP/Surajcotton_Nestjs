@@ -25,6 +25,7 @@ export class EnergyconsumptionreportService {
     @InjectModel(FieldMeterProcess.name, 'surajcotton')
     private fieldMeterModel: Model<FieldMeterProcess>,
     private readonly meterService: MeterService,
+    
   ) { }
 
   private sanitizeValue(value: number): number {
@@ -113,7 +114,7 @@ export class EnergyconsumptionreportService {
       "Power_House 2nd Source Gas": { Unit_4: ['U5_PLC'] },
       "Power_House 2nd Source HFO": { Unit_4: ['U7_GW01'] },//remove u11 to u7
       "Water Chiller": { Unit_5: ['U16_GW02'] },
-      "HFO + JMS Auxiliary": { Unit_4: ['U25_PLC'] },
+      // "HFO + JMS Auxiliary": { Unit_4: ['U25_PLC'] },
       Spare: { Unit_4: ['U6_GW01', 'U21_GW01'], Unit_5: ['U7_GW03', 'U8_GW03'] },
     };
 
@@ -415,215 +416,213 @@ export class EnergyconsumptionreportService {
     // ------------------------------------------------
     // 🧾 Consumption Detail (LT1/LT2 breakdown)
     // ------------------------------------------------
-    const consumptionDetail: {
-      date: string;
-      Unit_4_LT1?: number;
-      Unit_4_LT2?: number;
-      Unit_4_Total?: number;
-      Unit_5_LT1?: number;
-      Unit_5_LT2?: number;
-      Unit_5_Total?: number;
-      Grand_Total?: number;
-    }[] = [];
+   // ------------------------------------------------
+// 🧾 Consumption Detail (LT1/LT2 breakdown) — fixed for 6AM→6AM daily windows
+// ------------------------------------------------
+// ------------------------------------------------
+// 🧾 Consumption Detail (LT1/LT2 breakdown) — strict 6:00 AM → 6:00 AM
+// ------------------------------------------------
+const consumptionDetail: {
+  date: string;
+  Unit_4_LT1?: number;
+  Unit_4_LT2?: number;
+  Unit_4_Total?: number;
+  Unit_5_LT1?: number;
+  Unit_5_LT2?: number;
+  Unit_5_Total?: number;
+  Grand_Total?: number;
+}[] = [];
 
-    const U4_LT1_Meters = [
-      "U1_PLC", "U3_PLC", "U4_PLC", "U5_PLC", "U6_PLC", "U8_PLC", "U9_PLC",
-      "U10_PLC", "U11_PLC", "U12_PLC", "U13_PLC", "U14_PLC", "U15_PLC", "U17_PLC", "U18_PLC",
-      "U20_PLC",
-    ];
+const U4_LT1_Meters = [
+  "U1_PLC","U3_PLC","U4_PLC","U5_PLC","U6_PLC","U8_PLC","U9_PLC",
+  "U10_PLC","U11_PLC","U12_PLC","U13_PLC","U14_PLC","U15_PLC","U17_PLC","U18_PLC","U20_PLC",
+];
+const U4_LT2_Meters = [
+  "U1_GW01","U2_GW01","U3_GW01","U4_GW01","U5_GW01","U6_GW01","U7_GW01","U8_GW01","U9_GW01",
+  "U10_GW01","U14_GW01","U15_GW01","U16_GW01","U17_GW01","U18_GW01","U19_GW01","U20_GW01","U21_GW01","U22_GW02"
+];
+const U5_LT1_Meters = [
+  "U5_GW02","U7_GW02","U8_GW02","U9_GW02","U10_GW02","U11_GW02","U12_GW02","U14_GW02","U15_GW02",
+  "U16_GW02","U17_GW02","U18_GW02","U19_GW02","U20_GW02","U21_GW02","U23_GW02","U16_PLC","U2_PLC",
+];
+const U5_LT2_Meters = [
+  "U1_GW03","U2_GW03","U3_GW03","U4_GW03","U5_GW03","U6_GW03","U7_GW03","U8_GW03","U9_GW03",
+  "U10_GW03","U11_GW03","U12_GW03","U13_GW03","U14_GW03","U15_GW03","U18_GW03",
+];
 
-    const U4_LT2_Meters = [
-      "U1_GW01", "U2_GW01", "U3_GW01", "U4_GW01", "U5_GW01", "U6_GW01", "U7_GW01", "U8_GW01", "U9_GW01",
-      "U10_GW01", "U14_GW01", "U15_GW01", "U16_GW01", "U17_GW01", "U18_GW01",
-      "U19_GW01", "U20_GW01", "U21_GW01",
-    ];
+// 🔧 Adjust consumption corrections
+const getAdjustedValue = (meterId: string, raw: number, unitKey: string): number => {
+  let consumption = raw;
+  if (unitKey === "Unit_4" && meterId === "U12_PLC")
+    consumption = Math.max(0, +(consumption - PDB07_U4).toFixed(2));
+  if (meterId === "U5_GW01") consumption = PDB1CD1_Total;
+  if (meterId === "U9_GW01") consumption = PDB2CD2_Total;
+  if (meterId === "U15_GW01")
+    consumption = Math.max(0, +(consumption - PDB10_U4).toFixed(2));
+  if (meterId === "U14_GW02") consumption = PDB08_Total;
+  if (meterId === "U17_GW02") consumption = CardPDB1_sum;
+  if (meterId === "U18_GW02") consumption = PDB07_sum;
+  if (meterId === "U10_GW03") consumption = PDB10_sum;
+  return this.sanitizeValue(consumption);
+};
 
-    const U5_LT1_Meters = [
-      "U5_GW02", "U7_GW02", "U8_GW02", "U9_GW02",
-      "U10_GW02", "U11_GW02", "U12_GW02", "U14_GW02", "U15_GW02", "U16_GW02", "U17_GW02", "U18_GW02",
-      "U19_GW02", "U20_GW02", "U21_GW02", "U22_GW02", "U23_GW02", "U16_PLC", "U2_PLC"
-    ];
+// ✅ Start at start_date 6 AM, end at end_date 6 AM
+let current = moment.tz(`${start_date} 06:00:00`, TZ);
+const endLimit = moment.tz(`${end_date} 06:00:00`, TZ);
 
-    const U5_LT2_Meters = [
-      "U1_GW03", "U2_GW03", "U3_GW03", "U4_GW03", "U5_GW03", "U6_GW03", "U7_GW03", "U8_GW03", "U9_GW03",
-      "U10_GW03", "U11_GW03", "U12_GW03", "U13_GW03", "U14_GW03", "U15_GW03", "U18_GW03",
-    ];
+// Loop while next 6 AM window ≤ endLimit
+while (current.clone().add(24, "hours").isSameOrBefore(endLimit)) {
+ const dayStartISO = current.clone().format();
+const dayEndISO = current.clone().add(24, "hours").add(15, "minutes").format();
+  console.log(dayStartISO);
+  console.log(dayEndISO);
 
-    const [detailDocs] = await this.costModel.aggregate([
-      { $match: { timestamp: { $gte: startISO, $lte: endISO } } },
-      { $sort: { timestamp: 1 } },
-      { $group: { _id: null, first: { $first: "$$ROOT" }, last: { $last: "$$ROOT" } } },
-    ]);
+  const [detailDocs] = await this.costModel.aggregate([
+    { $match: { timestamp: { $gte: dayStartISO, $lte: dayEndISO } } },
+    { $sort: { timestamp: 1 } },
+    { $group: { _id: null, first: { $first: "$$ROOT" }, last: { $last: "$$ROOT" } } },
+  ]);
 
-    const firstDetailDoc = detailDocs?.first;
-    const lastDetailDoc = detailDocs?.last;
+  const firstDetailDoc = detailDocs?.first;
+  const lastDetailDoc = detailDocs?.last;
+  if (!firstDetailDoc || !lastDetailDoc) {
+    current.add(1, "day");
+    continue;
+  }
+  // ✅ Console timestamps + sample values
+console.log("🕓 Window:", current.format("YYYY-MM-DD"));
+console.log("  Start ISO:", dayStartISO);
+console.log("  End ISO:", dayEndISO);
+console.log("  First Doc Time:", firstDetailDoc.timestamp);
+console.log("  Last Doc Time:", lastDetailDoc.timestamp);
+// example: print one or two key values to verify readings
+const testKey = `${U4_LT1_Meters[0]}_${suffix}`; // e.g. U1_PLC_Del_ActiveEnergy
+console.log(
+  `  ➜ First[${testKey}] =`, firstDetailDoc[testKey],
+  "| Last =", lastDetailDoc[testKey],
+  "| Δ =", (lastDetailDoc[testKey] - firstDetailDoc[testKey]).toFixed(2)
+);
 
-    if (firstDetailDoc && lastDetailDoc) {
+  const record: any = { date: current.format("YYYY-MM-DD") };
 
-      const getAdjustedValue = (meterId: string, raw: number, unitKey: string): number => {
-        let consumption = raw;
-        if (unitKey === "Unit_4" && meterId === "U12_PLC")
-          consumption = Math.max(0, +(consumption - PDB07_U4).toFixed(2));
-        if (meterId === "U5_GW01") consumption = PDB1CD1_Total;
-        if (meterId === "U9_GW01") consumption = PDB2CD2_Total;
-        if (meterId === "U15_GW01")
-          consumption = Math.max(0, +(consumption - PDB10_U4).toFixed(2));
-        if (meterId === "U14_GW02") consumption = PDB08_Total;
-        if (meterId === "U17_GW02") consumption = CardPDB1_sum;
-        if (meterId === "U18_GW02") consumption = PDB07_sum;
-        if (meterId === "U10_GW03") consumption = PDB10_sum;
-        return this.sanitizeValue(consumption);
-      };
+  const calcSum = (meters: string[], unitKey: string) =>
+    meters.reduce((sum, id) => {
+      const key = `${id}_${suffix}`;
+      const rawDiff = this.sanitizeValue(lastDetailDoc[key] - firstDetailDoc[key]);
+      const adjusted = getAdjustedValue(id, rawDiff, unitKey);
+      return sum + (adjusted > 0 ? adjusted : 0);
+    }, 0);
 
-      const calcSum = (meters: string[], unitKey: string) =>
-        meters.reduce((sum, id) => {
-          const key = `${id}_${suffix}`;
-          const rawDiff = this.sanitizeValue(lastDetailDoc[key] - firstDetailDoc[key]);
-          const adjusted = getAdjustedValue(id, rawDiff, unitKey);
-          return sum + (adjusted > 0 ? adjusted : 0);
-        }, 0);
+  if (area === "ALL" || area === "Unit_4") {
+    const Unit_4_LT1 = +calcSum(U4_LT1_Meters, "Unit_4").toFixed(2);
+    const Unit_4_LT2 = +calcSum(U4_LT2_Meters, "Unit_4").toFixed(2);
+    const Unit_4_Total = +(Unit_4_LT1 + Unit_4_LT2).toFixed(2);
+    Object.assign(record, { Unit_4_LT1, Unit_4_LT2, Unit_4_Total });
+  }
 
-      const record: any = { date: start_date };
+  if (area === "ALL" || area === "Unit_5") {
+    const Unit_5_LT1 = +calcSum(U5_LT1_Meters, "Unit_5").toFixed(2);
+    const Unit_5_LT2 = +calcSum(U5_LT2_Meters, "Unit_5").toFixed(2);
+    const Unit_5_Total = +(Unit_5_LT1 + Unit_5_LT2).toFixed(2);
+    Object.assign(record, { Unit_5_LT1, Unit_5_LT2, Unit_5_Total });
+  }
 
-      if (area === "ALL" || area === "Unit_4") {
-        const Unit_4_LT1 = +calcSum(U4_LT1_Meters, "Unit_4").toFixed(2);
-        const Unit_4_LT2 = +calcSum(U4_LT2_Meters, "Unit_4").toFixed(2);
-        const Unit_4_Total = +(Unit_4_LT1 + Unit_4_LT2).toFixed(2);
+  record.Grand_Total = +((record.Unit_4_Total || 0) + (record.Unit_5_Total || 0)).toFixed(2);
+  consumptionDetail.push(record);
 
-        record.Unit_4_LT1 = Unit_4_LT1;
-        record.Unit_4_LT2 = Unit_4_LT2;
-        record.Unit_4_Total = Unit_4_Total;
-      }
+  current.add(1, "day"); // next 6 AM window
+}
 
-      if (area === "ALL" || area === "Unit_5") {
-        const Unit_5_LT1 = +calcSum(U5_LT1_Meters, "Unit_5").toFixed(2);
-        const Unit_5_LT2 = +calcSum(U5_LT2_Meters, "Unit_5").toFixed(2);
-        const Unit_5_Total = +(Unit_5_LT1 + Unit_5_LT2).toFixed(2);
-
-        record.Unit_5_LT1 = Unit_5_LT1;
-        record.Unit_5_LT2 = Unit_5_LT2;
-        record.Unit_5_Total = Unit_5_Total;
-      }
-
-      record.Grand_Total = +((record.Unit_4_Total || 0) + (record.Unit_5_Total || 0)).toFixed(2);
-      consumptionDetail.push(record);
-    } else {
-      consumptionDetail.push({ date: start_date });
-    }
+//  else {
+//       consumptionDetail.push({ date: start_date });
+//     }
 
     // ------------------------------------------------
     // 🔢 Aggregate total consumption per unit from summaryByDept
-    // ------------------------------------------------
-    let Unit_4_Total_Consumption = 0;
-    let Unit_5_Total_Consumption = 0;
+   // 🏷 Aggregate all-day dailyConsumption like summaryByDept
+// ------------------------------------------------
 
-    for (const dept of summaryByDept) {
-      Unit_4_Total_Consumption += Number((dept as any).u4Consumption || 0);
-      Unit_5_Total_Consumption += Number((dept as any).u5Consumption || 0);
-    }
+// 🧮 Field Meter Totals per unit
+const ToU5LT2_sum = +(Number(fmCons?.U4_U23_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
+// 🧮 Include U16_PLC and U2_PLC in Unit_4 transferred-to-OU calculation
+const U16_PLC = this.sanitizeValue(lastDoc?.U16_PLC_Del_ActiveEnergy - firstDoc?.U16_PLC_Del_ActiveEnergy);
+const U2_PLC = this.sanitizeValue(lastDoc?.U2_PLC_Del_ActiveEnergy - firstDoc?.U2_PLC_Del_ActiveEnergy);
+const U22_GW02 = this.sanitizeValue(lastDoc?.U22_GW02_Del_ActiveEnergy - firstDoc?.U22_GW02_Del_ActiveEnergy);
+const Unit_4_Field_Total = +(PDB07_U4 + PDB08_U4 + CardPDB1_U4 + ToU5LT2_sum + U16_PLC + U2_PLC).toFixed(2);
+const Unit_5_Field_Total = +(PDB1CD1_U5 + PDB2CD2_U5+U22_GW02 ).toFixed(2);
+const Unit_4_Total_Tranferred_to_OU = +(Unit_4_Field_Total).toFixed(2);
+const Unit_5_Total_Tranferred_to_OU = +(Unit_5_Field_Total).toFixed(2);
 
-    Unit_4_Total_Consumption = +Unit_4_Total_Consumption.toFixed(2);
-    Unit_5_Total_Consumption = +Unit_5_Total_Consumption.toFixed(2);
+// ------------------------------------------------
+// 🔢 Aggregate department totals for Total_Consumption
+// ------------------------------------------------
+let Unit_4_Total_Consumption = 0;
+let Unit_5_Total_Consumption = 0;
+for (const dept of summaryByDept) {
+  Unit_4_Total_Consumption += Number((dept as any).u4Consumption || 0);
+  Unit_5_Total_Consumption += Number((dept as any).u5Consumption || 0);
+}
+Unit_4_Total_Consumption = +Unit_4_Total_Consumption.toFixed(2);
+Unit_5_Total_Consumption = +Unit_5_Total_Consumption.toFixed(2);
 
-    // ------------------------------------------------
-    // 🧮 Field Meter Totals per unit
-    // ------------------------------------------------
-    const ToU5LT2_sum = +(Number(fmCons?.U4_U23_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
+// ------------------------------------------------
+// 🧮 Aggregate Total_I_C_G and I_C_OU from all dailyConsumption rows
+// ------------------------------------------------
+let Unit_4_Total_I_C_G = 0, Unit_4_I_C_OU = 0;
+let Unit_5_Total_I_C_G = 0, Unit_5_I_C_OU = 0;
 
-    const Unit_4_Field_Total = +(
-      PDB07_U4 + PDB08_U4 + CardPDB1_U4 + ToU5LT2_sum
-    ).toFixed(2);
+for (const record of dailyConsumption) {
+  Unit_4_Total_I_C_G += Number(record['Unit_4_Total_I/C G'] || 0);
+  Unit_4_I_C_OU += Number(record['Unit_4_Total_I/C OU'] || 0);
+  Unit_5_Total_I_C_G += Number(record['Unit_5_Total_I/C G'] || 0);
+  Unit_5_I_C_OU += Number(record['Unit_5_I/C OU'] || 0);
+}
+Unit_5_I_C_OU += U16_PLC + U2_PLC;
+Unit_4_I_C_OU += U22_GW02;
+Unit_4_Total_I_C_G = +Unit_4_Total_I_C_G.toFixed(2);
+Unit_5_Total_I_C_G = +Unit_5_Total_I_C_G.toFixed(2);
+Unit_4_I_C_OU = +Unit_4_I_C_OU.toFixed(2);
+Unit_5_I_C_OU = +Unit_5_I_C_OU.toFixed(2);
 
-    const Unit_5_Field_Total = +(PDB1CD1_U5 + PDB2CD2_U5).toFixed(2);
+// ------------------------------------------------
+// 🧮 Compute Unaccounted Energy for each Unit
+// ------------------------------------------------
+const Unit_4_Unaccounted_Energy = +(
+  (Unit_4_Total_I_C_G + Unit_4_I_C_OU) -
+  (Unit_4_Total_Consumption + Unit_4_Total_Tranferred_to_OU)
+).toFixed(2);
 
-    // ------------------------------------------------
-    // 🧾 Combine Dept Consumption + Field Totals
-    // ------------------------------------------------
-    const Unit_4_Total_Tranferred_to_OU = +(
-     Unit_4_Field_Total
-    ).toFixed(2);
+const Unit_5_Unaccounted_Energy = +(
+  (Unit_5_Total_I_C_G + Unit_5_I_C_OU) -
+  (Unit_5_Total_Consumption + Unit_5_Total_Tranferred_to_OU)
+).toFixed(2);
 
-    const Unit_5_Total_Tranferred_to_OU = +(
-      Unit_5_Field_Total
-    ).toFixed(2);
+// ------------------------------------------------
+// 🧾 Final Aggregated Daily Summary (like summaryByDept)
+// ------------------------------------------------
+const finalDailyConsumption: any[] = [];
 
-     // ------------------------------------------------
-    // 🏷 Enrich last dailyConsumption entry (unaccounted energy etc.)
-    // and then reshape to final frontend format:
-    // [
-    //   { date, Unit: 4, Total_I_C_G, I_C_OU, Total_Consumption, Total_Tranferred_to_OU, Unaccounted_Energy },
-    //   { date, Unit: 5, ... }
-    // ]
-    // ------------------------------------------------
-    let finalDailyConsumption: any[] = [];
+if (area === 'ALL' || area === 'Unit_4') {
+  finalDailyConsumption.push({
+    Unit: 4,
+    Total_I_C_G: Unit_4_Total_I_C_G,
+    I_C_OU: Unit_4_I_C_OU,
+    Total_Consumption: Unit_4_Total_Consumption,
+    Total_Tranferred_to_OU: Unit_4_Total_Tranferred_to_OU,
+    Unaccounted_Energy: Unit_4_Unaccounted_Energy,
+  });
+}
 
-    if (dailyConsumption.length > 0) {
-      const lastRecord = dailyConsumption[dailyConsumption.length - 1];
-
-      // ---------- UNIT 4 CALCULATIONS ----------
-      if (area === 'ALL' || area === 'Unit_4') {
-        (lastRecord as any).Unit_4_Total_Consumption = Unit_4_Total_Consumption;
-        (lastRecord as any).Unit_4_Total_Tranferred_to_OU = Unit_4_Total_Tranferred_to_OU;
-
-        const u4_icg = Number((lastRecord as any)['Unit_4_Total_I/C G'] || 0);
-        const u4_icu = Number((lastRecord as any)['Unit_4_Total_I/C OU'] || 0);
-        const u4_totalCons = Number((lastRecord as any)['Unit_4_Total_Consumption'] || 0);
-        const u4_transferred = Number((lastRecord as any)['Unit_4_Total_Tranferred_to_OU'] || 0);
-
-        (lastRecord as any).Unit_4_Unaccounted_Energy = +(
-          (u4_icg + u4_icu) - (u4_totalCons + u4_transferred)
-        ).toFixed(2);
-      }
-
-      // ---------- UNIT 5 CALCULATIONS ----------
-      if (area === 'ALL' || area === 'Unit_5') {
-        (lastRecord as any).Unit_5_Total_Consumption = Unit_5_Total_Consumption;
-        (lastRecord as any).Unit_5_Total_Tranferred_to_OU = Unit_5_Total_Tranferred_to_OU;
-
-        const u5_icg = Number((lastRecord as any)['Unit_5_Total_I/C G'] || 0);
-        const u5_icu = Number((lastRecord as any)['Unit_5_I/C OU'] || 0);
-        const u5_totalCons = Number((lastRecord as any)['Unit_5_Total_Consumption'] || 0);
-        const u5_transferred = Number((lastRecord as any)['Unit_5_Total_Tranferred_to_OU'] || 0);
-
-        (lastRecord as any).Unit_5_Unaccounted_Energy = +(
-          (u5_icg + u5_icu) - (u5_totalCons + u5_transferred)
-        ).toFixed(2);
-      }
-
-      // ---------- BUILD FINAL OUTPUT ROWS ----------
-      // We'll push one object per unit into finalDailyConsumption.
-
-      if (area === 'ALL' || area === 'Unit_4') {
-        const unit4Row = {
-          // date: (lastRecord as any).date,
-          Unit: 4,
-          Total_I_C_G: Number((lastRecord as any)['Unit_4_Total_I/C G'] || 0),
-          I_C_OU: Number((lastRecord as any)['Unit_4_Total_I/C OU'] || 0),
-          Total_Consumption: Number((lastRecord as any)['Unit_4_Total_Consumption'] || 0),
-          Total_Tranferred_to_OU: Number((lastRecord as any)['Unit_4_Total_Tranferred_to_OU'] || 0),
-          Unaccounted_Energy: Number((lastRecord as any)['Unit_4_Unaccounted_Energy'] || 0),
-        };
-
-        finalDailyConsumption.push(unit4Row);
-      }
-
-      if (area === 'ALL' || area === 'Unit_5') {
-        const unit5Row = {
-          // date: (lastRecord as any).date,
-          Unit: 5,
-          Total_I_C_G: Number((lastRecord as any)['Unit_5_Total_I/C G'] || 0),
-          I_C_OU: Number((lastRecord as any)['Unit_5_I/C OU'] || 0),
-          Total_Consumption: Number((lastRecord as any)['Unit_5_Total_Consumption'] || 0),
-          Total_Tranferred_to_OU: Number((lastRecord as any)['Unit_5_Total_Tranferred_to_OU'] || 0),
-          Unaccounted_Energy: Number((lastRecord as any)['Unit_5_Unaccounted_Energy'] || 0),
-        };
-
-        finalDailyConsumption.push(unit5Row);
-      }
-
-    } else {
-      finalDailyConsumption = [];
-    }
+if (area === 'ALL' || area === 'Unit_5') {
+  finalDailyConsumption.push({
+    Unit: 5,
+    Total_I_C_G: Unit_5_Total_I_C_G,
+    I_C_OU: Unit_5_I_C_OU,
+    Total_Consumption: Unit_5_Total_Consumption,
+    Total_Tranferred_to_OU: Unit_5_Total_Tranferred_to_OU,
+    Unaccounted_Energy: Unit_5_Unaccounted_Energy,
+  });
+}
 // ------------------------------------------------
 // 🧾 Console log: Department-wise individual meter consumptions
 // ------------------------------------------------
