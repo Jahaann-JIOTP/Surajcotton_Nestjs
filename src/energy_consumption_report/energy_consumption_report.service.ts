@@ -115,7 +115,7 @@ export class EnergyconsumptionreportService {
       "Power_House 2nd Source HFO": { Unit_4: ['U7_GW01'] },//remove u11 to u7
       "Water Chiller": { Unit_5: ['U16_GW02'] },
       // "HFO + JMS Auxiliary": { Unit_4: ['U25_PLC'] },
-      Spare: { Unit_4: ['U6_GW01', 'U21_GW01'], Unit_5: ['U7_GW03', 'U8_GW03'] },
+      Spare: { Unit_4: ['U6_GW01', 'U21_GW01'], Unit_5: ['U7_GW03', 'U8_GW03', 'U18_GW03'] },
     };
 
     // ------------------------------------------------
@@ -507,7 +507,7 @@ const U5_LT1_Meters = [
 ];
 const U5_LT2_Meters = [
   "U1_GW03","U2_GW03","U3_GW03","U4_GW03","U5_GW03","U6_GW03","U7_GW03","U8_GW03","U9_GW03",
-  "U10_GW03","U11_GW03","U12_GW03","U13_GW03","U14_GW03","U15_GW03",//remove pf penel meter U18_GW03
+  "U10_GW03","U11_GW03","U12_GW03","U13_GW03","U14_GW03","U15_GW03","U18_GW03"
 ];
 
 // 🔧 Adjust consumption corrections
