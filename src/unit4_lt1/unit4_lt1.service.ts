@@ -53,7 +53,7 @@ export class Unit4LT1Service {
     // ---------------- Meter setup ----------------
     const meterMap: Record<string, string> = {
       U1_PLC: 'Transport',
-      U2_PLC: 'Unit 05 Lighting',
+      // U2_PLC: 'Unit 05 Lighting',
       U3_PLC: 'Light Outside',
       U4_PLC: 'Light Inside',
       U5_PLC: 'Power House (2nd Source Gas)',
@@ -66,14 +66,18 @@ export class Unit4LT1Service {
       U13_PLC: 'Comber 1~10+ Uni Lap 1-2',
       U14_PLC: 'Compressor 119kw',
       U15_PLC: 'Simplex 1~6',
-      U16_PLC: 'Compressor 303kw',
+      // U16_PLC: 'Compressor 303kw',
       U17_PLC: 'Ring AC',
       U20_PLC: 'Compressor 119kw',
+      U2_PLC: 'TO U5LT1 (Unit 5 Lighting)', // 👈 your custom name
+      U16_PLC: 'TO U5LT1 (Compressor 303 kW)',
+      
     };
 
     const meterFields = [
       'U21_PLC_Del_ActiveEnergy', // TF1 (Wapda+HFO+JMS)
       'U19_PLC_Del_ActiveEnergy', // LT Gen (Diesel+JGS)
+      'U22_GW02_Del_ActiveEnergy', // 👈 New source: Unit 5 LT1 (Spare 2)
       ...Object.keys(meterMap).map((m) => `${m}_Del_ActiveEnergy`),
     ];
 
@@ -115,6 +119,7 @@ export class Unit4LT1Service {
     // ---------------- Prepare Sankey Data ----------------
     const tf1 = +consumptionTotals['U21_PLC_Del_ActiveEnergy'].toFixed(2); // Wapda+HFO+JMS
     const ltGen = +consumptionTotals['U19_PLC_Del_ActiveEnergy'].toFixed(2); // Diesel+JGS
+    const u22Spare2 = +consumptionTotals['U22_GW02_Del_ActiveEnergy'].toFixed(2); // 👈 new meter
 
     const totalGeneration = tf1 + ltGen;
      console.log(totalGeneration);
@@ -136,12 +141,25 @@ export class Unit4LT1Service {
     const sankeyData = [
       { from: 'Wapda+HFO+JMS Incoming', to: 'TotalLT1', value: tf1 },
       { from: 'Diesel+JGS Incomming', to: 'TotalLT1', value: ltGen },
-      ...Object.entries(meterMap).map(([meter, label]) => {
+       { from: 'From U5LT1 (Spare 2)', to: 'TotalLT1', value: u22Spare2 }, // 👈 New source added
+      ...Object.entries(meterMap)
+      .filter(([key]) => !['U16_PLC', 'U2_PLC'].includes(key)) // exclude both first
+      .map(([meter, label]) => {
         const key = `${meter}_Del_ActiveEnergy`;
         const baseVal = +(Number(consumptionTotals[key] || 0).toFixed(2));
         const value = meter === 'U12_PLC' ? ring2124Adj : baseVal;
         return { from: 'TotalLT1', to: label, value };
       }),
+      {
+    from: 'TotalLT1',
+    to: meterMap['U2_PLC'],
+    value: +(Number(consumptionTotals['U2_PLC_Del_ActiveEnergy'] || 0).toFixed(2)),
+  },
+      {
+    from: 'TotalLT1',
+    to: meterMap['U16_PLC'],
+    value: +(Number(consumptionTotals['U16_PLC_Del_ActiveEnergy'] || 0).toFixed(2)),
+  },
       {
         from: 'TotalLT1',
         to: 'PDB07->To U5LT1(AutoCone1-9)',

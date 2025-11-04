@@ -345,7 +345,7 @@ export class EnergyconsumptionreportService {
       "Back Process A/C": { u4mcs: 1, u5mcs: 1, u4Lpd: 142, u5Lpd: 239.1 },
       "Ring A/C": { u4mcs: 1, u5mcs: 1, u4Lpd: 333, u5Lpd: 476 },
       "Winding A/C": { u4mcs: 1, u5mcs: 1, u4Lpd: 98, u5Lpd: 100.5 },
-      "Air Compressor": { u4mcs: 1, u5mcs: 1, u4Lpd: 119, u5Lpd: 303 },
+      "Air Compressor": { u4mcs: 3, u5mcs: 3, u4Lpd: 119, u5Lpd: 303 },
       "Deep Well Turbine": { u4mcs: 1, u5mcs: 1, u4Lpd: 22, u5Lpd: 22 },
       "Bailing Press ": { u4mcs: 1, u5mcs: 1, u4Lpd: 15, u5Lpd: 15 },
       "Mills Lighting ": { u4mcs: 1, u5mcs: 1, u4Lpd: 60, u5Lpd: 30 },
@@ -495,11 +495,11 @@ const consumptionDetail: {
 
 const U4_LT1_Meters = [
   "U1_PLC","U3_PLC","U4_PLC","U5_PLC","U6_PLC","U8_PLC","U9_PLC",
-  "U10_PLC","U11_PLC","U12_PLC","U13_PLC","U14_PLC","U15_PLC","U17_PLC","U18_PLC","U20_PLC",
+  "U10_PLC","U11_PLC","U12_PLC","U13_PLC","U14_PLC","U15_PLC","U17_PLC","U18_PLC","U20_PLC","U22_GW02"
 ];
 const U4_LT2_Meters = [
   "U1_GW01","U2_GW01","U3_GW01","U4_GW01","U5_GW01","U6_GW01","U7_GW01","U8_GW01","U9_GW01",
-  "U10_GW01","U14_GW01","U15_GW01","U16_GW01","U17_GW01","U18_GW01","U19_GW01","U20_GW01","U21_GW01","U22_GW02"
+  "U10_GW01","U14_GW01","U15_GW01","U16_GW01","U17_GW01","U18_GW01","U19_GW01","U20_GW01","U21_GW01"
 ];
 const U5_LT1_Meters = [
   "U5_GW02","U7_GW02","U8_GW02","U9_GW02","U10_GW02","U11_GW02","U12_GW02","U14_GW02","U15_GW02",

@@ -64,7 +64,7 @@ export class sankeyService {
 
     // ---------------- Consumption mapping ----------------
     const consumptionMap: Record<string, string[]> = {
-      'Unit 4 Consumption': [
+      'Unit 4 Incomer': [
         'U19_PLC_Del_ActiveEnergy',
         'U21_PLC_Del_ActiveEnergy',
         'U13_GW01_Del_ActiveEnergy',
@@ -72,7 +72,7 @@ export class sankeyService {
         'U24_GW01_Del_ActiveEnergy',
         'U28_PLC_Del_ActiveEnergy',
       ],
-      'Unit 5 Consumption': [
+      'Unit 5 Incomer': [
         'U13_GW02_Del_ActiveEnergy',
         'U16_GW03_Del_ActiveEnergy',
         'U6_GW02_Del_ActiveEnergy',
@@ -289,9 +289,9 @@ export class sankeyService {
 
   // ✅ Build Sankey structure
   const sankeyData = [
-    { from: 'Total Generation', to: 'Unit 4 Consumption', value: +Unit4_Total.toFixed(2) },
-    { from: 'Unit 4 Consumption', to: 'LT1', value: +Unit4_LT1_Total.toFixed(2) },
-    { from: 'Unit 4 Consumption', to: 'LT2', value: +Unit4_LT2_Total.toFixed(2) },
+    { from: 'Total Generation', to: 'Unit 4 Incomer', value: +Unit4_Total.toFixed(2) },
+    { from: 'Unit 4 Incomer', to: 'LT1', value: +Unit4_LT1_Total.toFixed(2) },
+    { from: 'Unit 4 Incomer', to: 'LT2', value: +Unit4_LT2_Total.toFixed(2) },
   ];
 
   return sankeyData;
@@ -360,9 +360,9 @@ export class sankeyService {
 
   // ✅ Build Sankey structure
   const sankeyData = [
-    { from: 'Total Generation', to: 'Unit 5 Consumption', value: +Unit5_Total.toFixed(2) },
-    { from: 'Unit 5 Consumption', to: 'LT1', value: +Unit5_LT1_Total.toFixed(2) },
-    { from: 'Unit 5 Consumption', to: 'LT2', value: +Unit5_LT2_Total.toFixed(2) },
+    { from: 'Total Generation', to: 'Unit 5 Incomer', value: +Unit5_Total.toFixed(2) },
+    { from: 'Unit 5 Incomer', to: 'LT1', value: +Unit5_LT1_Total.toFixed(2) },
+    { from: 'Unit 5 Incomer', to: 'LT2', value: +Unit5_LT2_Total.toFixed(2) },
   ];
 
   return sankeyData;

@@ -81,13 +81,16 @@ export class Unit5LT3Service {
       U19_GW02: 'Card M/C 1-7',
       U20_GW02: 'AC Plant winding',
       U21_GW02: 'Simplex M/C 1~6 + 1~5 Breaker Machines',
-      U22_GW02: 'Spare 2',
+      // U22_GW02: 'Spare 2',
       U23_GW02: 'Draw Frame Finish 1~8',
+      U22_GW02: 'To U4LT1 (Spare 2)',
     };
 
     const meterFields = [
       'U13_GW02_Del_ActiveEnergy', // TF3
       'U6_GW02_Del_ActiveEnergy',  // Solar
+       'U16_PLC_Del_ActiveEnergy',  // From ULT1 (Compressor 303 kW)
+        'U2_PLC_Del_ActiveEnergy',   // From ULT1 (Lighting)
       ...Object.keys(meterMap).map(m => `${m}_Del_ActiveEnergy`),
     ];
 
@@ -124,6 +127,9 @@ export class Unit5LT3Service {
 
     const tf3 = +consumptionTotals['U13_GW02_Del_ActiveEnergy'].toFixed(2);
     const solar = +consumptionTotals['U6_GW02_Del_ActiveEnergy'].toFixed(2);
+    const u16Compressor = +consumptionTotals['U16_PLC_Del_ActiveEnergy'].toFixed(2);
+    const u2Lighting = +consumptionTotals['U2_PLC_Del_ActiveEnergy'].toFixed(2);
+    const u16u2=u16Compressor+u2Lighting;
     const totalGeneration = tf3 + solar + PDB07_U4 + U4_LT2_sum; // All incoming sources
 
     const overrideByMeter: Record<string, number> = {
@@ -132,7 +138,9 @@ export class Unit5LT3Service {
       U14_GW02: PDB08_sum, // Comber MCS 1-14
     };
 
-    const plcLegs = Object.entries(meterMap).map(([meter, label]) => {
+    const plcLegs = Object.entries(meterMap)
+     .filter(([key]) => key !== 'U22_GW02') // Exclude Spare 2 first
+    .map(([meter, label]) => {
       const key = `${meter}_Del_ActiveEnergy`;
       const base = +(Number(consumptionTotals[key] || 0).toFixed(2));
       const value = overrideByMeter[meter]
@@ -157,10 +165,15 @@ export class Unit5LT3Service {
       { from: 'Solar 1184.55 Kw', to: 'TotalLT3', value: solar },
       { from: 'From U4LT 1 (Ring 21–24)', to: 'TotalLT3', value: PDB07_U4 },
       { from: 'From U4LT 2 (Card1–8 & Card9–14+1B)', to: 'TotalLT3', value: U4_LT2_sum },
+       { from: 'From U4LT 1 (Compressor 303 kW + Lighting)', to: 'TotalLT3', value: u16u2 },
+      // { from: 'From U4LT 1 (Lighting)', to: 'TotalLT3', value: u2Lighting },
       ...plcLegs,
+       {from: 'TotalLT3',to: meterMap['U22_GW02'],value: +(Number(consumptionTotals['U22_GW02_Del_ActiveEnergy'] || 0).toFixed(2))},
       { from: 'TotalLT3', to: 'PDBCD1 → U4LT2 (Card1–8)', value: PDB1CD1_U5 },
       { from: 'TotalLT3', to: 'PDBCD2 → U4LT2 (Card9–14+1B)', value: PDB2CD2_U5 },
+      
       { from: 'TotalLT3', to: 'Unaccounted Energy', value: unaccountedEnergy },
+     
     ];
 
     return sankeyData;
