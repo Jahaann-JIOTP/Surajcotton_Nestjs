@@ -525,6 +525,73 @@ const getAdjustedValue = (meterId: string, raw: number, unitKey: string): number
   if (meterId === "U10_GW03") consumption = PDB10_sum;
   return this.sanitizeValue(consumption);
 };
+// ✅ Handle same-date custom time range (e.g., 07:00–15:00)
+// const sameDate = moment(start_date).isSame(end_date, 'day');
+const hasCustomTime =
+  start_time && end_time && !(start_time === '06:00' && end_time === '06:00');
+
+if (sameDate && hasCustomTime) {
+  const customStartISO = moment.tz(`${start_date} ${start_time}`, 'YYYY-MM-DD HH:mm', TZ).format();
+  const customEndISO = moment
+  .tz(`${end_date} ${end_time}`, 'YYYY-MM-DD HH:mm', TZ)
+  .add(15, 'minutes') // ✅ gives MongoDB a slightly bigger window
+  .format();
+
+  const [detailDocs] = await this.costModel.aggregate([
+    { $match: { timestamp: { $gte: customStartISO, $lte: customEndISO } } },
+    { $sort: { timestamp: 1 } },
+    { $group: { _id: null, first: { $first: '$$ROOT' }, last: { $last: '$$ROOT' } } },
+  ]);
+
+  const firstDetailDoc = detailDocs?.first;
+  const lastDetailDoc = detailDocs?.last;
+  // 🧾 Debug log — check which timestamps DB returns
+if (firstDetailDoc && lastDetailDoc) {
+  console.log("🔍 Custom Range Fetch:");
+  console.log("   Start Time (Input):", customStartISO);
+  console.log("   End Time (Input):", customEndISO);
+  console.log("   First Doc Timestamp:", firstDetailDoc.timestamp);
+  console.log("   Last Doc Timestamp:", lastDetailDoc.timestamp);
+}
+
+  if (firstDetailDoc && lastDetailDoc) {
+    const record: any = { date: start_date };
+
+    const calcSum = (meters: string[], unitKey: string) =>
+      meters.reduce((sum, id) => {
+        const key = `${id}_${suffix}`;
+        const rawDiff = this.sanitizeValue(lastDetailDoc[key] - firstDetailDoc[key]);
+        const adjusted = getAdjustedValue(id, rawDiff, unitKey);
+        return sum + (adjusted > 0 ? adjusted : 0);
+      }, 0);
+
+    if (area === 'ALL' || area === 'Unit_4') {
+      const Unit_4_LT1 = +calcSum(U4_LT1_Meters, 'Unit_4').toFixed(2);
+      const Unit_4_LT2 = +calcSum(U4_LT2_Meters, 'Unit_4').toFixed(2);
+      const Unit_4_Total = +(Unit_4_LT1 + Unit_4_LT2).toFixed(2);
+      Object.assign(record, { Unit_4_LT1, Unit_4_LT2, Unit_4_Total });
+    }
+
+    if (area === 'ALL' || area === 'Unit_5') {
+      const Unit_5_LT1 = +calcSum(U5_LT1_Meters, 'Unit_5').toFixed(2);
+      const Unit_5_LT2 = +calcSum(U5_LT2_Meters, 'Unit_5').toFixed(2);
+      const Unit_5_Total = +(Unit_5_LT1 + Unit_5_LT2).toFixed(2);
+      Object.assign(record, { Unit_5_LT1, Unit_5_LT2, Unit_5_Total });
+    }
+
+    record.Grand_Total = +((record.Unit_4_Total || 0) + (record.Unit_5_Total || 0)).toFixed(2);
+    consumptionDetail.push(record);
+  }
+
+  // 🛑 Skip 6AM→6AM loop and return early for same-day custom range
+  // return {
+  //   summarybydept: summaryByDept,
+  //   dailyConsumption: finalDailyConsumption,
+  //   utilization,
+  //   consumptionDetail,
+  // };
+}
+
 
 // ✅ Correct timezone interpretation — treat "06:00" as local time in Asia/Karachi
 // ✅ Set timezone string explicitly

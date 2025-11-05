@@ -92,7 +92,7 @@ export class DailyConsumptionService {
     { energy: 'U11_GW02_Del_ActiveEnergy', power: 'U11_GW02_ActivePower_Total', powerFactor: 'U11_GW02_PowerFactor_Avg', voltage: 'U11_GW02_Voltage_Avg', metername: 'A/C Plant Blowing', deptname: 'A/C Back Process', MCS: '1', installedLoad: '239.1' },
     { energy: 'U14_GW02_Del_ActiveEnergy', power: 'U14_GW02_ActivePower_Total', powerFactor: 'U14_GW02_PowerFactor_Avg', voltage: 'U14_GW02_Voltage_Avg', metername: 'Comber MCS 1-14', deptname: 'Comber + Uni Lap', MCS: '17', installedLoad: '318.2' },
     { energy: 'U16_GW02_Del_ActiveEnergy', power: 'U16_GW02_ActivePower_Total', powerFactor: 'U16_GW02_PowerFactor_Avg', voltage: 'U16_GW02_Voltage_Avg', metername: 'Water Chiller', deptname: 'Water Chiller', MCS: '0', installedLoad: '0' },
-    { energy: 'U16_PLC_Del_ActiveEnergy', power: 'U16_PLC_ActivePower_Total', powerFactor: 'U16_PLC_PowerFactor_Avg', voltage: 'U16_PLC_Voltage_Avg', metername: 'Compressor 303kw', deptname: 'Air Compressor', MCS: '3', installedLoad: '303' },
+    { energy: 'U16_PLC_Del_ActiveEnergy', power: 'U16_PLC_ActivePower_Total', powerFactor: 'U16_PLC_PowerFactor_Avg', voltage: 'U16_PLC_Voltage_Avg', metername: 'Compressor 303kw', deptname: 'Air Compressor', MCS: '3', installedLoad: '303', info: 'Compressors 101+101+101'},
     { energy: 'U2_PLC_Del_ActiveEnergy',  power: 'U2_PLC_ActivePower_Total',  powerFactor: 'U2_PLC_PowerFactor_Avg',  voltage: 'U2_PLC_Voltage_Avg',  metername: 'Unit 5 Lighting', deptname: 'Mills Lighting', MCS: '1490', installedLoad: '30' },
    
   
