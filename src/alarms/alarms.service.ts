@@ -4074,7 +4074,7 @@ export class AlarmsService {
   async processActiveAlarms() {
     // console.log('Processing active alarms...');
     const resp = await firstValueFrom(
-      this.httpService.get('http://43.204.118.114:6881/surajcotton'),
+      this.httpService.get('http://13.234.241.103:1880/surajcotton'),
     );
     const payload = resp.data as Record<string, unknown>;
     // console.log(payload);

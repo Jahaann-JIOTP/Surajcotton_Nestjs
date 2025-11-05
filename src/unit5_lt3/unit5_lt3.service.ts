@@ -130,7 +130,7 @@ export class Unit5LT3Service {
     const u16Compressor = +consumptionTotals['U16_PLC_Del_ActiveEnergy'].toFixed(2);
     const u2Lighting = +consumptionTotals['U2_PLC_Del_ActiveEnergy'].toFixed(2);
     const u16u2=u16Compressor+u2Lighting;
-    const totalGeneration = tf3 + solar + PDB07_U4 + U4_LT2_sum; // All incoming sources
+    const totalGeneration = tf3 + solar + PDB07_U4 + U4_LT2_sum+u16u2; // All incoming sources
 
     const overrideByMeter: Record<string, number> = {
       U18_GW02: PDB07_sum, // Auto Con-link Conner 1-9
@@ -156,8 +156,10 @@ export class Unit5LT3Service {
       const val = +(Number(consumptionTotals[key] || 0).toFixed(2));
       totalConsumption += overrideByMeter[m] ? overrideByMeter[m] : val;
     });
+    totalConsumption += u16u2;
 
     const unaccountedEnergy = +(totalGeneration - totalConsumption - toU4LT2).toFixed(2);
+    console.log(totalConsumption);
 
     // ---------------- Final Sankey Data ----------------
     const sankeyData = [
@@ -169,6 +171,11 @@ export class Unit5LT3Service {
       // { from: 'From U4LT 1 (Lighting)', to: 'TotalLT3', value: u2Lighting },
       ...plcLegs,
        {from: 'TotalLT3',to: meterMap['U22_GW02'],value: +(Number(consumptionTotals['U22_GW02_Del_ActiveEnergy'] || 0).toFixed(2))},
+       {
+        from: 'TotalLT3',
+        to: 'From U4LT 1 Compressor 303 kW + Lighting',
+        value: u16Compressor + u2Lighting, // 👈 sum of both
+      },
       { from: 'TotalLT3', to: 'PDBCD1 → U4LT2 (Card1–8)', value: PDB1CD1_U5 },
       { from: 'TotalLT3', to: 'PDBCD2 → U4LT2 (Card9–14+1B)', value: PDB2CD2_U5 },
       
