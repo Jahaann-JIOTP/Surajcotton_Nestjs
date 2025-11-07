@@ -304,8 +304,8 @@ async getWeeklyGeneration() {
     const lastWeekEnd   = moment(thisDayEnd).subtract(7, "days").format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 
     // 🔎 Debug logs
-    console.log(`\n[${days[i]}] This Week: ${thisDayStart} → ${thisDayEnd}`);
-    console.log(`[${days[i]}] Last Week: ${lastWeekStart} → ${lastWeekEnd}`);
+    // console.log(`\n[${days[i]}] This Week: ${thisDayStart} → ${thisDayEnd}`);
+    // console.log(`[${days[i]}] Last Week: ${lastWeekStart} → ${lastWeekEnd}`);
 
     const [thisWeek, lastWeek] = await Promise.all([
       this.calculateConsumption1({ start: thisDayStart, end: thisDayEnd }),
@@ -319,7 +319,7 @@ async getWeeklyGeneration() {
     });
   }
 
-  console.log("\n✅ Final Weekly:", JSON.stringify(result, null, 2));
+  // console.log("\n✅ Final Weekly:", JSON.stringify(result, null, 2));
   return result;
 }
 

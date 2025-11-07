@@ -111,8 +111,8 @@ export class EnergyconsumptionreportService {
       Conditioning_Machine: { Unit_4: ['U2_GW01'], Unit_5: ['U2_GW03'] },
       // Workshop: { Unit_4: ['U4_GW01'] },
       Lab_and_Offices: { Unit_4: ['U19_GW01'] },
-      "Power_House 2nd Source Gas": { Unit_4: ['U5_PLC'] },
-      "Power_House 2nd Source HFO": { Unit_4: ['U7_GW01'] },//remove u11 to u7
+      "HFO Plant Aux(2nd Source)": { Unit_4: ['U5_PLC'] },
+      "Gas Plant Aux(2nd Source)": { Unit_4: ['U7_GW01'] },//remove u11 to u7
       "Water Chiller": { Unit_5: ['U16_GW02'] },
       // "HFO + JMS Auxiliary": { Unit_4: ['U25_PLC'] },
       Spare: { Unit_4: ['U6_GW01', 'U21_GW01'], Unit_5: ['U7_GW03', 'U8_GW03', 'U18_GW03'] },
@@ -334,15 +334,15 @@ export class EnergyconsumptionreportService {
     // ------------------------------------------------
     const departmentInfo = {
       "Blow Room": { u4mcs: 2, u5mcs: 2, u4Lpd: 151, u5Lpd: 144.5 },
-      "Card +Breaker": { u4mcs: 15, u5mcs: 14, u4Lpd: 292, u5Lpd: 306.6 },
+      "Card +Breaker": { u4mcs: 16, u5mcs: 14, u4Lpd: 292, u5Lpd: 306.6 },
       "Comber + Lap former": { u4mcs: 12, u5mcs: 17, u4Lpd: 84, u5Lpd: 318.2 },
-      "Drawing Finsher+Breaker": { u4mcs: 8, u5mcs: 8, u4Lpd: 94, u5Lpd: 77.6 },
+      "Drawing Finsher+Breaker": { u4mcs: 10, u5mcs: 8, u4Lpd: 94, u5Lpd: 77.6 },
       "Drawing Simplex": { u4mcs: 6, u5mcs: 8, u4Lpd: 108, u5Lpd: 209.3 },
       "R.Transport System": { u4mcs: 1, u5mcs: 1, u4Lpd: 30, u5Lpd: 30 },
       "Ring Dept": { u4mcs: 24, u5mcs: 18, u4Lpd: 1920, u5Lpd: 2554 },
       "Winding": { u4mcs: 9, u5mcs: 18, u4Lpd: 377, u5Lpd: 471.1 },
       "B/Card + Comber Filter": { u4mcs: 3, u5mcs: 3, u4Lpd: 203, u5Lpd: 274 },
-      "Back Process A/C": { u4mcs: 1, u5mcs: 1, u4Lpd: 142, u5Lpd: 239.1 },
+      "Back Process A/C": { u4mcs: 2, u5mcs: 2, u4Lpd: 142, u5Lpd: 239.1 },
       "Ring A/C": { u4mcs: 1, u5mcs: 1, u4Lpd: 333, u5Lpd: 476 },
       "Winding A/C": { u4mcs: 1, u5mcs: 1, u4Lpd: 98, u5Lpd: 100.5 },
       "Air Compressor": { u4mcs: 3, u5mcs: 3, u4Lpd: 119, u5Lpd: 303 },
@@ -352,10 +352,10 @@ export class EnergyconsumptionreportService {
       "Residential Colony": { u4mcs: 1, u5mcs: 1, u4Lpd: 60, u5Lpd: 0 },
       "Conditioning Machine ": { u4mcs: 1, u5mcs: 1, u4Lpd: 72, u5Lpd: 72 },
       "Lab + Offices": { u4mcs: 2, u5mcs: 0, u4Lpd: 8, u5Lpd: 0 },
-      "Power_House 2nd Source Gas": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
-      "Power_House 2nd Source HFO": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
+      "HFO Plant Aux(2nd Source)": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
+      "Gas Plant Aux(2nd Source)": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
       "Water Chiller": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
-      "HFO + JMS Auxiliary": { u4mcs: 1, u5mcs: 0, u4Lpd: 250, u5Lpd: 0 },
+      // "HFO + JMS Auxiliary": { u4mcs: 1, u5mcs: 0, u4Lpd: 250, u5Lpd: 0 },
       "Spare/PF panels": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
     };
 
@@ -379,8 +379,8 @@ export class EnergyconsumptionreportService {
       "Residential Colony": "Residentialcolony",
       "Conditioning Machine ": "Conditioning_Machine",
       "Lab + Offices": "Lab_and_Offices",
-      "Power_House 2nd Source Gas": "Power_House 2nd Source Gas",
-      "Power_House 2nd Source HFO": "Power_House 2nd Source HFO",
+      "HFO Plant Aux(2nd Source)": "HFO Plant Aux(2nd Source)",
+      "Gas Plant Aux(2nd Source)": "Gas Plant Aux(2nd Source)",
       "Water Chiller": "Water Chiller",
       "HFO + JMS Auxiliary": "HFO + JMS Auxiliary",
       "Spare/PF panels": "Spare",
@@ -605,6 +605,54 @@ const endLimit = moment(`${end_date} 06:00:00`).tz(TZ);
 while (current.clone().add(24, "hours").isSameOrBefore(endLimit)) {
  const dayStartISO = current.clone().format();
 const dayEndISO = current.clone().add(24, "hours").add(15, "minutes").format();
+// ⚡ fetch fresh field meter data for each daily window
+  const fmCons = await this.meterService.getMeterWiseConsumption(
+    current.format("YYYY-MM-DD"),
+    current.clone().add(1, "day").format("YYYY-MM-DD"),
+    { startTime: "06:00", endTime: "06:00" },
+  );
+  // 🔁 recalculate per-day field meter values
+  const PDB07_U4 = +(Number(fmCons?.U4_U22_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
+  const PDB07_U5 = +(Number(fmCons?.U5_U22_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
+  const PDB07_sum = Math.max(0, +(PDB07_U5 + PDB07_U4).toFixed(2));
+
+  const PDB1CD1_U4 = +(Number(fmCons?.U4_U1_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+  const PDB1CD1_U5 = +(Number(fmCons?.U5_U1_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+  const PDB1CD1_Total = Math.max(0, +(PDB1CD1_U4 + PDB1CD1_U5).toFixed(2));
+
+  const PDB2CD2_U4 = +(Number(fmCons?.U4_U2_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+  const PDB2CD2_U5 = +(Number(fmCons?.U5_U2_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+  const PDB2CD2_Total = Math.max(0, +(PDB2CD2_U4 + PDB2CD2_U5).toFixed(2));
+
+  const PDB10_U4 = +(Number(fmCons?.U4_U23_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
+  const PDB10_U5 = +(Number(fmCons?.U5_U23_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
+  const PDB10_sum = Math.max(0, +(PDB10_U4 + PDB10_U5).toFixed(2));
+
+  const PDB08_U4 = +(Number(fmCons?.U4_U4_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+  const PDB08_U5 = +(Number(fmCons?.U5_U4_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+  const PDB08_Total = Math.max(0, +(PDB08_U4 + PDB08_U5).toFixed(2));
+
+  const CardPDB1_U4 = +(Number(fmCons?.U4_U3_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+  const CardPDB1_U5 = +(Number(fmCons?.U5_U3_GW02_Del_ActiveEnergy ?? 0).toFixed(2));
+  const CardPDB1_sum = Math.max(0, +(CardPDB1_U5 + CardPDB1_U4).toFixed(2));
+
+  const U4_LT2_sum = Math.max(0, +(CardPDB1_U4 + PDB08_U4).toFixed(2));
+
+  // 👇 dynamically updated getAdjustedValue using current-day values
+  const getAdjustedValue = (meterId: string, raw: number, unitKey: string): number => {
+    let consumption = raw;
+    if (unitKey === "Unit_4" && meterId === "U12_PLC")
+      consumption = Math.max(0, +(consumption - PDB07_U4).toFixed(2));
+    if (meterId === "U5_GW01") consumption = PDB1CD1_Total;
+    if (meterId === "U9_GW01") consumption = PDB2CD2_Total;
+    if (meterId === "U15_GW01")
+      consumption = Math.max(0, +(consumption - PDB10_U4).toFixed(2));
+    if (meterId === "U14_GW02") consumption = PDB08_Total;
+    if (meterId === "U17_GW02") consumption = CardPDB1_sum;
+    if (meterId === "U18_GW02") consumption = PDB07_sum;
+    if (meterId === "U10_GW03") consumption = PDB10_sum;
+    return this.sanitizeValue(consumption);
+  };
   // console.log(dayStartISO);
   // console.log(dayEndISO);
 
