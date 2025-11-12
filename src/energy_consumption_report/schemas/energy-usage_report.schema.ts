@@ -12,3 +12,5 @@ export class Energyconsumptionreport extends Document {
 }
 
 export const EnergyconsumptionreportSchema = SchemaFactory.createForClass(Energyconsumptionreport);
+// ✅ Add this line to create an index on timestamp
+EnergyconsumptionreportSchema.index({ timestamp: 1 });

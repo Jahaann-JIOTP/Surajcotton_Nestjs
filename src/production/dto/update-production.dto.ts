@@ -17,4 +17,8 @@ export class UpdateProductionDto {
   @IsOptional()
   @IsNumber()
   value?: number;
+
+  @IsOptional()
+  @IsNumber()
+  avgcount?: number; // ✅ Correct & type-safe
 }

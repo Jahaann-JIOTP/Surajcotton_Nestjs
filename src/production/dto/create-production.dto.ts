@@ -13,4 +13,8 @@ export class CreateProductionDto {
   @IsArray()
   @IsNumber({}, { each: true })
   values: number[];
+
+  @IsArray()
+  @IsNumber({}, { each: true })
+  avgcount: number[]; // 👈 new array for avgCount (parallel to values)
 }

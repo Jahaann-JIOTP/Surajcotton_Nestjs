@@ -6,6 +6,10 @@ import { Energyconsumptionreport } from './schemas/energy-usage_report.schema';
 import { DailyProduction } from './schemas/daily-production.schema';
 import { FieldMeterProcess } from './schemas/field-meter-process.schema';
 import { MeterService } from 'src/meter/meter.service';
+// import { EnergySpindleService } from './energy-spindle/energy_spindle.service';
+import { EnergySpindleService } from 'src/energy_spindle/energy_spindle.service';
+
+
 import * as moment from 'moment-timezone';
 
 export interface SummaryByDept {
@@ -25,6 +29,7 @@ export class EnergyconsumptionreportService {
     @InjectModel(FieldMeterProcess.name, 'surajcotton')
     private fieldMeterModel: Model<FieldMeterProcess>,
     private readonly meterService: MeterService,
+    private readonly energySpindleService: EnergySpindleService, // 👈 add this
     
   ) { }
 
@@ -34,6 +39,10 @@ export class EnergyconsumptionreportService {
     const maxThreshold = 1e12;
     if (Math.abs(value) < minThreshold || Math.abs(value) > maxThreshold) return 0;
     return value;
+  }
+  private round2(value: string | number) {
+    const n = Number(value);
+    return Math.round((n + Number.EPSILON) * 100) / 100;
   }
 
   async getConsumptionData(dto: GetEnergyCostDto) {
@@ -114,7 +123,7 @@ export class EnergyconsumptionreportService {
       "HFO Plant Aux(2nd Source)": { Unit_4: ['U5_PLC'] },
       "Gas Plant Aux(2nd Source)": { Unit_4: ['U7_GW01'] },//remove u11 to u7
       "Water Chiller": { Unit_5: ['U16_GW02'] },
-      // "HFO + JMS Auxiliary": { Unit_4: ['U25_PLC'] },
+      "HFO + JMS Auxiliary": { Unit_5: [""] },
       Spare: { Unit_4: ['U6_GW01', 'U21_GW01'], Unit_5: ['U7_GW03', 'U8_GW03', 'U18_GW03'] },
     };
 
@@ -355,7 +364,7 @@ export class EnergyconsumptionreportService {
       "HFO Plant Aux(2nd Source)": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
       "Gas Plant Aux(2nd Source)": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
       "Water Chiller": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
-      // "HFO + JMS Auxiliary": { u4mcs: 1, u5mcs: 0, u4Lpd: 250, u5Lpd: 0 },
+      "HFO + JMS Auxiliary": { u4mcs: 1, u5mcs: 0, u4Lpd: 250, u5Lpd: 0 },
       "Spare/PF panels": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
     };
 
@@ -440,6 +449,23 @@ export class EnergyconsumptionreportService {
       }
 
       dept.totalConsumption = Number((u4Consumption + u5Consumption).toFixed(2));
+      if (area === 'ALL' || area === 'Unit_4') {
+      const u4Utilization =
+        info.u4Lpd && info.u4Lpd > 0
+          ? +((u4AvgConsumption / info.u4Lpd) * 100).toFixed(2)
+          : 0;
+      dept.u4UtilizationPercent = u4Utilization;
+    }
+
+    if (area === 'ALL' || area === 'Unit_5') {
+      const u5Utilization =
+        info.u5Lpd && info.u5Lpd > 0
+          ? +((u5AvgConsumption / info.u5Lpd) * 100).toFixed(2)
+          : 0;
+      dept.u5UtilizationPercent = u5Utilization;
+    }
+
+    
 
       return dept;
       
@@ -547,11 +573,11 @@ if (sameDate && hasCustomTime) {
   const lastDetailDoc = detailDocs?.last;
   // 🧾 Debug log — check which timestamps DB returns
 if (firstDetailDoc && lastDetailDoc) {
-  console.log("🔍 Custom Range Fetch:");
-  console.log("   Start Time (Input):", customStartISO);
-  console.log("   End Time (Input):", customEndISO);
-  console.log("   First Doc Timestamp:", firstDetailDoc.timestamp);
-  console.log("   Last Doc Timestamp:", lastDetailDoc.timestamp);
+  // console.log("🔍 Custom Range Fetch:");
+  // console.log("   Start Time (Input):", customStartISO);
+  // console.log("   End Time (Input):", customEndISO);
+  // console.log("   First Doc Timestamp:", firstDetailDoc.timestamp);
+  // console.log("   Last Doc Timestamp:", lastDetailDoc.timestamp);
 }
 
   if (firstDetailDoc && lastDetailDoc) {
@@ -878,12 +904,402 @@ if (area === 'ALL' || area === 'Unit_5') {
       : 0,
   });
 }
+// ------------------------------------------------
+// ⚡ HT Side (Total Incoming from Grid)
+// ------------------------------------------------
+// ⚡ HT Side (Total Incoming from Grid) — common for entire plant
+const HTMeters: Record<string, string> = {
+  "U23_GW01": "WAPDA 1",
+  "U27_PLC": "WAPDA 2",
+  "U22_PLC": "HFO",
+  "U26_PLC": "JMS 620",
+  "U6_GW02": "Solar 1185 Kw",
+  "U17_GW03": "Solar 1070 Kw",
+  "U24_GW01": "Solar 352.50kW", 
+  "U28_PLC": "Solar 52.17 kw",
+};
+const dieselMeters = ["U19_PLC", "U11_GW01"];
+
+let totalHTIncoming = 0;
+const HTside: Record<string, number> = {};
+
+for (const [id, name] of Object.entries(HTMeters)) {
+  const key = `${id}_${suffix}`;
+  const firstVal = this.sanitizeValue(firstDoc[key]);
+  const lastVal = this.sanitizeValue(lastDoc[key]);
+  const diff = lastVal >= firstVal ? +(lastVal - firstVal).toFixed(2) : 0;
+  HTside[name] = diff;
+  totalHTIncoming += diff;
+}
+// ⚙️ Diesel Genset calculation
+let dieselSum = 0;
+for (const id of dieselMeters) {
+  const key = `${id}_${suffix}`;
+  const firstVal = this.sanitizeValue(firstDoc[key]);
+  const lastVal = this.sanitizeValue(lastDoc[key]);
+  const diff = lastVal >= firstVal ? +(lastVal - firstVal).toFixed(2) : 0;
+  dieselSum += diff;
+}
+HTside["Diesel and Gas Genset"] = +dieselSum.toFixed(2);
+totalHTIncoming += dieselSum;
+
+HTside["Total"] = +totalHTIncoming.toFixed(2);
+// ------------------------------------------------
+// ⚡ LOSSES SUMMARY (Transformer + HT + Unaccounted)
+// ------------------------------------------------
+
+// ------------------------------------------------
+// ⚡ LOSSES SUMMARY (Unit-wise Transformer + HT + Unaccounted)
+// ------------------------------------------------
+
+ // Transformer and HT losses (unchanged)
+    const Trafo1Incoming = this.sanitizeValue((lastDoc?.U23_GW01_Del_ActiveEnergy ?? 0) - (firstDoc?.U23_GW01_Del_ActiveEnergy ?? 0));
+    const Trafo2Incoming = this.sanitizeValue((lastDoc?.U22_GW01_Del_ActiveEnergy ?? 0) - (firstDoc?.U22_GW01_Del_ActiveEnergy ?? 0));
+    const trafo12 = Trafo1Incoming + Trafo2Incoming;
+
+    const Trafo3Incoming = this.sanitizeValue((lastDoc?.U20_GW03_Del_ActiveEnergy ?? 0) - (firstDoc?.U20_GW03_Del_ActiveEnergy ?? 0));
+    const Trafo4Incoming = this.sanitizeValue((lastDoc?.U19_GW03_Del_ActiveEnergy ?? 0) - (firstDoc?.U19_GW03_Del_ActiveEnergy ?? 0));
+    const trafo34 = Trafo3Incoming + Trafo4Incoming;
+
+    const Trafo1Outgoing = this.sanitizeValue((lastDoc?.U21_PLC_Del_ActiveEnergy ?? 0) - (firstDoc?.U21_PLC_Del_ActiveEnergy ?? 0));
+    const Trafo2Outgoing = this.sanitizeValue((lastDoc?.U13_GW01_Del_ActiveEnergy ?? 0) - (firstDoc?.U13_GW01_Del_ActiveEnergy ?? 0));
+    const trafo12out = Trafo1Outgoing + Trafo2Outgoing;
+
+    const Trafo3Outgoing = this.sanitizeValue((lastDoc?.U13_GW02_Del_ActiveEnergy ?? 0) - (firstDoc?.U13_GW02_Del_ActiveEnergy ?? 0));
+    const Trafo4Outgoing = this.sanitizeValue((lastDoc?.U16_GW03_Del_ActiveEnergy ?? 0) - (firstDoc?.U16_GW03_Del_ActiveEnergy ?? 0));
+    const trafo34out = Trafo3Outgoing + Trafo4Outgoing;
+
+    const unit4losses = trafo12 - trafo12out;
+    const unit5losses = trafo34 - trafo34out;
+
+    const Wapda = this.sanitizeValue((lastDoc?.U27_PLC_Del_ActiveEnergy ?? 0) - (firstDoc?.U27_PLC_Del_ActiveEnergy ?? 0));
+    const Niigata = this.sanitizeValue((lastDoc?.U22_PLC_Del_ActiveEnergy ?? 0) - (firstDoc?.U22_PLC_Del_ActiveEnergy ?? 0));
+    const JMS = this.sanitizeValue((lastDoc?.U26_PLC_Del_ActiveEnergy ?? 0) - (firstDoc?.U26_PLC_Del_ActiveEnergy ?? 0));
+    const PH_IC = this.sanitizeValue((lastDoc?.U22_GW01_Del_ActiveEnergy ?? 0) - (firstDoc?.U22_GW01_Del_ActiveEnergy ?? 0));
+    const mainincomingunit5 = this.sanitizeValue((lastDoc?.U21_GW03_Del_ActiveEnergy ?? 0) - (firstDoc?.U21_GW03_Del_ActiveEnergy ?? 0));
+    const hfoaux = this.sanitizeValue((lastDoc?.U25_PLC_Del_ActiveEnergy ?? 0) - (firstDoc?.U25_PLC_Del_ActiveEnergy ?? 0));
+    // console.log(Wapda,"wapda2");
+    // console.log(Niigata,"hfo1");
+    // console.log(JMS,"igg");
+    // console.log(PH_IC,"phic");
+    // console.log(mainincomingunit5,"main");
+    // console.log(hfoaux,"hfoaux");
+
+    const HT_Transmission_Losses1 = Math.max(0, (Wapda + Niigata + JMS) - (mainincomingunit5 + PH_IC));
+    const HT_Transmission_Losses = HT_Transmission_Losses1 - hfoaux;
+
+
+// --- Total Losses ---
+
+// 🧾 Build losses summary object
+const lossesSummary = {
+      HT_Transmission_Losses: this.round2(HT_Transmission_Losses),
+      Unit_4_TrafoLosses: this.round2(unit4losses),
+      Unit_5_TrafoLosses: this.round2(unit5losses),
+      Total_Losses: this.round2(unit4losses + unit5losses + HT_Transmission_Losses),
+    };
+// 🏭 PRODUCTION SUMMARY (from EnergySpindleService)
+const productionSummaryDaily: any[] = [];
+const productionSummary: any[] = [];
+
+let totalProd_U4 = 0;
+let totalAvgCount_U4 = 0;
+let totalProd_U5 = 0;
+let totalAvgCount_U5 = 0;
+let daysCount = 0;
+
+try {
+  const TZ = 'Asia/Karachi';
+  const isSingleLogicalDay =
+    start_time === '06:00' &&
+    end_time === '06:00' &&
+    moment(end_date).diff(moment(start_date), 'days') === 1;
+
+  if (isSingleLogicalDay) {
+    const unit4Production = await this.energySpindleService.getProductionByDate({
+      start_date,
+      end_date: start_date,
+      unit: 'U4',
+    });
+
+    const unit5Production = await this.energySpindleService.getProductionByDate({
+      start_date,
+      end_date: start_date,
+      unit: 'U5',
+    });
+
+    totalProd_U4 = +(unit4Production?.[0]?.totalProduction || 0);
+    totalAvgCount_U4 = +(unit4Production?.[0]?.avgcount || 0);
+    totalProd_U5 = +(unit5Production?.[0]?.totalProduction || 0);
+    totalAvgCount_U5 = +(unit5Production?.[0]?.avgcount || 0);
+
+    productionSummaryDaily.push({
+      date: start_date,
+      Unit_4_Production: totalProd_U4,
+      Unit_5_Production: totalProd_U5,
+      Unit_4_AvgCount: totalAvgCount_U4,
+      Unit_5_AvgCount: totalAvgCount_U5,
+    });
+  } else {
+    const start = moment(start_date);
+    const end = moment(end_date);
+
+    for (let m = start.clone(); m.isSameOrBefore(end, 'day'); m.add(1, 'day')) {
+      const dayStr = m.format('YYYY-MM-DD');
+
+      const unit4Production = await this.energySpindleService.getProductionByDate({
+        start_date: dayStr,
+        end_date: dayStr,
+        unit: 'U4',
+      });
+
+      const unit5Production = await this.energySpindleService.getProductionByDate({
+        start_date: dayStr,
+        end_date: dayStr,
+        unit: 'U5',
+      });
+
+      const u4Prod = +(unit4Production?.[0]?.totalProduction || 0);
+      const u5Prod = +(unit5Production?.[0]?.totalProduction || 0);
+      const u4Avg = +(unit4Production?.[0]?.avgcount || 0);
+      const u5Avg = +(unit5Production?.[0]?.avgcount || 0);
+
+      if (u4Prod > 0 || u5Prod > 0) {
+        productionSummaryDaily.push({
+          date: dayStr,
+          Unit_4_Production: u4Prod,
+          Unit_5_Production: u5Prod,
+          Unit_4_AvgCount: u4Avg,
+          Unit_5_AvgCount: u5Avg,
+        });
+      }
+
+      totalProd_U4 += u4Prod;
+      totalAvgCount_U4 += u4Avg;
+      totalProd_U5 += u5Prod;
+      totalAvgCount_U5 += u5Avg;
+      daysCount++;
+    }
+
+    totalAvgCount_U4 = daysCount > 0 ? +(totalAvgCount_U4).toFixed(2) : 0;
+    totalAvgCount_U5 = daysCount > 0 ? +(totalAvgCount_U5).toFixed(2) : 0;
+  }
+
+  // ✅ Calculate specific consumption for totals
+  const consumptionperbag_U4 =
+    totalProd_U4 > 0 ? +(Unit_4_Total_Consumption / totalProd_U4).toFixed(4) : 0;
+  const consumptionperbag_U5 =
+    totalProd_U5 > 0 ? +(Unit_5_Total_Consumption / totalProd_U5).toFixed(4) : 0;
+
+  // ✅ Merge daily consumption with production
+  for (const prod of productionSummaryDaily) {
+    const match = consumptionDetail.find((c) => c.date === prod.date);
+
+    if (match) {
+      prod.Unit_4_Consumption = +(match.Unit_4_Total || 0).toFixed(2);
+      prod.Unit_5_Consumption = +(match.Unit_5_Total || 0).toFixed(2);
+    } else {
+      prod.Unit_4_Consumption = 0;
+      prod.Unit_5_Consumption = 0;
+    }
+
+    // ✅ Calculate per-day specific consumption
+    prod.Unit_4_consumptionperbag =
+      prod.Unit_4_Production > 0
+        ? +(prod.Unit_4_Consumption / prod.Unit_4_Production).toFixed(4)
+        : 0;
+
+    prod.Unit_5_consumptionperbag =
+      prod.Unit_5_Production > 0
+        ? +(prod.Unit_5_Consumption / prod.Unit_5_Production).toFixed(4)
+        : 0;
+  }
+
+  // 🧮 Push total summary
+  if (area === 'ALL' || area === 'Unit_4') {
+    productionSummary.push({
+      Unit: 4,
+      TotalProduction: +totalProd_U4.toFixed(2),
+      TotalAvgCount: +totalAvgCount_U4.toFixed(2),
+      TotalConsumption: +Unit_4_Total_Consumption.toFixed(2),
+      consumptionperbag: consumptionperbag_U4,
+    });
+  }
+
+  if (area === 'ALL' || area === 'Unit_5') {
+    productionSummary.push({
+      Unit: 5,
+      TotalProduction: +totalProd_U5.toFixed(2),
+      TotalAvgCount: +totalAvgCount_U5.toFixed(2),
+      TotalConsumption: +Unit_5_Total_Consumption.toFixed(2),
+      consumptionperbag: consumptionperbag_U5,
+    });
+  }
+
+} catch (error) {
+  console.error('⚠️ Error fetching production summary:', error.message);
+
+  if (area === 'ALL' || area === 'Unit_4') {
+    const spec_U4 =
+      totalProd_U4 > 0 ? +(Unit_4_Total_Consumption / totalProd_U4).toFixed(4) : 0;
+    productionSummary.push({
+      Unit: 4,
+      TotalProduction: 0,
+      TotalAvgCount: 0,
+      TotalConsumption: +Unit_4_Total_Consumption.toFixed(2),
+      consumptionperbag: spec_U4,
+    });
+  }
+
+  if (area === 'ALL' || area === 'Unit_5') {
+    const spec_U5 =
+      totalProd_U5 > 0 ? +(Unit_5_Total_Consumption / totalProd_U5).toFixed(4) : 0;
+    productionSummary.push({
+      Unit: 5,
+      TotalProduction: 0,
+      TotalAvgCount: 0,
+      TotalConsumption: +Unit_5_Total_Consumption.toFixed(2),
+      consumptionperbag: spec_U5,
+    });
+  }
+}
+
+// ------------------------------------------------
+// ✅ Apply Custom Formula for HFO + JMS Auxiliary (Safe placement)
+// ------------------------------------------------
+// ------------------------------------------------
+// ✅ Apply Custom Formula for HFO + JMS Auxiliary (Unit-4 & Unit-5)
+// ------------------------------------------------
+try {
+  const hfoAuxDept = summaryByDept.find(
+    (d: any) => d.name === "HFO + JMS Auxiliary"
+  );
+
+  if (hfoAuxDept) {
+    const u25Key = "U25_PLC_Del_ActiveEnergy";
+
+    // 🔹 Actual total consumption (U25 meter)
+    const u25Consumption = this.sanitizeValue(
+      (lastDoc?.[u25Key] ?? 0) - (firstDoc?.[u25Key] ?? 0)
+    );
+
+    // 🔹 Ratio = energy transferred from Unit-4 to OU / total incoming of Unit-4
+    const ratio =
+      Unit_4_Total_Tranferred_to_OU > 0
+        ? +(Unit_4_Total_Tranferred_to_OU / Unit_4_Total_I_C_G).toFixed(4)
+        : 0;
+
+    // 🔹 Calculate custom Unit-5 consumption (share)
+    const unit5Calculated = +(ratio * u25Consumption).toFixed(2);
+
+    // 🔹 Calculate custom Unit-4 consumption (remaining share)
+    const unit4Calculated = +(u25Consumption - unit5Calculated).toFixed(2);
+
+    // 🚫 Reset any old values to avoid double counting
+    hfoAuxDept.u4Consumption = 0;
+    hfoAuxDept.u5Consumption = 0;
+
+    // 🧾 Update Unit-5 values
+    hfoAuxDept.u5Consumption = unit5Calculated;
+    hfoAuxDept.u5AvgConsumption = +(
+      unit5Calculated / (totalHours || 1)
+    ).toFixed(2);
+
+    // 🧾 Update Unit-4 values
+    hfoAuxDept.u4Consumption = unit4Calculated;
+    hfoAuxDept.u4AvgConsumption = +(
+      unit4Calculated / (totalHours || 1)
+    ).toFixed(2);
+
+    // 🧾 Total for this department = both units
+    hfoAuxDept.totalConsumption = +(unit4Calculated + unit5Calculated).toFixed(2);
+
+    // ⚙️ Utilization recalculations
+    const u4ConnectedLoad = hfoAuxDept.u4ConectedLoadPerDept || 0;
+    const u5ConnectedLoad = hfoAuxDept.u5ConectedLoadPerDept || 0;
+
+    hfoAuxDept.u4UtilizationPercent =
+      u4ConnectedLoad > 0
+        ? +((hfoAuxDept.u4AvgConsumption / u4ConnectedLoad) * 100).toFixed(2)
+        : 0;
+
+    hfoAuxDept.u5UtilizationPercent =
+      u5ConnectedLoad > 0
+        ? +((hfoAuxDept.u5AvgConsumption / u5ConnectedLoad) * 100).toFixed(2)
+        : 0;
+
+    // 🧾 Debug
+    // console.log("🔍 HFO AUX CALC:", {
+    //   U25_PLC_start: firstDoc?.U25_PLC_Del_ActiveEnergy,
+    //   U25_PLC_end: lastDoc?.U25_PLC_Del_ActiveEnergy,
+    //   u25Consumption,
+    //   ratio,
+    //   unit5Calculated,
+    //   unit4Calculated,
+    //   Unit_4_Total_I_C_G,
+    //   Unit_4_Total_Tranferred_to_OU,
+    // });
+  }
+} catch (err) {
+  // console.error("⚠️ Error applying HFO Aux formula:", err.message);
+}
+// ------------------------------------------------
+// ✅ Recalculate Unit totals after HFO AUX adjustment
+// ------------------------------------------------
+let New_Unit_4_Total_Consumption = 0;
+let New_Unit_5_Total_Consumption = 0;
+
+for (const dept of summaryByDept) {
+  New_Unit_4_Total_Consumption += Number(dept.u4Consumption || 0);
+  New_Unit_5_Total_Consumption += Number(dept.u5Consumption || 0);
+}
+
+New_Unit_4_Total_Consumption = +New_Unit_4_Total_Consumption.toFixed(2);
+New_Unit_5_Total_Consumption = +New_Unit_5_Total_Consumption.toFixed(2);
+
+// ✅ Update finalDailyConsumption array
+// for (const row of finalDailyConsumption) {
+//   if (row.Unit === 4) row.Total_Consumption = New_Unit_4_Total_Consumption;
+//   if (row.Unit === 5) row.Total_Consumption = New_Unit_5_Total_Consumption;
+// }
+
+// ✅ Update productionSummary totals & specific consumption
+// for (const row of productionSummary) {
+//   if (row.Unit === 4) {
+//     row.TotalConsumption = New_Unit_4_Total_Consumption;
+//     row.consumptionperbag =
+//       row.TotalProduction && row.TotalProduction > 0
+//         ? +(New_Unit_4_Total_Consumption / row.TotalProduction).toFixed(4)
+//         : 0;
+//   }
+//   if (row.Unit === 5) {
+//     row.TotalConsumption = New_Unit_5_Total_Consumption;
+//     row.consumptionperbag =
+//       row.TotalProduction && row.TotalProduction > 0
+//         ? +(New_Unit_5_Total_Consumption / row.TotalProduction).toFixed(4)
+//         : 0;
+//   }
+// }
+
+// console.log("✅ Recalculated Totals after HFO AUX split:", {
+//   New_Unit_4_Total_Consumption,
+//   New_Unit_5_Total_Consumption,
+// });
+
+
+
+
+
 
     return {
       summarybydept: summaryByDept,
       dailyConsumption: finalDailyConsumption,
       utilization,
       consumptionDetail,
+      HTside, // 👈 add this line
+      lossesSummary,   // 👈 ADD HERE
+      productionSummary,
+       productionSummaryDaily, // 👈 Add this line
     };
   }
 }

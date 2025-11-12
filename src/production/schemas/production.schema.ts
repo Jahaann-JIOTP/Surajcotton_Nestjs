@@ -18,6 +18,10 @@ export class Production {
   @Expose()
   @Prop({ required: true })
   value: number;
+  
+  @Expose()
+  @Prop({ required: true })
+  avgcount: number; // 👈 new field
 }
 
 export const ProductionSchema = SchemaFactory.createForClass(Production);

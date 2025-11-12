@@ -201,8 +201,8 @@ if (start_time && end_time) {
     .format("YYYY-MM-DDTHH:mm:ss.SSSZ");
 }
 
-console.log('📌 startISO:', startISO);
-console.log('📌 endISO:', endISO);
+// console.log('📌 startISO:', startISO);
+// console.log('📌 endISO:', endISO);
 
 
   const areaKeys = area === 'ALL' ? ['Unit_4', 'Unit_5'] : [area];

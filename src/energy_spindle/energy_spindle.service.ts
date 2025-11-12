@@ -39,6 +39,7 @@ async getProductionByDate(dto: GetSpindleDto) {
         $group: {
           _id: '$date',
           totalProduction: { $sum: '$value' },
+          totalAvgCount: { $sum: '$avgcount' }, // ✅ correct field
         },
       },
     ]);
@@ -47,6 +48,7 @@ async getProductionByDate(dto: GetSpindleDto) {
       date: item._id,
       unit,
       totalProduction: item.totalProduction,
+      avgcount: item.totalAvgCount, // ✅ correct mapping
     }));
   } else {
     // Return total production sum across range
@@ -61,6 +63,7 @@ async getProductionByDate(dto: GetSpindleDto) {
         $group: {
           _id: null,
           totalProduction: { $sum: '$value' },
+          totalAvgCount: { $sum: '$avgcount' },
         },
       },
     ]);
@@ -71,10 +74,12 @@ async getProductionByDate(dto: GetSpindleDto) {
         start_date,
         end_date,
         totalProduction: result[0]?.totalProduction || 0,
+        avgcount: result[0]?.totalAvgCount || 0, // ✅ correct mapping
       },
     ];
   }
 }
+
 
 
 }

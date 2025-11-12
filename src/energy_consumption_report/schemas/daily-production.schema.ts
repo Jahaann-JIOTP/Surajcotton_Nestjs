@@ -13,4 +13,6 @@ export class DailyProduction extends Document {
   value: number;
 }
 
-export const DailyProductionSchema = SchemaFactory.createForClass(DailyProduction);
+export const DailyProductionSchema = SchemaFactory.createForClass(DailyProduction);// ✅ Add this line to create an index on timestamp
+DailyProductionSchema.index({ timestamp: 1 });
+

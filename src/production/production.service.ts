@@ -14,12 +14,21 @@ export class ProductionService {
   ) {}
 
   async addProductions(dto: CreateProductionDto): Promise<Production[]> {
-    const {unit, startDate, values } = dto;
+    const {unit, startDate, values, avgcount } = dto;
+    if (values.length !== avgcount.length) {
+    throw new Error('values and avgcount arrays must have the same length');
+  }
 
     const entries = values.map((value, index) => {
-      const date = moment(startDate).add(index, 'days').format('YYYY-MM-DD');
-      return { unit, date, value };
-    });
+    const date = moment(startDate).add(index, 'days').format('YYYY-MM-DD');
+    return {
+      unit,
+      date,
+      value,
+      avgcount: avgcount[index], // 👈 include avgcount value
+    };
+  });
+
 
     return this.productionModel.insertMany(entries);
   }

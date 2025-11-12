@@ -10,6 +10,7 @@ import { EnergyconsumptionreportService } from './energy_consumption_report.serv
 import { DailyProduction, DailyProductionSchema } from './schemas/daily-production.schema';
 import { FieldMeterProcess, FieldMeterProcessSchema } from './schemas/field-meter-process.schema';
 import { MeterModule } from 'src/meter/meter.module';
+import { EnergySpindleModule } from 'src/energy_spindle/energy_spindle.module';
 
 
 @Module({
@@ -23,6 +24,7 @@ import { MeterModule } from 'src/meter/meter.module';
     ],
 'surajcotton'),
 MeterModule, 
+EnergySpindleModule,
   ],
    // ✅ Add this line here
   controllers: [EnergyconsumptionreportController],
