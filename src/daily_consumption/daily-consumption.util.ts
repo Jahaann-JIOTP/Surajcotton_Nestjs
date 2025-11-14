@@ -58,6 +58,11 @@ export async function calculateConsumptionCore(
     const nextDay = moment(endDate).add(1, 'day').format('YYYY-MM-DD');
     endISO = `${nextDay}T06:00:59.999+05:00`;
   }
+  // --- Calculate total hours using the SAME start and end used in MongoDB query ---
+const totalHours = Math.max(
+  moment(endISO).diff(moment(startISO), 'milliseconds') / 3600000,
+  0
+);
  
 
 
@@ -151,5 +156,5 @@ export async function calculateConsumptionCore(
     // console.log('✅ Final Result:', result);
   }
 
-  return { startISO, endISO, meters };
+  return { startISO, endISO,totalHours, meters };
 }

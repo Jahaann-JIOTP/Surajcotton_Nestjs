@@ -247,17 +247,17 @@ if (start === end) {
 
     // ---------- Aggregate ----------
     const projection = buildProjection();
-    console.log("=== DEBUG QUERY WINDOW ===");
-console.log("StartStr:", startStr);
-console.log("EndStr  :", endStr);
+//     console.log("=== DEBUG QUERY WINDOW ===");
+// console.log("StartStr:", startStr);
+// console.log("EndStr  :", endStr);
 
 const sample = await this.energyModel
   .findOne({})
   .sort({ timestamp: 1 })
   .select({ timestamp: 1 });
 
-console.log("Earliest Timestamp In DB:", sample?.timestamp);
-console.log("===========================");
+// console.log("Earliest Timestamp In DB:", sample?.timestamp);
+// console.log("===========================");
 
     const result = await this.energyModel.aggregate([
       { $match: matchStage },
@@ -433,16 +433,16 @@ for (const key of Object.keys(firstValues)) {
     const Trafo1losses = Trafo1Incoming - Trafo1outgoing;
     const Trafo2losses = Trafo2Incoming - Trafo2outgoing;
     const Trafo3losses = Trafo3Incoming - Trafo3outgoing;
-    console.log(Trafo3losses,'trafo3');
+    // console.log(Trafo3losses,'trafo3');
     const Trafo4losses = Trafo4Incoming - Trafo4outgoing;
-    console.log(Trafo4losses,'trafo4');
+    // console.log(Trafo4losses,'trafo4');
 
     const T3percentage =
       Trafo3Incoming !== 0 ? (Trafo3losses / Trafo3Incoming) * 100 : 0;
-       console.log(T3percentage,'trafopercent');
+      //  console.log(T3percentage,'trafopercent');
     const T4percentage =
       Trafo4Incoming !== 0 ? (Trafo4losses / Trafo4Incoming) * 100 : 0;
-          console.log(T4percentage,'trafopercent4');
+          // console.log(T4percentage,'trafopercent4');
     const T3andT4incoming=Trafo3Incoming + Trafo4Incoming;
     const T3andT4outing=Trafo3outgoing + Trafo4outgoing;
     const T3andT4losses = T3andT4incoming - T3andT4outing;
@@ -462,7 +462,7 @@ for (const key of Object.keys(firstValues)) {
 
     const HT_Transmission_Losses1 = Math.max(0, (Wapda2 + Niigata + JMS) - (mainincomingunit5 + PH_IC));
     const HT_Transmissioin_Losses = HT_Transmission_Losses1 - hfoaux;
-    console.log(hfoaux,'hfoaux');
+    // console.log(hfoaux,'hfoaux');
 
     // ---------- LT Unaccounted Energy (run in parallel) ----------
     let unaccountedFromLT1 = 0;

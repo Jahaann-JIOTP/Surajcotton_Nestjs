@@ -68,9 +68,9 @@ export class Unit4LT2Service {
       U15_GW01: "Ring 5-8",
       U16_GW01: "Ring 13-16",
       U17_GW01: "Ring 9-12",
-      U6_GW01: "Bailing Press",
+      U20_GW01: "Bailing Press",
       U19_GW01: "Lab A/C",
-      U20_GW01: "Spare",
+      U6_GW01: "Spare",
       U21_GW01: "Spare 2",
     };
 
