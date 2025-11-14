@@ -21,8 +21,8 @@ export class powercomparisonService {
   private readonly conModel: Model<powercomparisonHistoricalDataDocument>,
   private readonly unit4LT1Service: Unit4LT1Service,
   private readonly unit4LT2Service: Unit4LT2Service,
-  private readonly unit5LT3Service: Unit5LT3Service,
-  private readonly unit5LT4Service: Unit5LT4Service,
+  private readonly Unit5LT3Service: Unit5LT3Service,
+  private readonly Unit5LT4Service: Unit5LT4Service,
 ) {}
 
 
@@ -330,21 +330,57 @@ const endDateTime = moment.tz(endDate, "YYYY-MM-DD", "Asia/Karachi")
 };
 
 
-      const lt1Data = await this.unit4LT1Service.getSankeyData(payload);
-      const nodeLT1 = lt1Data.find(n => n.to === 'Unaccounted Energy');
-      if (nodeLT1) unaccountedFromLT1 = nodeLT1.value || 0;
+  const lt1Data = await this.unit4LT1Service.getSankeyData(payload);
 
-      const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
-      const nodeLT2 = lt2Data.find(n => n.to === 'Unaccounted Energy');
-      if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
+          let sankeyData: { from: string; to: string; value: number }[] = [];
 
-      const lt3Data = await this.unit5LT3Service.getSankeyData(payload);
-      const nodeLT3 = lt3Data.find(n => n.to === 'Unaccounted Energy');
-      if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
+          if (Array.isArray(lt1Data)) {
+            sankeyData = lt1Data; // service returned array only
+          } else {
+            sankeyData = lt1Data.sankeyData; // service returned { sankeyData, totals }
+          }
 
-      const lt4Data = await this.unit5LT4Service.getSankeyData(payload);
-      const nodeLT4 = lt4Data.find(n => n.to === 'Unaccounted Energy');
-      if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
+          const nodeLT1 = sankeyData.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT1) unaccountedFromLT1 = nodeLT1.value || 0;
+
+const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
+
+          let sankeyData1: { from: string; to: string; value: number }[] = [];
+
+          if (Array.isArray(lt2Data)) {
+            sankeyData1 = lt2Data; // service returned array only
+          } else {
+            sankeyData1 = lt2Data.sankeyData; // service returned { sankeyData, totals }
+          }
+
+          const nodeLT2 = sankeyData1.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
+
+ const lt3Data = await this.Unit5LT3Service.getSankeyData(payload);
+
+          let sankeyData2: { from: string; to: string; value: number }[] = [];
+
+          if (Array.isArray(lt3Data)) {
+            sankeyData2 = lt3Data; // service returned array only
+          } else {
+            sankeyData2 = lt3Data.sankeyData; // service returned { sankeyData, totals }
+          }
+
+          const nodeLT3 = sankeyData2.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
+
+ const lt4Data = await this.Unit5LT4Service.getSankeyData(payload);
+
+          let sankeyData3: { from: string; to: string; value: number }[] = [];
+
+          if (Array.isArray(lt4Data)) {
+            sankeyData3 = lt4Data; // service returned array only
+          } else {
+            sankeyData3 = lt4Data.sankeyData; // service returned { sankeyData, totals }
+          }
+
+          const nodeLT4 = sankeyData3.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
     } catch (err) {
       console.warn('⚠️ Error fetching LT unaccounted energy:', err.message);
     }
@@ -568,21 +604,57 @@ async getDailyPowerAverages(startDate: string, endDate: string) {
         endTime: "06:00",
       };
 
-      const lt1Data = await this.unit4LT1Service.getSankeyData(payload);
-      const nodeLT1 = lt1Data.find(n => n.to === 'Unaccounted Energy');
-      if (nodeLT1) unaccountedFromLT1 = nodeLT1.value || 0;
+  const lt1Data = await this.unit4LT1Service.getSankeyData(payload);
 
-      const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
-      const nodeLT2 = lt2Data.find(n => n.to === 'Unaccounted Energy');
-      if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
+          let sankeyData: { from: string; to: string; value: number }[] = [];
 
-      const lt3Data = await this.unit5LT3Service.getSankeyData(payload);
-      const nodeLT3 = lt3Data.find(n => n.to === 'Unaccounted Energy');
-      if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
+          if (Array.isArray(lt1Data)) {
+            sankeyData = lt1Data; // service returned array only
+          } else {
+            sankeyData = lt1Data.sankeyData; // service returned { sankeyData, totals }
+          }
 
-      const lt4Data = await this.unit5LT4Service.getSankeyData(payload);
-      const nodeLT4 = lt4Data.find(n => n.to === 'Unaccounted Energy');
-      if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
+          const nodeLT1 = sankeyData.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT1) unaccountedFromLT1 = nodeLT1.value || 0;
+
+const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
+
+          let sankeyData1: { from: string; to: string; value: number }[] = [];
+
+          if (Array.isArray(lt2Data)) {
+            sankeyData1 = lt2Data; // service returned array only
+          } else {
+            sankeyData1 = lt2Data.sankeyData; // service returned { sankeyData, totals }
+          }
+
+          const nodeLT2 = sankeyData1.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
+
+ const lt3Data = await this.Unit5LT3Service.getSankeyData(payload);
+
+          let sankeyData2: { from: string; to: string; value: number }[] = [];
+
+          if (Array.isArray(lt3Data)) {
+            sankeyData2 = lt3Data; // service returned array only
+          } else {
+            sankeyData2 = lt3Data.sankeyData; // service returned { sankeyData, totals }
+          }
+
+          const nodeLT3 = sankeyData2.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
+
+ const lt4Data = await this.Unit5LT4Service.getSankeyData(payload);
+
+          let sankeyData3: { from: string; to: string; value: number }[] = [];
+
+          if (Array.isArray(lt4Data)) {
+            sankeyData3 = lt4Data; // service returned array only
+          } else {
+            sankeyData3 = lt4Data.sankeyData; // service returned { sankeyData, totals }
+          }
+
+          const nodeLT4 = sankeyData3.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
     } catch (err) {
       console.warn('⚠️ Error fetching LT unaccounted energy:', err.message);
     }
@@ -800,21 +872,57 @@ if (now.isBefore(endMomentPlanned)) {
         endTime: "06:00",
       };
 
-      const lt1Data = await this.unit4LT1Service.getSankeyData(payload);
-      const nodeLT1 = lt1Data.find(n => n.to === 'Unaccounted Energy');
-      if (nodeLT1) unaccountedFromLT1 = nodeLT1.value || 0;
+  const lt1Data = await this.unit4LT1Service.getSankeyData(payload);
 
-      const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
-      const nodeLT2 = lt2Data.find(n => n.to === 'Unaccounted Energy');
-      if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
+          let sankeyData: { from: string; to: string; value: number }[] = [];
 
-      const lt3Data = await this.unit5LT3Service.getSankeyData(payload);
-      const nodeLT3 = lt3Data.find(n => n.to === 'Unaccounted Energy');
-      if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
+          if (Array.isArray(lt1Data)) {
+            sankeyData = lt1Data; // service returned array only
+          } else {
+            sankeyData = lt1Data.sankeyData; // service returned { sankeyData, totals }
+          }
 
-      const lt4Data = await this.unit5LT4Service.getSankeyData(payload);
-      const nodeLT4 = lt4Data.find(n => n.to === 'Unaccounted Energy');
-      if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
+          const nodeLT1 = sankeyData.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT1) unaccountedFromLT1 = nodeLT1.value || 0;
+
+const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
+
+          let sankeyData1: { from: string; to: string; value: number }[] = [];
+
+          if (Array.isArray(lt2Data)) {
+            sankeyData1 = lt2Data; // service returned array only
+          } else {
+            sankeyData1 = lt2Data.sankeyData; // service returned { sankeyData, totals }
+          }
+
+          const nodeLT2 = sankeyData1.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
+
+ const lt3Data = await this.Unit5LT3Service.getSankeyData(payload);
+
+          let sankeyData2: { from: string; to: string; value: number }[] = [];
+
+          if (Array.isArray(lt3Data)) {
+            sankeyData2 = lt3Data; // service returned array only
+          } else {
+            sankeyData2 = lt3Data.sankeyData; // service returned { sankeyData, totals }
+          }
+
+          const nodeLT3 = sankeyData2.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
+
+ const lt4Data = await this.Unit5LT4Service.getSankeyData(payload);
+
+          let sankeyData3: { from: string; to: string; value: number }[] = [];
+
+          if (Array.isArray(lt4Data)) {
+            sankeyData3 = lt4Data; // service returned array only
+          } else {
+            sankeyData3 = lt4Data.sankeyData; // service returned { sankeyData, totals }
+          }
+
+          const nodeLT4 = sankeyData3.find(n => n.to === 'Unaccounted Energy');
+        if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
     } catch (err) {
       console.warn('⚠️ Error fetching LT unaccounted energy:', err.message);
     }

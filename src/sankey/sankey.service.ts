@@ -185,20 +185,29 @@ export class sankeyService {
 
       try {
         const lt1Data = await this.unit4LT1Service.getSankeyData(payload);
-        const nodeLT1 = lt1Data.find(n => n.to === 'Unaccounted Energy');
+
+          let sankeyData: { from: string; to: string; value: number }[] = [];
+
+          if (Array.isArray(lt1Data)) {
+            sankeyData = lt1Data; // service returned array only
+          } else {
+            sankeyData = lt1Data.sankeyData; // service returned { sankeyData, totals }
+          }
+
+          const nodeLT1 = sankeyData.find(n => n.to === 'Unaccounted Energy');
         if (nodeLT1) unaccountedFromLT1 = nodeLT1.value || 0;
 
-        const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
-        const nodeLT2 = lt2Data.find(n => n.to === 'Unaccounted Energy');
-        if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
+        // const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
+        // const nodeLT2 = lt2Data.find(n => n.to === 'Unaccounted Energy');
+        // if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
 
-        const lt3Data = await this.Unit5LT3Service.getSankeyData(payload);
-        const nodeLT3 = lt3Data.find(n => n.to === 'Unaccounted Energy');
-        if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
+        // const lt3Data = await this.Unit5LT3Service.getSankeyData(payload);
+        // const nodeLT3 = lt3Data.find(n => n.to === 'Unaccounted Energy');
+        // if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
 
-        const lt4Data = await this.Unit5LT4Service.getSankeyData(payload);
-        const nodeLT4 = lt4Data.find(n => n.to === 'Unaccounted Energy');
-        if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
+        // const lt4Data = await this.Unit5LT4Service.getSankeyData(payload);
+        // const nodeLT4 = lt4Data.find(n => n.to === 'Unaccounted Energy');
+        // if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
 
         // console.log('✅ Unaccounted Energy (LT1 Unit 4):', unaccountedFromLT1);
         // console.log('✅ Unaccounted Energy (LT2 Unit 4):', unaccountedFromLT2);
@@ -474,21 +483,21 @@ async getLossesSankey(payload: { startDate: string; endDate: string; startTime: 
       let unaccountedFromLT4 = 0;
 
       try {
-        const lt1Data = await this.unit4LT1Service.getSankeyData(payload);
-        const nodeLT1 = lt1Data.find(n => n.to === 'Unaccounted Energy');
-        if (nodeLT1) unaccountedFromLT1 = nodeLT1.value || 0;
+        // const lt1Data = await this.unit4LT1Service.getSankeyData(payload);
+        // const nodeLT1 = lt1Data.find(n => n.to === 'Unaccounted Energy');
+        // if (nodeLT1) unaccountedFromLT1 = nodeLT1.value || 0;
 
-        const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
-        const nodeLT2 = lt2Data.find(n => n.to === 'Unaccounted Energy');
-        if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
+        // const lt2Data = await this.unit4LT2Service.getSankeyData(payload);
+        // const nodeLT2 = lt2Data.find(n => n.to === 'Unaccounted Energy');
+        // if (nodeLT2) unaccountedFromLT2 = nodeLT2.value || 0;
 
-        const lt3Data = await this.Unit5LT3Service.getSankeyData(payload);
-        const nodeLT3 = lt3Data.find(n => n.to === 'Unaccounted Energy');
-        if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
+        // const lt3Data = await this.Unit5LT3Service.getSankeyData(payload);
+        // const nodeLT3 = lt3Data.find(n => n.to === 'Unaccounted Energy');
+        // if (nodeLT3) unaccountedFromLT3 = nodeLT3.value || 0;
 
-        const lt4Data = await this.Unit5LT4Service.getSankeyData(payload);
-        const nodeLT4 = lt4Data.find(n => n.to === 'Unaccounted Energy');
-        if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
+        // const lt4Data = await this.Unit5LT4Service.getSankeyData(payload);
+        // const nodeLT4 = lt4Data.find(n => n.to === 'Unaccounted Energy');
+        // if (nodeLT4) unaccountedFromLT4 = nodeLT4.value || 0;
 
         // console.log('✅ Unaccounted Energy (LT1 Unit 4):', unaccountedFromLT1);
         // console.log('✅ Unaccounted Energy (LT2 Unit 4):', unaccountedFromLT2);

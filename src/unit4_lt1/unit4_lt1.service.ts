@@ -5,6 +5,8 @@ import * as moment from 'moment-timezone';
 import { Unit4LT1 } from './schemas/unit4_LT1.schema';
 import { MeterService } from 'src/meter/meter.service';
 
+
+
 @Injectable()
 export class Unit4LT1Service {
   constructor(
@@ -15,170 +17,153 @@ export class Unit4LT1Service {
 
   async getSankeyData(payload: { startDate: string; endDate: string; startTime?: string; endTime?: string }) {
     const TZ = 'Asia/Karachi';
-    let startISO: string;
-    let endISO: string;
 
-    // ---------------- Determine start & end ISO ----------------
-    if (payload.startTime && payload.endTime) {
-      const startMoment = moment
-        .tz(`${payload.startDate} ${payload.startTime}`, 'YYYY-MM-DD HH:mm', TZ)
-        .startOf('minute')
-        .toDate();
-      const endMoment = moment
-        .tz(`${payload.endDate} ${payload.endTime}`, 'YYYY-MM-DD HH:mm', TZ)
-        .endOf('minute')
-        .toDate();
+    /** ---------------- Date Range Handling ---------------- */
+    const startMoment = payload.startTime
+      ? moment.tz(`${payload.startDate} ${payload.startTime}`, 'YYYY-MM-DD HH:mm', TZ).startOf('minute')
+      : moment.tz(`${payload.startDate} 06:00`, 'YYYY-MM-DD HH:mm', TZ);
 
-      startISO = startMoment.toISOString();
-      endISO = endMoment.toISOString();
-    } else {
-      // Default 6AM → 6AM next day
-      startISO = `${payload.startDate}T06:00:00.000+05:00`;
-      const nextDay = moment(payload.endDate).add(1, 'day').format('YYYY-MM-DD');
-      endISO = `${nextDay}T06:00:59.999+05:00`;
-    }
+    const endMoment = payload.endTime
+      ? moment.tz(`${payload.endDate} ${payload.endTime}`, 'YYYY-MM-DD HH:mm', TZ).endOf('minute')
+      : moment.tz(payload.endDate, 'YYYY-MM-DD', TZ).add(1, 'day').hour(6).minute(0).second(59);
 
-    console.log('📌 Start ISO:', startISO);
-    console.log('📌 End ISO:', endISO);
+    const startISO = startMoment.toISOString();
+    const endISO = endMoment.toISOString();
 
-    // -------------------- Fetch PDB07 (from MeterService) ---------------------
+    // console.log('📅 Time Range:', startISO, '→', endISO);
+
+    /** ---------------- External Data ---------------- */
     const fmCons = await this.meterService.getMeterWiseConsumption(
       payload.startDate,
       payload.endDate,
       { startTime: payload.startTime, endTime: payload.endTime },
     );
+    const PDB07_U4 = this.safeRound(fmCons?.U4_U22_GW03_Del_ActiveEnergy ?? 0);
 
-    const PDB07_U4 = +(Number(fmCons?.U4_U22_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
-
-    // ---------------- Meter setup ----------------
+    /** ---------------- Meter Map ---------------- */
     const meterMap: Record<string, string> = {
-      U1_PLC: 'Transport',
-      // U2_PLC: 'Unit 05 Lighting',
-      U3_PLC: 'Light Outside',
-      U4_PLC: 'Light Inside',
-      U5_PLC: 'Power House (2nd Source Gas)',
-      U6_PLC: 'Turbine',
-      U8_PLC: 'Drawing Finisher 1~6+2 Breaker',
-      U9_PLC: 'Winding 7~9',
-      U10_PLC: 'Ring 1~4',
-      U11_PLC: 'Ring 16~20',
-      U12_PLC: 'Ring 21~24',
-      U13_PLC: 'Comber 1~10+ Uni Lap 1-2',
-      U14_PLC: 'Compressor 119kw',
-      U15_PLC: 'Simplex 1~6',
-      // U16_PLC: 'Compressor 303kw',
-      U17_PLC: 'Ring AC',
-      U20_PLC: 'Compressor 119kw',
-      U2_PLC: 'TO U5LT1 (Unit 5 Lighting)', // 👈 your custom name
+      U1_PLC: 'Roving Transport System',
+      U3_PLC: 'Lighting Outside',
+      U4_PLC: 'Lighting Inside',
+      U5_PLC: 'HFO Plant Aux(2nd Source)',
+      U6_PLC: 'Deep Valve Turbine',
+      U8_PLC: 'Drawing Finisher 1-6 + Breaker 1-4',
+      U9_PLC: 'Winding 7-9',
+      U10_PLC: 'Ring 1-4',
+      U11_PLC: 'Ring 16-20',
+      U12_PLC: 'Ring 21-24',
+      U13_PLC: 'Comber 1-10 + Lap Former 1-2',
+      U14_PLC: 'Compressor 119kW',
+      U15_PLC: 'Drawing Simplex 1-6',
+      U17_PLC: 'Ring A/C (Supply & Return Fans)',
+      U18_PLC: 'Ring A/C (Bypass)',
+      U20_PLC: 'Compressor 119kW',
+      U2_PLC: 'TO U5LT1 (Lighting internal Unit 5)',
       U16_PLC: 'TO U5LT1 (Compressor 303 kW)',
-      
     };
 
+    const meterKeys = Object.keys(meterMap);
     const meterFields = [
-      'U21_PLC_Del_ActiveEnergy', // TF1 (Wapda+HFO+JMS)
-      'U19_PLC_Del_ActiveEnergy', // LT Gen (Diesel+JGS)
-      'U22_GW02_Del_ActiveEnergy', // 👈 New source: Unit 5 LT1 (Spare 2)
-      ...Object.keys(meterMap).map((m) => `${m}_Del_ActiveEnergy`),
+      'U21_PLC_Del_ActiveEnergy', // Wapda+HFO+JMS
+      'U19_PLC_Del_ActiveEnergy', // Diesel+JGS
+      'U22_GW02_Del_ActiveEnergy', // From Unit 5 LT1
+      ...meterKeys.map((m) => `${m}_Del_ActiveEnergy`),
     ];
 
-    // ---------------- Aggregation pipeline ----------------
-    const projection: any = {};
-    meterFields.forEach((field) => {
-      projection[`first_${field}`] = { $first: `$${field}` };
-      projection[`last_${field}`] = { $last: `$${field}` };
-    });
+    /** ---------------- Mongo Aggregation ---------------- */
+    const projection = Object.fromEntries(
+      meterFields.flatMap((f) => [
+        [`first_${f}`, { $first: `$${f}` }],
+        [`last_${f}`, { $last: `$${f}` }],
+      ]),
+    );
 
-    const pipeline: any[] = [
-      { $addFields: { ts: { $toDate: '$timestamp' } } },
-      { $match: { ts: { $gte: new Date(startISO), $lte: new Date(endISO) } } },
-      { $sort: { ts: 1 } },
-      { $group: { _id: null, ...projection } },
-    ];
+    const results = await this.unitModel
+      .aggregate([
+        { $project: { ts: { $toDate: '$timestamp' }, ...Object.fromEntries(meterFields.map(f => [f, 1])) } },
+        { $match: { ts: { $gte: new Date(startISO), $lte: new Date(endISO) } } },
+        { $sort: { ts: 1 } },
+        { $group: { _id: null, ...projection } },
+      ])
+      .exec();
 
-    const results = await this.unitModel.aggregate(pipeline).exec();
-
-    // ---------------- Calculate consumption totals ----------------
-    const consumptionTotals: Record<string, number> = {};
-    meterFields.forEach((field) => (consumptionTotals[field] = 0));
-
-    for (const entry of results) {
-      for (const field of meterFields) {
-        const first = entry[`first_${field}`] || 0;
-        const last = entry[`last_${field}`] || 0;
-        const consumption = last - first;
-        if (!isNaN(consumption) && consumption >= 0) {
-          consumptionTotals[field] += parseFloat(consumption.toFixed(2));
-        }
-      }
+    if (!results?.length) {
+      console.warn('⚠️ No data found for selected range');
+      return [];
     }
 
-    // ---------------- Adjust Ring 21~24 (subtract PDB07) ----------------
-    const ring2124Raw = +(Number(consumptionTotals['U12_PLC_Del_ActiveEnergy'] || 0).toFixed(2));
-    const ring2124Adj = Math.max(0, +(ring2124Raw - PDB07_U4).toFixed(2));
+    const data = results[0];
 
-    // ---------------- Prepare Sankey Data ----------------
-    const tf1 = +consumptionTotals['U21_PLC_Del_ActiveEnergy'].toFixed(2); // Wapda+HFO+JMS
-    const ltGen = +consumptionTotals['U19_PLC_Del_ActiveEnergy'].toFixed(2); // Diesel+JGS
-    const u22Spare2 = +consumptionTotals['U22_GW02_Del_ActiveEnergy'].toFixed(2); // 👈 new meter
-
-    const totalGeneration = tf1 + ltGen+ u22Spare2;
-    //  console.log(totalGeneration);
-
-    // total consumption (sum of all meters except generation)
-    let totalConsumption = 0;
-    Object.keys(meterMap).forEach((m) => {
-      const key = `${m}_Del_ActiveEnergy`;
-      const val = +(Number(consumptionTotals[key] || 0).toFixed(2));
-      totalConsumption += m === 'U12_PLC' ? ring2124Adj : val;
-    });
-     totalConsumption += PDB07_U4;
-     totalConsumption += u22Spare2; // 👈 Spare 2 consumption included
-    console.log(totalConsumption);
-
-    // compute unaccounted energy
-    const unaccountedEnergy = +(totalGeneration - totalConsumption).toFixed(2);
-    console.log(totalGeneration);
-
-    // ---------------- Construct Sankey Data ----------------
-    const sankeyData = [
-      { from: 'Wapda+HFO+JMS Incoming', to: 'TotalLT1', value: tf1 },
-      { from: 'Diesel+JGS Incomming', to: 'TotalLT1', value: ltGen },
-       { from: 'From U5LT1 (Spare 2)', to: 'TotalLT1', value: u22Spare2 }, // 👈 New source added
-      ...Object.entries(meterMap)
-      .filter(([key]) => !['U16_PLC', 'U2_PLC'].includes(key)) // exclude both first
-      .map(([meter, label]) => {
-        const key = `${meter}_Del_ActiveEnergy`;
-        const baseVal = +(Number(consumptionTotals[key] || 0).toFixed(2));
-        const value = meter === 'U12_PLC' ? ring2124Adj : baseVal;
-        return { from: 'TotalLT1', to: label, value };
+    /** ---------------- Compute Consumption ---------------- */
+    const consumptionTotals = Object.fromEntries(
+      meterFields.map((f) => {
+        const first = data[`first_${f}`] ?? 0;
+        const last = data[`last_${f}`] ?? 0;
+        return [f, Math.max(0, last - first)];
       }),
-      {
-    from: 'TotalLT1',
-    to: meterMap['U2_PLC'],
-    value: +(Number(consumptionTotals['U2_PLC_Del_ActiveEnergy'] || 0).toFixed(2)),
-  },
-      {
-    from: 'TotalLT1',
-    to: meterMap['U16_PLC'],
-    value: +(Number(consumptionTotals['U16_PLC_Del_ActiveEnergy'] || 0).toFixed(2)),
-  },
-      {
-        from: 'TotalLT1',
-        to: 'PDB07->To U5LT1(AutoCone1-9)',
-        value: Math.max(0, +PDB07_U4.toFixed(2)),
-      },
-      {
-  from: 'TotalLT1',
-  to: 'From U5LT1 (Spare 2) Consumption',
-  value: u22Spare2,
-},
-      {
-        from: 'TotalLT1',
-        to: 'Unaccounted Energy',
-        value: unaccountedEnergy,
-      },
+    );
+
+    /** ---------------- Derived Values ---------------- */
+    const safe = (key: string) => this.safeRound(consumptionTotals[key] ?? 0);
+    const ring2124Adj = Math.max(0, this.safeRound(safe('U12_PLC_Del_ActiveEnergy') - PDB07_U4));
+
+    const wapdaHFO = safe('U21_PLC_Del_ActiveEnergy');
+    const dieselJGS = safe('U19_PLC_Del_ActiveEnergy');
+    const u22Spare2 = safe('U22_GW02_Del_ActiveEnergy');
+
+    const totalGeneration = wapdaHFO + dieselJGS;
+
+    const totalConsumption = meterKeys.reduce((sum, key) => {
+      if (['U2_PLC', 'U16_PLC'].includes(key)) return sum; // Skip transfers
+      const val = key === 'U12_PLC' ? ring2124Adj : safe(`${key}_Del_ActiveEnergy`);
+      return sum + val;
+    }, 0);
+
+    const totalTransferredToUnit5 =
+      PDB07_U4 +
+      safe('U16_PLC_Del_ActiveEnergy') +
+      safe('U2_PLC_Del_ActiveEnergy') +
+      u22Spare2;
+
+    const totalIncomingFromUnit5 = u22Spare2;
+    const unaccountedEnergy = this.safeRound(
+      (totalGeneration + totalIncomingFromUnit5) - (totalConsumption + totalTransferredToUnit5),
+    );
+
+    /** ---------------- Totals Summary ---------------- */
+    const totals = {
+      Total_Incoming_From_Generation: this.safeRound(totalGeneration),
+      Total_Incoming_From_Unit_5:totalIncomingFromUnit5,
+      Total_Consumption: this.safeRound(totalConsumption),
+      Total_Transferred_To_Unit_5: this.safeRound(totalTransferredToUnit5),
+      Total_Unaccountable_Energy: unaccountedEnergy,
+    };
+
+    /** ---------------- Sankey Data ---------------- */
+    const sankeyData = [
+      { from: 'Wapda+HFO+JMS Incoming', to: 'TotalLT1', value: wapdaHFO },
+      { from: 'Diesel+JGS Incoming', to: 'TotalLT1', value: dieselJGS },
+      { from: 'From U5LT1 (Spare 2)', to: 'TotalLT1', value: u22Spare2 },
+      ...meterKeys
+        .filter((m) => !['U16_PLC', 'U2_PLC'].includes(m))
+        .map((m) => ({
+          from: 'TotalLT1',
+          to: meterMap[m],
+          value: m === 'U12_PLC' ? ring2124Adj : safe(`${m}_Del_ActiveEnergy`),
+        })),
+      { from: 'TotalLT1', to: meterMap['U2_PLC'], value: safe('U2_PLC_Del_ActiveEnergy') },
+      { from: 'TotalLT1', to: meterMap['U16_PLC'], value: safe('U16_PLC_Del_ActiveEnergy') },
+      { from: 'TotalLT1', to: 'PDB07->To U5LT1 (AutoCone1-9)', value: PDB07_U4 },
+      { from: 'TotalLT1', to: 'From U5LT1 (Spare 2) Consumption', value: u22Spare2 },
+      { from: 'TotalLT1', to: 'Unaccounted Energy', value: unaccountedEnergy },
     ];
 
-    return sankeyData;
+    // console.table(totals);
+   return { sankeyData, totals };
+  }
+
+  /** ---------- Helper for consistent rounding ---------- */
+  private safeRound(num: number, digits = 2): number {
+    return +num.toFixed(digits);
   }
 }
