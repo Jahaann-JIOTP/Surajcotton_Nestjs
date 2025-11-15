@@ -22,6 +22,7 @@ import { ProductionMonthwiseModule } from './production-monthwise/production-mon
 import { ConsumptionEnergyModule } from './consumption_energy/consumption_energy.module';
 import { GenerationEnergyModule } from './generation_energy/generation_energy.module';
 import { EnergyModule } from './energy/energy.module';
+import { PowerSummaryModule } from './powersummary/energy.module';
 import { EnergySpindleModule } from './energy_spindle/energy_spindle.module';
 import { PieChartModule } from './piechart/piechart.module';
 import { MeterModule } from './meter/meter.module';
@@ -64,6 +65,7 @@ import { PlantsTrendsModule } from './plants_trends/plants_trends.module';
     ConsumptionEnergyModule,
     GenerationEnergyModule,
     EnergyModule,
+    PowerSummaryModule,
     EnergySpindleModule,
     PieChartModule,
     MeterModule,

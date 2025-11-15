@@ -13,6 +13,7 @@ import * as moment from 'moment-timezone';
 
 const TZ = 'Asia/Karachi';
 
+// 1) Meter IDs
 const meterIds: string[] = [
   'U1_PLC', 'U2_PLC', 'U3_PLC', 'U4_PLC', 'U5_PLC', 'U6_PLC', 'U7_PLC', 'U8_PLC', 'U9_PLC',
   'U10_PLC', 'U11_PLC', 'U12_PLC', 'U13_PLC', 'U14_PLC', 'U15_PLC', 'U16_PLC', 'U17_PLC',
@@ -35,6 +36,7 @@ const meterIds: string[] = [
   'U23_GW03',
 ];
 
+// 2) Suffixes (we will compute first/last for all of them; you are using Del_ActiveEnergy & ActiveEnergy_Exp_kWh in groups)
 const suffixes: string[] = [
   'Del_ActiveEnergy',
   'ActivePower_Total',
@@ -42,20 +44,22 @@ const suffixes: string[] = [
   'ActiveEnergy_Exp_kWh',
 ];
 
-// precompute meter keys once
+// 3) Precompute all meter keys once globally
 const ALL_METER_KEYS: string[] = meterIds.flatMap((id) =>
   suffixes.map((sfx) => `${id}_${sfx}`),
 );
 
-// group definitions
+// 4) Group definitions
 const GROUP_KEYS = {
   LTGeneration: ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'],
+
   SolarGeneration: [
     'U6_GW02_Del_ActiveEnergy',
     'U17_GW03_Del_ActiveEnergy',
     'U24_GW01_Del_ActiveEnergy',
     'U28_PLC_Del_ActiveEnergy',
   ],
+
   HT_Generation: ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'],
 
   WapdaImport: ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'],
@@ -177,27 +181,17 @@ const GROUP_KEYS = {
   ],
 };
 
-// build projection once per request
-function buildProjection() {
-  const projection: Record<string, 1> = { timestamp: 1 as 1 };
-  for (const key of ALL_METER_KEYS) {
-    projection[key] = 1;
-  }
-  return projection;
-}
-
-// sum helper
+// sum helper for groups
 function sumGroup(consumption: Record<string, number>, keys: string[]): number {
   return keys.reduce((sum, key) => sum + (consumption[key] || 0), 0);
 }
 
+// Extract "Unaccounted Energy" from Sankey data
 function getUnaccountedEnergyFromSankey(raw: any): number {
   const data = Array.isArray(raw) ? raw : raw?.sankeyData || [];
   const node = data.find((n: any) => n.to === 'Unaccounted Energy');
   return node?.value || 0;
 }
-
-// ================== SERVICE ==================
 
 @Injectable()
 export class EnergyService {
@@ -215,27 +209,26 @@ export class EnergyService {
     const startMoment = moment.tz(`${start} 06:00:00`, 'YYYY-MM-DD HH:mm:ss', TZ);
 
     let endMoment: moment.Moment;
+    if (start === end) {
+      // single day
+      endMoment = moment
+        .tz(`${start} 06:00:00`, TZ)
+        .add(1, 'day')
+        .hour(6)
+        .minute(0)
+        .second(59)
+        .millisecond(999);
+    } else {
+      // multi-day (week, month, custom range)
+      endMoment = moment
+        .tz(`${end} 06:00:00`, TZ)
+        .hour(6)
+        .minute(0)
+        .second(59)
+        .millisecond(999);
+    }
 
-if (start === end) {
-  // single day
-  endMoment = moment
-    .tz(`${start} 06:00:00`, TZ)
-    .add(1, 'day')
-    .hour(6)
-    .minute(0)
-    .second(59)
-    .millisecond(999);
-} else {
-  // multi-day (week, month, custom range)
-  endMoment = moment
-    .tz(`${end} 06:00:00`, TZ)
-    .hour(6)
-    .minute(0)
-    .second(59)
-    .millisecond(999);
-}
-
-    const startStr = startMoment.format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+     const startStr = startMoment.format('YYYY-MM-DDTHH:mm:ss.SSSZ');
     const endStr = endMoment.format('YYYY-MM-DDTHH:mm:ss.SSSZ');
 
     const matchStage = {
@@ -245,27 +238,21 @@ if (start === end) {
       },
     };
 
-    // ---------- Aggregate ----------
-    const projection = buildProjection();
-//     console.log("=== DEBUG QUERY WINDOW ===");
-// console.log("StartStr:", startStr);
-// console.log("EndStr  :", endStr);
 
-const sample = await this.energyModel
-  .findOne({})
-  .sort({ timestamp: 1 })
-  .select({ timestamp: 1 });
+    // ---------- Aggregate FIRST & LAST values directly in Mongo ----------
+    const groupStage: any = { _id: null };
+    for (const key of ALL_METER_KEYS) {
+      groupStage[`${key}_first`] = { $first: `$${key}` };
+      groupStage[`${key}_last`] = { $last: `$${key}` };
+    }
 
-// console.log("Earliest Timestamp In DB:", sample?.timestamp);
-// console.log("===========================");
-
-    const result = await this.energyModel.aggregate([
+    const aggResult = await this.energyModel.aggregate([
       { $match: matchStage },
-      { $project: projection },
-      { $sort: { timestamp: 1 } },
+      { $sort: { timestamp: 1 } }, // ensures $first / $last are correct
+      { $group: groupStage },
     ]);
 
-    if (!result.length) {
+    if (!aggResult.length) {
       // if no data, return all zeros so frontend doesn't break
       return {
         total_consumption: {
@@ -277,7 +264,7 @@ const sample = await this.energyModel
           Niigata: '0.00',
           JMS: '0.00',
           mainincomingunit5: '0.00',
-          hfoaux:'0.00',
+          hfoaux: '0.00',
           Unit4_LT1: '0.00',
           Unit4_LT2: '0.00',
           Unit5_LT1: '0.00',
@@ -315,65 +302,33 @@ const sample = await this.energyModel
           totalenergyoutput: '0.00',
           unaccoutable_energy: '0.00',
           DieselandGasGenset: '0.00',
+          T3andT4incoming: '0.00',
+          T3andT4outgoing: '0.00',
+          T3andT4losses: '0.00',
+          T3T4percentage: '0.00',
         },
       };
     }
 
-    // ---------- First / Last values (optimized loop) ----------
-    // ---------- First / Last values (improved logic) ----------
-const firstValues: Record<string, number> = {};
-const lastValues: Record<string, number> = {};
+    const doc = aggResult[0];
+    // console.log(doc)
+    
 
-// Pass 1: Pick last values & first VALID (non-zero) values
-for (const doc of result) {
-  for (const [key, raw] of Object.entries(doc)) {
-    if (key === 'timestamp') continue;
-    const val = Number(raw);
-    if (isNaN(val)) continue;
-
-    // Always set last value
-    lastValues[key] = val;
-
-    // Set FIRST valid value (skip 0 or null)
-    if (!(key in firstValues) && val > 0) {
-      firstValues[key] = val;
-    }
-  }
-}
-
-// Pass 2: If some firstValues still missing (all zero for that meter),
-// fallback to first non-null value
-for (const doc of result) {
-  for (const [key, raw] of Object.entries(doc)) {
-    if (key === 'timestamp') continue;
-    if (key in firstValues) continue;
-
-    const val = Number(raw);
-    if (!isNaN(val)) {
-      firstValues[key] = val;
-    }
-  }
-}
-
-
-    // ---------- Consumption ----------
+    // ---------- Build Consumption = last - first (with sanity checks) ----------
     const consumption: Record<string, number> = {};
-for (const key of Object.keys(firstValues)) {
-  let diff = (lastValues[key] ?? 0) - (firstValues[key] ?? 0);
-  
-  const diffStr = diff.toString();
-  if (
-    diffStr.includes('e+') ||
-    diffStr.includes('e-') ||
-    Math.abs(diff) > 1e10 ||
-    Math.abs(diff) < 1e-5
-  ) {
-    diff = 0;
-  }
+    for (const key of ALL_METER_KEYS) {
+      const first = Number(doc[`${key}_first`] ?? 0);
+      const last = Number(doc[`${key}_last`] ?? 0);
 
-  consumption[key] = diff;
-}
+      let diff = last - first;
 
+      // Reject invalid / noisy values (resets, spikes, NaN, exponential)
+      if (!isFinite(diff) || diff < 0 || Math.abs(diff) > 1e10 || Math.abs(diff) < 1e-5) {
+        diff = 0;
+      }
+
+      consumption[key] = diff;
+    }
 
     // ---------- Group Sums ----------
     const LTGeneration = sumGroup(consumption, GROUP_KEYS.LTGeneration);
@@ -433,18 +388,15 @@ for (const key of Object.keys(firstValues)) {
     const Trafo1losses = Trafo1Incoming - Trafo1outgoing;
     const Trafo2losses = Trafo2Incoming - Trafo2outgoing;
     const Trafo3losses = Trafo3Incoming - Trafo3outgoing;
-    // console.log(Trafo3losses,'trafo3');
     const Trafo4losses = Trafo4Incoming - Trafo4outgoing;
-    // console.log(Trafo4losses,'trafo4');
 
     const T3percentage =
       Trafo3Incoming !== 0 ? (Trafo3losses / Trafo3Incoming) * 100 : 0;
-      //  console.log(T3percentage,'trafopercent');
     const T4percentage =
       Trafo4Incoming !== 0 ? (Trafo4losses / Trafo4Incoming) * 100 : 0;
-          // console.log(T4percentage,'trafopercent4');
-    const T3andT4incoming=Trafo3Incoming + Trafo4Incoming;
-    const T3andT4outing=Trafo3outgoing + Trafo4outgoing;
+
+    const T3andT4incoming = Trafo3Incoming + Trafo4Incoming;
+    const T3andT4outing = Trafo3outgoing + Trafo4outgoing;
     const T3andT4losses = T3andT4incoming - T3andT4outing;
     const T3T4percentage =
       T3andT4incoming !== 0 ? (T3andT4losses / T3andT4incoming) * 100 : 0;
@@ -457,14 +409,13 @@ for (const key of Object.keys(firstValues)) {
           100
         : 0;
 
-    // const HT_Transmissioin_Losses =
-    //   Wapda2 + Niigata + JMS - (Trafo3Incoming + Trafo4Incoming + PH_IC);
-
-    const HT_Transmission_Losses1 = Math.max(0, (Wapda2 + Niigata + JMS) - (mainincomingunit5 + PH_IC));
+    const HT_Transmission_Losses1 = Math.max(
+      0,
+      Wapda2 + Niigata + JMS - (mainincomingunit5 + PH_IC),
+    );
     const HT_Transmissioin_Losses = HT_Transmission_Losses1 - hfoaux;
-    // console.log(hfoaux,'hfoaux');
 
-    // ---------- LT Unaccounted Energy (run in parallel) ----------
+    // ---------- LT Unaccounted Energy from Sankey (parallel) ----------
     let unaccountedFromLT1 = 0;
     let unaccountedFromLT2 = 0;
     let unaccountedFromLT3 = 0;
@@ -473,86 +424,112 @@ for (const key of Object.keys(firstValues)) {
     try {
       const payload = {
         startDate: start,
-        endDate: endMoment.format('YYYY-MM-DD'), // same logic as your code
+        endDate: endMoment.format('YYYY-MM-DD'),
         startTime: '06:00',
         endTime: '06:00',
       };
 
-      const [lt1Data, lt2Data, lt3Data, lt4Data] = await Promise.all([
+      const sankeyResults = await Promise.allSettled([
         this.unit4LT1Service.getSankeyData(payload),
         this.unit4LT2Service.getSankeyData(payload),
         this.unit5LT3Service.getSankeyData(payload),
         this.unit5LT4Service.getSankeyData(payload),
       ]);
 
-      unaccountedFromLT1 = getUnaccountedEnergyFromSankey(lt1Data);
-      unaccountedFromLT2 = getUnaccountedEnergyFromSankey(lt2Data);
-      unaccountedFromLT3 = getUnaccountedEnergyFromSankey(lt3Data);
-      unaccountedFromLT4 = getUnaccountedEnergyFromSankey(lt4Data);
-    } catch (err: any) {
-      // optional: log
-      // console.warn('Error fetching LT unaccounted energy:', err?.message || err);
+      if (sankeyResults[0].status === 'fulfilled') {
+        unaccountedFromLT1 = getUnaccountedEnergyFromSankey(sankeyResults[0].value);
+      }
+      if (sankeyResults[1].status === 'fulfilled') {
+        unaccountedFromLT2 = getUnaccountedEnergyFromSankey(sankeyResults[1].value);
+      }
+      if (sankeyResults[2].status === 'fulfilled') {
+        unaccountedFromLT3 = getUnaccountedEnergyFromSankey(sankeyResults[2].value);
+      }
+      if (sankeyResults[3].status === 'fulfilled') {
+        unaccountedFromLT4 = getUnaccountedEnergyFromSankey(sankeyResults[3].value);
+      }
+    } catch (err) {
+      // optional: log error
+      // console.warn('Error fetching LT unaccounted energy:', err);
     }
 
-    const unaccoutable_energy = +(
-      unaccountedFromLT1 +
-      unaccountedFromLT2 +
-      unaccountedFromLT3 +
-      unaccountedFromLT4
-    ).toFixed(2);
+    const unaccoutable_energy = Number(
+      (
+        unaccountedFromLT1 +
+        unaccountedFromLT2 +
+        unaccountedFromLT3 +
+        unaccountedFromLT4
+      ).toFixed(2),
+    );
 
-    // ---------- Final Response (same structure as your original) ----------
+    const f = (v: number) => v.toFixed(2);
+
+    // ---------- Final Response ----------
     return {
       total_consumption: {
-        LTGeneration: LTGeneration.toFixed(2),
-        SolarGeneration: SolarGeneration.toFixed(2),
-        WapdaImport: WapdaImport.toFixed(2),
-        Wapda1: Wapda1.toFixed(2),
-        Wapda2: Wapda2.toFixed(2),
-        Niigata: Niigata.toFixed(2),
-        JMS: JMS.toFixed(2),
-        Unit4_LT1: Unit4_LT1.toFixed(2),
-        Unit4_LT2: Unit4_LT2.toFixed(2),
-        Unit5_LT1: Unit5_LT1.toFixed(2),
-        Unit5_LT2: Unit5_LT2.toFixed(2),
-        PH_ICKeys: PH_IC.toFixed(2),
-        Wapdaexport: WapdaExport.toFixed(2),
-        T1andT2incoming: T1andT2incoming.toFixed(2),
-        T1andT2outgoing: T1andT2outgoing.toFixed(2),
-        T1andT2losses: T1andT2losses.toFixed(2),
-        T1T2unit4percentage: T1T2percentage.toFixed(2),
-        Trafo3Incoming: Trafo3Incoming.toFixed(2),
-        Trafo4Incoming: Trafo4Incoming.toFixed(2),
-        Trafo3outgoing: Trafo3outgoing.toFixed(2),
-        Trafo4outgoing: Trafo4outgoing.toFixed(2),
-        HT_Transmissioin_Losses: HT_Transmissioin_Losses.toFixed(2),
-        Trafo1losses: Trafo1losses.toFixed(2),
-        Trafo2losses: Trafo2losses.toFixed(2),
-        Trafo3losses: Trafo3losses.toFixed(2),
-        T1unit5percentage: T3percentage.toFixed(2),
-        Trafo4losses: Trafo4losses.toFixed(2),
-        T2unit5percentage: T4percentage.toFixed(2),
-        TrasformerLosses: TrasformerLosses.toFixed(2),
-        TotalTrasformepercentage: TotalTrasformepercentage.toFixed(2),
-        Solar1: Solar1.toFixed(2),
-        Solar2: Solar2.toFixed(2),
-        solarunit4: solarunit4.toFixed(2),
-        solar52: solar52.toFixed(2),
-        Aux_consumption: Aux_consumption.toFixed(2),
-        Total_Generation: totalGeneration.toFixed(2),
-        totalgeneration1: totalgeneration1.toFixed(2),
-        U4_Consumption: U4_Consumption.toFixed(2),
-        U5_Consumption: U5_Consumption.toFixed(2),
-        HT_Generation: HT_Generation.toFixed(2),
-        total_energy_input: totalenergyinput.toFixed(2),
-        totalenergyoutput: totalenergyoutput.toFixed(2),
-        unaccoutable_energy: unaccoutable_energy.toFixed(2),
-        DieselandGasGenset: DieselandGasGenset.toFixed(2),
-        T3andT4incoming: T3andT4incoming.toFixed(2),
-        T3andT4outgoing: T3andT4outing.toFixed(2),
-        T3andT4losses: T3andT4losses.toFixed(2),
-        T3T4percentage: T3T4percentage.toFixed(2),
+        LTGeneration: f(LTGeneration),
+        SolarGeneration: f(SolarGeneration),
+        WapdaImport: f(WapdaImport),
+        Wapda1: f(Wapda1),
+        Wapda2: f(Wapda2),
+        Niigata: f(Niigata),
+        JMS: f(JMS),
+        mainincomingunit5: f(mainincomingunit5),
+        hfoaux: f(hfoaux),
 
+        Unit4_LT1: f(Unit4_LT1),
+        Unit4_LT2: f(Unit4_LT2),
+        Unit5_LT1: f(Unit5_LT1),
+        Unit5_LT2: f(Unit5_LT2),
+
+        PH_ICKeys: f(PH_IC),
+        Wapdaexport: f(WapdaExport),
+
+        T1andT2incoming: f(T1andT2incoming),
+        T1andT2outgoing: f(T1andT2outgoing),
+        Trafo1outgoing: f(Trafo1outgoing),
+        Trafo2outgoing: f(Trafo2outgoing),
+        
+        T1andT2losses: f(T1andT2losses),
+        T1T2unit4percentage: f(T1T2percentage),
+
+        Trafo3Incoming: f(Trafo3Incoming),
+        Trafo4Incoming: f(Trafo4Incoming),
+        Trafo3outgoing: f(Trafo3outgoing),
+        Trafo4outgoing: f(Trafo4outgoing),
+
+        HT_Transmissioin_Losses: f(HT_Transmissioin_Losses),
+
+        Trafo1losses: f(Trafo1losses),
+        Trafo2losses: f(Trafo2losses),
+        Trafo3losses: f(Trafo3losses),
+        T1unit5percentage: f(T3percentage),
+        Trafo4losses: f(Trafo4losses),
+        T2unit5percentage: f(T4percentage),
+
+        TrasformerLosses: f(TrasformerLosses),
+        TotalTrasformepercentage: f(TotalTrasformepercentage),
+
+        Solar1: f(Solar1),
+        Solar2: f(Solar2),
+        solarunit4: f(solarunit4),
+        solar52: f(solar52),
+
+        Aux_consumption: f(Aux_consumption),
+        Total_Generation: f(totalGeneration),
+        totalgeneration1: f(totalgeneration1),
+        U4_Consumption: f(U4_Consumption),
+        U5_Consumption: f(U5_Consumption),
+        HT_Generation: f(HT_Generation),
+        total_energy_input: f(totalenergyinput),
+        totalenergyoutput: f(totalenergyoutput),
+        unaccoutable_energy: f(unaccoutable_energy),
+        DieselandGasGenset: f(DieselandGasGenset),
+
+        T3andT4incoming: f(T3andT4incoming),
+        T3andT4outgoing: f(T3andT4outing),
+        T3andT4losses: f(T3andT4losses),
+        T3T4percentage: f(T3T4percentage),
       },
     };
   }
