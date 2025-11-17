@@ -99,7 +99,7 @@ export class EnergyconsumptionreportService {
       BlowRoom: { Unit_4: ['U8_GW01'], Unit_5: ['U9_GW02'] },
       Comberandunilap: { Unit_4: ['U13_PLC'], Unit_5: ['U14_GW02', 'U6_GW03'] },
       DrawingFinisherand2Breaker: { Unit_4: ['U8_PLC'], Unit_5: ['U23_GW02'] },
-      DrawingSimplex: { Unit_4: ['U15_PLC'], Unit_5: ['U21_GW02'] },
+      Simplex: { Unit_4: ['U15_PLC'], Unit_5: ['U21_GW02'] },
       RTransportSystem: { Unit_4: ['U1_PLC'], Unit_5: ['U4_GW03'] },
       Ring: {
         Unit_4: [
@@ -346,7 +346,7 @@ export class EnergyconsumptionreportService {
       "Card +Breaker": { u4mcs: 16, u5mcs: 14, u4Lpd: 292, u5Lpd: 306.6 },
       "Comber + Lap former": { u4mcs: 12, u5mcs: 17, u4Lpd: 84, u5Lpd: 318.2 },
       "Drawing Finsher+Breaker": { u4mcs: 10, u5mcs: 8, u4Lpd: 94, u5Lpd: 77.6 },
-      "Drawing Simplex": { u4mcs: 6, u5mcs: 11, u4Lpd: 108, u5Lpd: 209.3 },
+      "Simplex": { u4mcs: 6, u5mcs: 11, u4Lpd: 108, u5Lpd: 209.3 },
       "R.Transport System": { u4mcs: 1, u5mcs: 1, u4Lpd: 30, u5Lpd: 30 },
       "Ring Dept": { u4mcs: 24, u5mcs: 18, u4Lpd: 1920, u5Lpd: 2554 },
       "Winding": { u4mcs: 9, u5mcs: 18, u4Lpd: 377, u5Lpd: 471.1 },
@@ -373,7 +373,7 @@ export class EnergyconsumptionreportService {
       "Card +Breaker": "Card_Breaker",
       "Comber + Lap former": "Comberandunilap",
       "Drawing Finsher+Breaker": "DrawingFinisherand2Breaker",
-      "Drawing Simplex": "DrawingSimplex",
+      "Simplex": "Simplex",
       "R.Transport System": "RTransportSystem",
       "Ring Dept": "Ring",
       "Winding": "AutoCone_Winding10to18",
@@ -441,8 +441,8 @@ export class EnergyconsumptionreportService {
           dept.u5Name = 'Card';
         } else if (name === 'Drawing Finsher+Breaker') {
           dept.u5Name = 'Drawing Finsher';
-        } else if (name === 'Drawing Simplex') {
-          dept.u5Name = 'Drawing simplex+Breaker';
+        } else if (name === 'Simplex') {
+          dept.u5Name = 'Simplex + Drawing Breaker';
         } else {
           dept.u5Name = name;
         }
