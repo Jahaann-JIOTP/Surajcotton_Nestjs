@@ -20,7 +20,7 @@ const meterMap: Record<string, string> = {
   U12_PLC: 'Ring 21-24',
   U13_PLC: 'Comber 1-10 + Lap Former 1-2',
   U14_PLC: 'Compressor (119 kW)',
-  U15_PLC: 'Drawing Simplex 1-6',
+  U15_PLC: 'Simplex 1-6',
   U17_PLC: 'Ring A/C (Supply & Return Fans)',
   U18_PLC: 'Ring A/C (Bypass)',
   U20_PLC: 'Compressor (119 kW)',
@@ -171,7 +171,7 @@ export class Unit4LT1Service {
     const sankeyData = [
       { from: 'Wapda+HFO+JMS Incoming', to: 'TotalLT1', value: wapdaHFO },
       { from: 'Diesel+JGS Incoming', to: 'TotalLT1', value: dieselJGS },
-      { from: 'From U5LT1 (Spare 2)', to: 'TotalLT1', value: u22Spare2 },
+      { from: 'From U5LT1 (Ring Unit 4 (17-20))', to: 'TotalLT1', value: u22Spare2 },
 
       ...meterKeys
         .filter((m) => !['U2_PLC', 'U16_PLC'].includes(m))

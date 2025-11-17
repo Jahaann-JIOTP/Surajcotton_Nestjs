@@ -22,9 +22,9 @@ const meterMap: Record<string, string> = {
   U18_GW02: 'Winding 1-9',
   U19_GW02: 'Card 1-7',
   U20_GW02: 'Winding A/C',
-  U21_GW02: 'Simplex 1-5 + Breaker 1-6',
+  U21_GW02: 'Drawing Simplex 1-6',
   U23_GW02: 'Drawing Finisher 1-8',
-  U22_GW02: 'To U4LT1 (Spare 2)',
+  U22_GW02: 'To U4LT1 (Ring Unit 4 (17-20))',
 };
 
 const meterKeys = Object.keys(meterMap);
