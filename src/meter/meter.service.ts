@@ -13,6 +13,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import * as moment from "moment-timezone";
 // add this import at the top with the others:
 import type { AnyBulkWriteOperation as MongooseBulkOp } from 'mongoose';
+import { Meter5Min, Meter5MinDocument } from './schemas/meter-5min.schema';
 
 
 
@@ -27,20 +28,21 @@ export class MeterService {
    * - Any key resolves to the full group it belongs to.
    * - Singles map to themselves and remain independent.
    */
+
   private static readonly LINKED_GROUPS: Record<string, string[]> = {
-    'U1_GW02': ['U1_GW02', 'U4_GW02'], // Group A
-    'U4_GW02': ['U1_GW02', 'U4_GW02'], // Group A
+    'U1_GW02': ['U1_GW02'], 
+    'U4_GW02': ['U4_GW02'],
 
-    'U3_GW02': ['U3_GW02', 'U2_GW02'], // Group B
-    'U2_GW02': ['U3_GW02', 'U2_GW02'], // Group B
+    'U3_GW02': ['U3_GW02'], 
+    'U2_GW02': ['U2_GW02'],
 
-    'U23_GW03': ['U23_GW03'],          // Single
-    'U22_GW03': ['U22_GW03'],          // Single
-  };
+    'U23_GW03': ['U23_GW03'],
+    'U22_GW03': ['U22_GW03'],
+  }
   constructor(
   @InjectModel(MeterToggle.name, 'surajcotton') private readonly toggleModel: Model<MeterToggleDocument>,
   @InjectModel(MeterConfiguration.name, 'surajcotton') private readonly configModel: Model<MeterConfigurationDocument>,
-  
+  @InjectModel(Meter5Min, 'surajcotton') private readonly meter5MinModel: Model<Meter5MinDocument>,
   private readonly httpService: HttpService,
   @InjectModel(FieldMeterRawData.name, 'surajcotton') private fieldMeterRawDataModel: Model<FieldMeterRawData>,
   @InjectModel(FieldMeterProcessData.name, 'surajcotton')
@@ -52,7 +54,7 @@ export class MeterService {
     return new Date(Date.now() + 5 * 60 * 60 * 1000);
   }
 
- /**
+/**
    * POST /meter/toggle
    * - No transactions (works on standalone MongoDB)
    * - Flips linked meters using bulkWrite
@@ -303,31 +305,36 @@ const timestampNow = new Date(utcNow.getTime() + 5 * 60 * 60 * 1000)
 @Cron('0 */3 * * * *') 
 async storeEvery15Minutes() {
   try {
-    // 1️⃣ API call
-    const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
-    const apiData = apiRes.data;
+ // 🔹 Get all unprocessed 5-min docs in order
+    const pendingDocs = await this.meter5MinModel
+      .find({ isProcessed: false })
+      .sort({ timestamp: 1 })
+      .lean();
 
-    // 2️⃣ Round current time to nearest 1-minute slot
-  // 2️⃣ Round current time to nearest 15-minute slot in UTC
-const now = new Date();
-const roundedMinutes = Math.floor(now.getMinutes() / 3) * 3;
-const timestamp15UTC = new Date(now);
-timestamp15UTC.setMinutes(roundedMinutes, 0, 0);
 
-// 🔹 Convert UTC → Karachi (+05:00)
-const timestamp15 = new Date(timestamp15UTC.getTime() + 5 * 60 * 60 * 1000)
-  .toISOString()
-  .replace('Z', '+05:00');
-
-    // 3️⃣ Check last doc
-    const lastDoc = await this.fieldMeterRawDataModel.findOne().sort({ timestamp: -1 });
-
-    //  🔸🔸 get current areas from toggles as fallback when there's no process/raw doc
+    if (pendingDocs.length === 0) {
+      console.log("❌ No 5-minute record found in 5min_historical");
+      return;
+    }
+  
+     //🔸Get current areas from toggles as fallback when there's no process/raw doc
     const toggles = await this.toggleModel.find().lean();
     const areaMap: Record<string, string> = {};
     for (const t of toggles) {
       areaMap[`${t.meterId}_Del_ActiveEnergy`] = t.area; // same key shape as raw
     }
+    let lastInsertedDoc: any = null;  // optional, just to return something at the end
+
+    // 🔁 Process each pending 5-min doc one by one
+    for (const latest5MinDoc of pendingDocs) {
+    const fieldTimestamp = (latest5MinDoc as any).timestamp;
+    // This matches EXACTLY the same as apiData from Node-RED
+    const apiData = latest5MinDoc;
+
+    // console.log("API DATA ££££££££££££££££££",apiData);
+
+    // 3️⃣ Check last doc
+    const lastDoc = await this.fieldMeterRawDataModel.findOne().sort({ timestamp: -1 });
 
     const realTimeValuesObj: Record<string, { area: string; value: number }> = {};
     for (const meterId of Object.keys(this.METER_UNIT_MAP)) {
@@ -341,31 +348,39 @@ const timestamp15 = new Date(timestamp15UTC.getTime() + 5 * 60 * 60 * 1000)
     }
 
     // 4️⃣ Insert with upsert (only one cron doc per minute)
-    const newDoc = await this.fieldMeterRawDataModel.findOneAndUpdate(
-      { timestamp: timestamp15, source: 'cron' }, // unique condition
-    
-      {
-        $setOnInsert: {
-          ...realTimeValuesObj,
-          timestamp: timestamp15,
-          source: 'cron',
+      const newDoc = await this.fieldMeterRawDataModel.findOneAndUpdate(
+        { timestamp: fieldTimestamp, source: 'cron' },
+        {
+          $setOnInsert: {
+            timestamp: fieldTimestamp,   // 🟢 PLC timestamp preserved
+            insertedAt: new Date(),      // 🟢 System insertion time
+            source: 'cron'
+          },
+          $set: {
+            ...realTimeValuesObj         // 🟢 SAME structure as before
+          }
         },
-      },
-      { upsert: true, new: true }
-    );
+        { upsert: true, new: true }
+      );
 
-    console.log(`✅ Cron insert complete for ${timestamp15}`);
 
+    console.log(`✅ Cron insert complete for ${fieldTimestamp}`);
+    lastInsertedDoc = newDoc;
     // After storing the real-time data, now call the calculateConsumption function
-    await this.calculateConsumption(); // Calling calculateConsumption after storing data
+    await this.calculateConsumption(String(newDoc._id)); // Calling calculateConsumption after storing data
 
-    return newDoc;
+          // 🔹 Mark this 5min doc as processed
+      await this.meter5MinModel.updateOne(
+        { _id: latest5MinDoc._id },
+        { $set: { isProcessed: true } },
+      );
+    }
+    return lastInsertedDoc;
 
   } catch (err) {
     console.error('❌ Cron error:', err.message);
   }
 }
-
 
 async calculateConsumption(rawId?: string) {
   const meterKeys = [
@@ -573,10 +588,16 @@ if (isFirstForThisMeter) {
   }
 
   await this.fieldMeterProcessDataModel.updateOne(
-    { timestamp: adjustedTimestamp },   // ✅ yahan bhi
-    { $set: orderedDoc },
+    { timestamp: adjustedTimestamp },
+    {
+      $setOnInsert: {
+        insertedAt: new Date()
+      },
+      $set: orderedDoc
+    },
     { upsert: true }
   );
+
 
   console.log("💾 Cron processDoc inserted successfully");
   // console.log("📊 Final Consumption (cron):", JSON.stringify(flatMeters, null, 2));
@@ -592,7 +613,6 @@ const flatMeters: Record<string, { fV: number; lV: number; CONS: number; cumulat
 const adjustedTimestamp = new Date(
   new Date(lastRawDoc.timestamp).getTime() + 5 * 60 * 60 * 1000
 );
-// const adjustedTimestamp = new Date(lastRawDoc.timestamp);
 
 for (const meterId of meterKeys) {
   const meterObj = lastRawDoc[meterId];
@@ -722,9 +742,6 @@ if (isFirstForThisMeter) {
   flatMeters[`lastArea_${meterId}`] = currentArea;
 }
 
-// const orderedDoc: Record<string, any> = {
-//   timestamp: adjustedTimestamp,
-// };
   const orderedDoc: Record<string, any> = {
     timestamp: adjustedTimestamp,
     source: 'toggle',

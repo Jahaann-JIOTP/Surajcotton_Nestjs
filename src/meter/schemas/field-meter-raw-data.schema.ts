@@ -10,6 +10,9 @@ export class FieldMeterRawData extends Document {
   @Prop()
   timestamp: string;
 
+  @Prop({ default: Date.now })
+  insertedAt: Date;
+
 }
 
 export const FieldMeterRawDataSchema = SchemaFactory.createForClass(FieldMeterRawData);
