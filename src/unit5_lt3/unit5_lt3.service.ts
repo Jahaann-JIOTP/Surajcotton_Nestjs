@@ -17,7 +17,7 @@ const meterMap: Record<string, string> = {
   U12_GW02: 'Lighting Internal',
   U14_GW02: 'Comber 1-14 + Lap Former 1-3',
   U15_GW02: 'Ring A/C (Return Fans)',
-  U16_GW02: 'Water Chiller',
+  U16_GW02: 'PF Panel',
   U17_GW02: 'Card 8-14',
   U18_GW02: 'Winding 1-9',
   U19_GW02: 'Card 1-7',

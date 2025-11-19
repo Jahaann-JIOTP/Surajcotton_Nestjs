@@ -183,7 +183,7 @@ export class Unit4LT1Service {
 
       { from: 'TotalLT1', to: meterMap['U2_PLC'], value: safe('U2_PLC_Del_ActiveEnergy') },
       { from: 'TotalLT1', to: meterMap['U16_PLC'], value: safe('U16_PLC_Del_ActiveEnergy') },
-      { from: 'TotalLT1', to: 'PDB07->To U5LT1 (AutoCone1-9)', value: PDB07_U4 },
+      { from: 'TotalLT1', to: 'PDB07->To U5LT1 (Winding 1-9)', value: PDB07_U4 },
       { from: 'TotalLT1', to: 'Unaccounted Energy', value: unaccountedEnergy },
     ];
 

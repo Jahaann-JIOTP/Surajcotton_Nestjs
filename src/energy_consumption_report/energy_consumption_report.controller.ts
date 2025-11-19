@@ -15,20 +15,27 @@ export class EnergyconsumptionreportController {
     return this.energyCostService.getConsumptionData(dto);
   }
  // ⬇️⬇️ ADD THIS NEW ENDPOINT HERE
-  @UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard)
 @Post('unit-only')
 async getUnitOnlyConsumption(@Body() dto: GetEnergyCostDto) {
   const report = await this.energyCostService.getConsumptionData(dto);
 
   const daily = report?.dailyConsumption ?? [];
+  const production = report?.productionSummary ?? [];
 
-  const unit4 = daily.find((x: any) => x.Unit === 4)?.Total_Consumption || 0;
-  const unit5 = daily.find((x: any) => x.Unit === 5)?.Total_Consumption || 0;
+  const unit4Daily = daily.find((x: any) => x.Unit === 4) || {};
+  const unit5Daily = daily.find((x: any) => x.Unit === 5) || {};
+
+  const unit4Production = production.find((x: any) => x.Unit === 4) || {};
+  const unit5Production = production.find((x: any) => x.Unit === 5) || {};
 
   return {
-    Unit_4_Consumption: unit4,
-    Unit_5_Consumption: unit5,
+    Unit_4_Consumption: unit4Daily.Total_Consumption || 0,
+    Unit_4_ConsumptionPerBag: unit4Production.consumptionperbag || 0,
+    Unit_5_Consumption: unit5Daily.Total_Consumption || 0,
+    Unit_5_ConsumptionPerBag: unit5Production.consumptionperbag || 0,
   };
 }
+
 
 }
