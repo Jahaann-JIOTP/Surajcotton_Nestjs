@@ -17,18 +17,10 @@ export async function getTrends({
   model,
   timezone = 'Asia/Karachi',
 }: TrendOptions) {
-  // ✅ Time range banate hue +05:00 offset add karo
   const startISO = `${startDate}T06:00:00.000+05:00`;
-
   const nextDay = moment(endDate).add(1, 'day').format('YYYY-MM-DD');
-  
-  // 👇 end ko thoda extend kar diya (59.999)
   const endISO = `${nextDay}T06:00:59.999+05:00`;
-  
 
-  // console.log('📌 Query range:', startISO, '➡️', endISO);
-
-  // Field suffixes
   const energySuffix = 'Del_ActiveEnergy';
   const powerSuffix = 'ActivePower_Total';
   const currentSuffix = 'Current_Avg';
@@ -37,7 +29,6 @@ export async function getTrends({
   const PowerFactor_AvgSuffix = 'PowerFactor_Avg';
   const harmonicsSuffixes = ['Harmonics_V1_THD', 'Harmonics_V2_THD', 'Harmonics_V3_THD'];
 
-  // ✅ Build projection
   const projection: Record<string, 1> = { timestamp: 1 };
   meters.forEach((m) => {
     projection[`${m}_${energySuffix}`] = 1;
@@ -49,24 +40,19 @@ export async function getTrends({
     harmonicsSuffixes.forEach((h) => (projection[`${m}_${h}`] = 1));
   });
 
-  // ✅ Fetch data
   const raw = await model
     .find({ timestamp: { $gte: startISO, $lt: endISO } }, projection)
     .sort({ timestamp: 1 })
     .lean();
 
-  // console.log('📌 Raw docs count:', raw.length);
-
-  // ✅ Convert raw docs into 15-min buckets
   const meterValues: Record<string, any> = {};
   raw.forEach((doc) => {
     const ts = moment.tz(doc.timestamp as string, timezone);
-const tsKey = ts
-  .minutes(Math.floor(ts.minutes() / 15) * 15)
-  .seconds(0)
-  .milliseconds(0)
-  .toISOString(true);
-
+    const tsKey = ts
+      .minutes(Math.floor(ts.minutes() / 15) * 15)
+      .seconds(0)
+      .milliseconds(0)
+      .toISOString(true);
 
     const meterData: Record<string, any> = {};
     meters.forEach((m) => {
@@ -83,7 +69,6 @@ const tsKey = ts
         voltage: doc[`${m}_Voltage_Avg`] ?? 0,
         recEnergy: doc[`${m}_Rec_Active_Energy`] ?? 0,
         powerfactor: doc[`${m}_PowerFactor_Avg`] ?? 0,
-
         harmonicsAvg: uHarmonicsAvg,
       };
     });
@@ -91,9 +76,6 @@ const tsKey = ts
     meterValues[tsKey] = meterData;
   });
 
-  // console.log('📌 Meter values prepared keys:', Object.keys(meterValues).length);
-
-  // ✅ Generate 15-min buckets
   const result: any[] = [];
   let prevSumEnergy = 0;
   const cursor = moment(startISO, moment.ISO_8601).tz(timezone);
@@ -102,21 +84,22 @@ const tsKey = ts
 
   while (cursor.isBefore(end)) {
     const bucket = cursor.toISOString(true);
-    
     if (cursor.isSame(now, 'day') && cursor.isAfter(now)) break;
 
     const values = meterValues[bucket] ?? {};
 
-       let sumEnergy = 0,
+    // --- Initialize accumulators with same final variable names ---
+    let sumEnergy = 0,
       sumPower = 0,
-      sumCurrent = 0,
-      sumVoltage = 0,
       sumRecEnergy = 0,
+      sumVoltage = 0,
+      voltageCount = 0,
+      sumCurrent = 0,
+      currentCount = 0,
       sumpowerfactor = 0,
+      pfCount = 0,
       sumHarmonics = 0,
-      voltageCount = 0, // ✅ declare with let
-      currentCount = 0; // ✅ naya counter
-
+      harmonicCount = 0;
 
     meters.forEach((m) => {
       const v =
@@ -129,39 +112,54 @@ const tsKey = ts
           powerfactor: 0,
           harmonicsAvg: 0,
         };
+
+      // SUM fields
       sumEnergy += v.energy;
       sumPower += v.power;
-      sumCurrent += v.current;
-      sumVoltage += v.voltage;
       sumRecEnergy += v.recEnergy;
-      sumpowerfactor += v.powerfactor;
-      sumHarmonics += v.harmonicsAvg;
-       if (v.voltage > 0) {
-        voltageCount++; // ✅ sirf valid values count kare
+
+      // AVG Voltage
+      if (v.voltage > 0) {
+        sumVoltage += v.voltage;
+        voltageCount++;
       }
 
-        if (v.current > 0) {
-        currentCount++; // ✅ current count kare
+      // AVG Current
+      if (v.current > 0) {
+        sumCurrent += v.current;
+        currentCount++;
+      }
+
+      // AVG PF
+      if (v.powerfactor > 0) {
+        sumpowerfactor += v.powerfactor;
+        pfCount++;
+      }
+
+      // AVG Harmonics
+      if (v.harmonicsAvg > 0) {
+        sumHarmonics += v.harmonicsAvg;
+        harmonicCount++;
       }
     });
 
     const consumption = Math.max(sumEnergy - prevSumEnergy, 0);
+
     result.push({
       timestamp: bucket,
       consumption,
       sumEnergy: +sumEnergy.toFixed(2),
       sumActivePower: +sumPower.toFixed(2),
-      sumCurrent: currentCount > 0 ? +(sumCurrent / currentCount).toFixed(2) : 0, // ✅ average current
-      sumVoltage: voltageCount > 0 ? +(sumVoltage / voltageCount).toFixed(2) : 0,
       sumRecEnergy: +sumRecEnergy.toFixed(2),
-      sumpowerfactor: +sumpowerfactor.toFixed(2),
-      sumHarmonics: +sumHarmonics.toFixed(3),
+      sumVoltage: voltageCount > 0 ? +(sumVoltage / voltageCount).toFixed(2) : 0,
+      sumCurrent: currentCount > 0 ? +(sumCurrent / currentCount).toFixed(2) : 0,
+      sumpowerfactor: pfCount > 0 ? +(sumpowerfactor / pfCount).toFixed(2) : 0,
+      sumHarmonics: harmonicCount > 0 ? +(sumHarmonics / harmonicCount).toFixed(2) : 0,
     });
 
     prevSumEnergy = sumEnergy;
     cursor.add(15, 'minutes');
   }
 
-  // console.log('📌 Final result buckets:', result.length);
   return result;
 }

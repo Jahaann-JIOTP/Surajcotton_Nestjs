@@ -161,7 +161,7 @@ export class PieChartService {
       return [
         { category: 'LT Generation', total: ltTotal, color: '#2980b9', subData: ltSubData },
         { category: 'Solar Generation', total: solarTotal, color: '#e67f22', subData: solarSubData },
-        { category: 'WAPDA Import', total: wapdaTotal, color: '#27ae60', subData: wapdaSubData },
+        { category: 'Wapda Import', total: wapdaTotal, color: '#27ae60', subData: wapdaSubData },
         { category: 'HT Generation', total: htTotal, color: '#8e44ad', subData: htSubData },
       ];
     } catch (error: any) {

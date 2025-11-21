@@ -342,27 +342,27 @@ export class EnergyconsumptionreportService {
     // 🧾 Department Summary by process
     // ------------------------------------------------
     const departmentInfo = {
-      "Blow Room": { u4mcs: 2, u5mcs: 2, u4Lpd: 151, u5Lpd: 144.5 },
-      "Card +Breaker": { u4mcs: 16, u5mcs: 14, u4Lpd: 292, u5Lpd: 306.6 },
-      "Comber + Lap former": { u4mcs: 12, u5mcs: 17, u4Lpd: 84, u5Lpd: 318.2 },
-      "Drawing Finsher+Breaker": { u4mcs: 10, u5mcs: 8, u4Lpd: 94, u5Lpd: 77.6 },
-      "Simplex": { u4mcs: 6, u5mcs: 11, u4Lpd: 108, u5Lpd: 209.3 },
+      "Blow Room": { u4mcs: 2, u5mcs: 2, u4Lpd: 151, u5Lpd: 166},
+      "Card +Breaker": { u4mcs: 16, u5mcs: 14, u4Lpd: 292.4, u5Lpd: 313.6 },
+      "Comber + Lap former": { u4mcs: 12, u5mcs: 17, u4Lpd: 84, u5Lpd: 196.9 },
+      "Drawing Finsher+Breaker": { u4mcs: 10, u5mcs: 8, u4Lpd: 126, u5Lpd: 119.2 },
+      "Simplex": { u4mcs: 6, u5mcs: 11, u4Lpd: 109, u5Lpd: 209.2 },
       "R.Transport System": { u4mcs: 1, u5mcs: 1, u4Lpd: 30, u5Lpd: 30 },
-      "Ring Dept": { u4mcs: 24, u5mcs: 18, u4Lpd: 1920, u5Lpd: 2554 },
-      "Winding": { u4mcs: 9, u5mcs: 18, u4Lpd: 377, u5Lpd: 471.1 },
-      "B/Card + Comber Filter": { u4mcs: 2, u5mcs: 3, u4Lpd: 203, u5Lpd: 274 },
-      "Back Process A/C": { u4mcs: 2, u5mcs: 2, u4Lpd: 142, u5Lpd: 239.1 },
+      "Ring Dept": { u4mcs: 24, u5mcs: 18, u4Lpd: 1920, u5Lpd: 2554.2},
+      "Winding": { u4mcs: 9, u5mcs: 18, u4Lpd: 377.1, u5Lpd: 471.06 },
+      "B/Card + Comber Filter": { u4mcs: 2, u5mcs: 3, u4Lpd: 203.2, u5Lpd: 274 },
+      "Back Process A/C": { u4mcs: 2, u5mcs: 2, u4Lpd: 142.2, u5Lpd: 239.1 },
       "Ring A/C": { u4mcs: 1, u5mcs: 1, u4Lpd: 333, u5Lpd: 476 },
-      "Winding A/C": { u4mcs: 1, u5mcs: 1, u4Lpd: 98, u5Lpd: 100.5 },
-      "Air Compressor": { u4mcs: 3, u5mcs: 3, u4Lpd: 119, u5Lpd: 303 },
-      "Deep Well Turbine": { u4mcs: 1, u5mcs: 1, u4Lpd: 22, u5Lpd: 22 },
-      "Bailing Press ": { u4mcs: 1, u5mcs: 1, u4Lpd: 15, u5Lpd: 15 },
+      "Winding A/C": { u4mcs: 1, u5mcs: 1, u4Lpd: 98, u5Lpd: 108 },
+      "Air Compressor": { u4mcs: 3, u5mcs: 3, u4Lpd: 132, u5Lpd: 303 },
+      "Deep Well Turbine": { u4mcs: 1, u5mcs: 1, u4Lpd: 22, u5Lpd: 23},
+      "Bailing Press ": { u4mcs: 1, u5mcs: 1, u4Lpd: 15, u5Lpd: 24 },
       "Mills Lighting ": { u4mcs: 1, u5mcs: 1, u4Lpd: 60, u5Lpd: 30 },
       "Residential Colony": { u4mcs: 1, u5mcs: 1, u4Lpd: 60, u5Lpd: 0 },
-      "Conditioning Machine ": { u4mcs: 1, u5mcs: 1, u4Lpd: 72, u5Lpd: 72 },
+      "Conditioning Machine ": { u4mcs: 1, u5mcs: 1, u4Lpd: 80, u5Lpd: 80 },
       "Lab + Offices": { u4mcs: 2, u5mcs: 0, u4Lpd: 8, u5Lpd: 0 },
-      "HFO Plant Aux(2nd Source)": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
-      "Gas Plant Aux(2nd Source)": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
+      "HFO Plant Aux(2nd Source)": { u4mcs: 0, u5mcs: 0, u4Lpd: 203, u5Lpd: 0 },
+      "Gas Plant Aux(2nd Source)": { u4mcs: 0, u5mcs: 0, u4Lpd: 130, u5Lpd: 0 },
       "Water Chiller": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
       "HFO + JMS Auxiliary": { u4mcs: 1, u5mcs: 0, u4Lpd: 250, u5Lpd: 0 },
       "Spare/PF panels": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
@@ -987,6 +987,9 @@ HTside["Total"] = +totalHTIncoming.toFixed(2);
 
     const HT_Transmission_Losses1 = Math.max(0, (Wapda + Niigata + JMS) - (mainincomingunit5 + PH_IC));
     const HT_Transmission_Losses = HT_Transmission_Losses1 - hfoaux;
+    // --- Loss percentages ---
+    const unit4LossPercent = trafo12 > 0 ? (unit4losses / trafo12) * 100 : 0;
+    const unit5LossPercent = trafo34 > 0 ? (unit5losses / trafo34) * 100 : 0;
 
 
 // --- Total Losses ---
@@ -994,8 +997,10 @@ HTside["Total"] = +totalHTIncoming.toFixed(2);
 // 🧾 Build losses summary object
 const lossesSummary = {
       HT_Transmission_Losses: this.round2(HT_Transmission_Losses),
-      Unit_4_TrafoLosses: this.round2(unit4losses),
-      Unit_5_TrafoLosses: this.round2(unit5losses),
+      Unit_4_TrafoLosses: `${this.round2(unit4losses)} (${this.round2(unit4LossPercent)}%)`,
+      Unit_5_TrafoLosses: `${this.round2(unit5losses)} (${this.round2(unit5LossPercent)}%)`,
+      // Unit_4_Loss_Percent: this.round2(unit4LossPercent),
+      // Unit_5_Loss_Percent: this.round2(unit5LossPercent),
       Total_Losses: this.round2(unit4losses + unit5losses + HT_Transmission_Losses),
     };
 // 🏭 PRODUCTION SUMMARY (from EnergySpindleService)

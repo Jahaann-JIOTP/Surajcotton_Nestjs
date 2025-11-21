@@ -58,14 +58,13 @@ export class PlantsTrendsService {
 
   async getPlantsTrends(startDate: string, endDate: string, type?: string) {
     const meters = [
-      'U19_PLC',
-      'U11_GW01',
-      'U6_GW02',
-      'U17_GW03',
-      'U22_PLC',
-      'U26_PLC',
-      'U22_GW01',
-      'U27_PLC',
+      'U23_GW01', // wapda1
+      'U21_GW03', //main incoming unit5
+      'U22_PLC', //hf01
+      'U25_PLC', //hfo aux
+      'U26_PLC', // jms620
+      'U22_GW01',// phic
+      'U27_PLC', //wapda2
     ];
     const data = await getTrends({
       startDate,
@@ -88,7 +87,7 @@ export class PlantsTrendsService {
   }
 
   async getUnit4LT2Trends(startDate: string, endDate: string, type?: string) {
-    const meters = ['U13_GW01', 'U11_GW01'];
+    const meters = ['U13_GW01', 'U11_GW01', 'U24_GW01', 'U28_PLC'];
     const data = await getTrends({
       startDate,
       endDate,
