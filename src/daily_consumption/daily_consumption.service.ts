@@ -139,14 +139,14 @@ export class DailyConsumptionService {
 
   { energy: 'U20_GW02_Del_ActiveEnergy', power: 'U20_GW02_ActivePower_Total', powerFactor: 'U20_GW02_PowerFactor_Avg', voltage: 'U20_GW02_Voltage_Avg', metername: 'Winding A/C', deptname: 'Winding A/C', MCS: '1', installedLoad: '108', info:'100.5kW + 7.5kW' },
 
-  { energy: 'U21_GW02_Del_ActiveEnergy', power: 'U21_GW02_ActivePower_Total', powerFactor: 'U21_GW02_PowerFactor_Avg', voltage: 'U21_GW02_Voltage_Avg', metername: 'Simplex + Drawing Breaker', deptname: 'Simplex + Drawing Breaker', MCS: '11', installedLoad: '209.3', info:'5*33.2kW + 3*14.4kW' },
+  { energy: 'U21_GW02_Del_ActiveEnergy', power: 'U21_GW02_ActivePower_Total', powerFactor: 'U21_GW02_PowerFactor_Avg', voltage: 'U21_GW02_Voltage_Avg', metername: 'Simplex + Drawing Breaker', deptname: 'Simplex + Drawing Breaker', MCS: '11', installedLoad: '209.2', info:'5*33.2kW + 3*14.4kW' },
 
   { energy: 'U23_GW02_Del_ActiveEnergy', power: 'U23_GW02_ActivePower_Total', powerFactor: 'U23_GW02_PowerFactor_Avg', voltage: 'U23_GW02_Voltage_Avg', metername: 'Drawing Finisher 1-8', deptname: 'Drawing Finisher', MCS: '8', installedLoad: '119.2', info:'8*14.9kW' }
 ];
 
       private unit5Lt2Meters = [
     { energy: 'U1_GW03_Del_ActiveEnergy', power: 'U1_GW03_ActivePower_Total', powerFactor: 'U1_GW03_PowerFactor_Avg', voltage: 'U1_GW03_Voltage_Avg', metername: 'Ring 7-9', deptname: 'Ring Dept', MCS: '3', installedLoad: '425.7' },
-    { energy: 'U2_GW03_Del_ActiveEnergy', power: 'U2_GW03_ActivePower_Total', powerFactor: 'U2_GW03_PowerFactor_Avg', voltage: 'U2_GW03_Voltage_Avg', metername: 'conditioning Machine', deptname: 'Conditioning Machine', MCS: '1', installedLoad: '80' },
+    { energy: 'U2_GW03_Del_ActiveEnergy', power: 'U2_GW03_ActivePower_Total', powerFactor: 'U2_GW03_PowerFactor_Avg', voltage: 'U2_GW03_Voltage_Avg', metername: 'Conditioning Machine', deptname: 'Conditioning Machine', MCS: '1', installedLoad: '80' },
     { energy: 'U3_GW03_Del_ActiveEnergy', power: 'U3_GW03_ActivePower_Total', powerFactor: 'U3_GW03_PowerFactor_Avg', voltage: 'U3_GW03_Voltage_Avg', metername: 'Colony', deptname: 'Residential Colony', MCS: '1', installedLoad: '0' },
     { energy: 'U4_GW03_Del_ActiveEnergy', power: 'U4_GW03_ActivePower_Total', powerFactor: 'U4_GW03_PowerFactor_Avg', voltage: 'U4_GW03_Voltage_Avg', metername: 'Roving Transport System', deptname: 'R. Transport System', MCS: '1', installedLoad: '30' },
     { energy: 'U5_GW03_Del_ActiveEnergy', power: 'U5_GW03_ActivePower_Total', powerFactor: 'U5_GW03_PowerFactor_Avg', voltage: 'U5_GW03_Voltage_Avg', metername: 'Ring 10-12', deptname: 'Ring Dept', MCS: '3', installedLoad: '425.7' },
@@ -154,7 +154,7 @@ export class DailyConsumptionService {
      { energy: 'U7_GW03_Del_ActiveEnergy', power: 'U7_GW03_ActivePower_Total', powerFactor: 'U7_GW03_PowerFactor_Avg', voltage: 'U7_GW03_Voltage_Avg', metername: 'Spare 1', deptname: 'Spare/PF panels', MCS: '0', installedLoad: '0' },
     // { energy: 'U8_GW03_Del_ActiveEnergy', power: 'U8_GW03_ActivePower_Total', powerFactor: 'U8_GW03_PowerFactor_Avg', voltage: 'U8_GW03_Voltage_Avg', metername: 'Spare 2', deptname: 'Spare/PF panels', MCS: '0', installedLoad: '0' },
     { energy: 'U9_GW03_Del_ActiveEnergy', power: 'U9_GW03_ActivePower_Total', powerFactor: 'U9_GW03_PowerFactor_Avg', voltage: 'U9_GW03_Voltage_Avg', metername: 'Ring 13-15', deptname: 'Ring Dept', MCS: '3', installedLoad: '425.7' },
-    { energy: 'U10_GW03_Del_ActiveEnergy', power: 'U10_GW03_ActivePower_Total', powerFactor: 'U10_GW03_PowerFactor_Avg', voltage: 'U10_GW03_Voltage_Avg', metername: 'Winding 10-18', deptname: 'Winding', MCS: '9', installedLoad: '253.53' },
+    { energy: 'U10_GW03_Del_ActiveEnergy', power: 'U10_GW03_ActivePower_Total', powerFactor: 'U10_GW03_PowerFactor_Avg', voltage: 'U10_GW03_Voltage_Avg', metername: 'Winding 10-18', deptname: 'Winding', MCS: '9', installedLoad: '235.53' },
     { energy: 'U11_GW03_Del_ActiveEnergy', power: 'U11_GW03_ActivePower_Total', powerFactor: 'U11_GW03_PowerFactor_Avg', voltage: 'U11_GW03_Voltage_Avg', metername: 'Bailing Press', deptname: 'Bailing Press', MCS: '1', installedLoad: '24', info:'15 + 09' },
     { energy: 'U12_GW03_Del_ActiveEnergy', power: 'U12_GW03_ActivePower_Total', powerFactor: 'U12_GW03_PowerFactor_Avg', voltage: 'U12_GW03_Voltage_Avg', metername: 'Ring 16-18', deptname: 'Ring Dept', MCS: '3', installedLoad: '425.7' },
     { energy: 'U13_GW03_Del_ActiveEnergy', power: 'U13_GW03_ActivePower_Total', powerFactor: 'U13_GW03_PowerFactor_Avg', voltage: 'U13_GW03_Voltage_Avg', metername: 'B/Card Comber Filter', deptname: 'B/Card + Comber Filter', MCS: '3', installedLoad: '274' },
