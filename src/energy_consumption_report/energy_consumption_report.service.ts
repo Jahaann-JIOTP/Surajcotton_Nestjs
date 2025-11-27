@@ -122,9 +122,9 @@ export class EnergyconsumptionreportService {
       Lab_and_Offices: { Unit_4: ['U19_GW01'] },
       "HFO Plant Aux(2nd Source)": { Unit_4: ['U5_PLC'] },
       "Gas Plant Aux(2nd Source)": { Unit_4: ['U7_GW01'] },//remove u11 to u7
-      "Water Chiller": { Unit_5: ['U16_GW02'] },
+      // "Water Chiller": { Unit_5: ['U16_GW02'] },
       "HFO + JMS Auxiliary": { Unit_5: [""] },
-      Spare: { Unit_4: ['U6_GW01', 'U21_GW01'], Unit_5: ['U7_GW03', 'U8_GW03', 'U18_GW03'] },
+      Spare: { Unit_4: ['U6_GW01', 'U21_GW01'], Unit_5: ['U7_GW03', 'U8_GW03','U16_GW02', 'U18_GW03'] },
     };
 
     // ------------------------------------------------
@@ -343,7 +343,7 @@ export class EnergyconsumptionreportService {
     // ------------------------------------------------
     const departmentInfo = {
       "Blow Room": { u4mcs: 2, u5mcs: 2, u4Lpd: 151, u5Lpd: 166},
-      "Card +Breaker": { u4mcs: 16, u5mcs: 14, u4Lpd: 292.4, u5Lpd: 313.6 },
+      "Card +Breaker": { u4mcs: 16, u5mcs: 15, u4Lpd: 292.4, u5Lpd: 313.6 },
       "Comber + Lap former": { u4mcs: 12, u5mcs: 17, u4Lpd: 84, u5Lpd: 196.9 },
       "Drawing Finsher+Breaker": { u4mcs: 10, u5mcs: 8, u4Lpd: 126, u5Lpd: 119.2 },
       "Simplex": { u4mcs: 6, u5mcs: 11, u4Lpd: 109, u5Lpd: 209.2 },
@@ -351,21 +351,21 @@ export class EnergyconsumptionreportService {
       "Ring Dept": { u4mcs: 24, u5mcs: 18, u4Lpd: 1920, u5Lpd: 2554.2},
       "Winding": { u4mcs: 9, u5mcs: 18, u4Lpd: 377.1, u5Lpd: 471.06 },
       "B/Card + Comber Filter": { u4mcs: 2, u5mcs: 3, u4Lpd: 203.2, u5Lpd: 274 },
-      "Back Process A/C": { u4mcs: 2, u5mcs: 2, u4Lpd: 142.2, u5Lpd: 239.1 },
-      "Ring A/C": { u4mcs: 1, u5mcs: 1, u4Lpd: 333, u5Lpd: 476 },
+      "Back Process A/C": { u4mcs: 2, u5mcs: 1, u4Lpd: 142.2, u5Lpd: 239.1 },
+      "Ring A/C": { u4mcs: 56, u5mcs: 37, u4Lpd: 333, u5Lpd: 476 },
       "Winding A/C": { u4mcs: 1, u5mcs: 1, u4Lpd: 98, u5Lpd: 108 },
-      "Air Compressor": { u4mcs: 3, u5mcs: 3, u4Lpd: 132, u5Lpd: 303 },
+      "Air Compressor": { u4mcs: 6, u5mcs: 3, u4Lpd: 132, u5Lpd: 303 },
       "Deep Well Turbine": { u4mcs: 1, u5mcs: 1, u4Lpd: 22, u5Lpd: 23},
       "Bailing Press ": { u4mcs: 1, u5mcs: 1, u4Lpd: 15, u5Lpd: 24 },
-      "Mills Lighting ": { u4mcs: 1, u5mcs: 1, u4Lpd: 60, u5Lpd: 30 },
-      "Residential Colony": { u4mcs: 1, u5mcs: 1, u4Lpd: 60, u5Lpd: 0 },
+      "Mills Lighting ": { u4mcs: 1388, u5mcs: 1479, u4Lpd: 60, u5Lpd: 30 },
+      "Residential Colony": { u4mcs: 2, u5mcs: 1, u4Lpd: 60, u5Lpd: 0 },
       "Conditioning Machine ": { u4mcs: 1, u5mcs: 1, u4Lpd: 80, u5Lpd: 80 },
       "Lab + Offices": { u4mcs: 2, u5mcs: 0, u4Lpd: 8, u5Lpd: 0 },
-      "HFO Plant Aux(2nd Source)": { u4mcs: 0, u5mcs: 0, u4Lpd: 203, u5Lpd: 0 },
-      "Gas Plant Aux(2nd Source)": { u4mcs: 0, u5mcs: 0, u4Lpd: 130, u5Lpd: 0 },
-      "Water Chiller": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
+      "HFO Plant Aux(2nd Source)": { u4mcs: 10, u5mcs: 0, u4Lpd: 203, u5Lpd: 0 },
+      "Gas Plant Aux(2nd Source)": { u4mcs: 16, u5mcs: 0, u4Lpd: 130, u5Lpd: 0 },
+      // "Water Chiller": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
       "HFO + JMS Auxiliary": { u4mcs: 1, u5mcs: 0, u4Lpd: 250, u5Lpd: 0 },
-      "Spare/PF panels": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
+      "Spare/PF panels": { u4mcs: 0, u5mcs: 24, u4Lpd: 0, u5Lpd: 0 },
     };
 
     const deptProcessKeyMap: Record<string, string> = {
@@ -390,7 +390,7 @@ export class EnergyconsumptionreportService {
       "Lab + Offices": "Lab_and_Offices",
       "HFO Plant Aux(2nd Source)": "HFO Plant Aux(2nd Source)",
       "Gas Plant Aux(2nd Source)": "Gas Plant Aux(2nd Source)",
-      "Water Chiller": "Water Chiller",
+      // "Water Chiller": "Water Chiller",
       "HFO + JMS Auxiliary": "HFO + JMS Auxiliary",
       "Spare/PF panels": "Spare",
     };
@@ -990,19 +990,79 @@ HTside["Total"] = +totalHTIncoming.toFixed(2);
     // --- Loss percentages ---
     const unit4LossPercent = trafo12 > 0 ? (unit4losses / trafo12) * 100 : 0;
     const unit5LossPercent = trafo34 > 0 ? (unit5losses / trafo34) * 100 : 0;
+    const u25Key = "U25_PLC_Del_ActiveEnergy";
 
+    // 🔹 Actual total consumption (U25 meter)
+    const u25Consumption = this.sanitizeValue(
+      (lastDoc?.[u25Key] ?? 0) - (firstDoc?.[u25Key] ?? 0)
+    );
+    const Total_Unaccounted_Energy = +(
+  Unit_4_Unaccounted_Energy + Unit_5_Unaccounted_Energy
+).toFixed(2);
 
-// --- Total Losses ---
+// 🔹 Helper to extract number from `"420.12 (3.1%)"`
+const extractNumber = (val: any) => {
+  if (typeof val === "number") return val;
+
+  if (typeof val === "string") {
+    // Remove commas, then extract number
+    const cleaned = val.replace(/,/g, "");
+    const match = cleaned.match(/[-]?\d+(\.\d+)?/);
+    return match ? Number(match[0]) : 0;
+  }
+
+  return 0;
+};
+// 🔹 Format number with commas: 1234.56 → "1,234.56"
+const formatNum = (num: number) => {
+  if (isNaN(num)) return "0";
+  return num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 
 // 🧾 Build losses summary object
-const lossesSummary = {
+const lossesSummary: any = {
+      Unit_4_Consumption: Unit_4_Total_Consumption,
+      Unit_5_Consumption: Unit_5_Total_Consumption,
+      HFO_Auxiliary: u25Consumption, // 👈 NEW LINE ADDED
       HT_Transmission_Losses: this.round2(HT_Transmission_Losses),
-      Unit_4_TrafoLosses: `${this.round2(unit4losses)} (${this.round2(unit4LossPercent)}%)`,
-      Unit_5_TrafoLosses: `${this.round2(unit5losses)} (${this.round2(unit5LossPercent)}%)`,
+      Unit_4_TrafoLosses: `${formatNum(unit4losses)} (kWh) (${this.round2(unit4LossPercent)}%)`,
+      Unit_5_TrafoLosses: `${formatNum(unit5losses)} (kWh) (${this.round2(unit5LossPercent)}%)`,
+
+      Total_Unaccounted_Energy: Total_Unaccounted_Energy,
       // Unit_4_Loss_Percent: this.round2(unit4LossPercent),
       // Unit_5_Loss_Percent: this.round2(unit5LossPercent),
-      Total_Losses: this.round2(unit4losses + unit5losses + HT_Transmission_Losses),
+      // Total_Losses: this.round2(unit4losses + unit5losses + HT_Transmission_Losses),
+       Total_Consumption: 0,   // 👈 INITIALIZE IT HERE!
+      // delta: 0,   // 👈 INITIALIZE IT HERE!
+      // delta_percent:0,
+      // delta_display:0,
     };
+    // 🔹 Now calculate GRAND TOTAL (sum of all values)
+const Total_Consumption = +(
+  Number(lossesSummary.Unit_4_Consumption) +
+  Number(lossesSummary.Unit_5_Consumption) +
+  Number(lossesSummary.HFO_Auxiliary) +
+  Number(lossesSummary.HT_Transmission_Losses) +
+  extractNumber(lossesSummary.Unit_4_TrafoLosses) +
+  extractNumber(lossesSummary.Unit_5_TrafoLosses) +
+  Number(lossesSummary.Total_Unaccounted_Energy)
+).toFixed(2);
+
+// Add into final object
+lossesSummary.Total_Consumption  = Total_Consumption;
+HTside["Total"] = +totalHTIncoming.toFixed(2);
+const delta = +(HTside["Total"] - Total_Consumption).toFixed(2);
+const deltaPercent = HTside["Total"] > 0 
+  ? +((delta / HTside["Total"]) * 100).toFixed(2)
+  : 0;
+// lossesSummary.delta = delta;
+// lossesSummary.delta_percent = deltaPercent;
+
+lossesSummary["Δ Generation / Consumption"] = `${this.round2(delta)} (kWh) (${this.round2(deltaPercent)}%)`;
+
+//losses summary end
+
 // 🏭 PRODUCTION SUMMARY (from EnergySpindleService)
 const productionSummaryDaily: any[] = [];
 const productionSummary: any[] = [];
