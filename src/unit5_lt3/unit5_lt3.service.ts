@@ -192,10 +192,11 @@ export class Unit5LT3Service {
 
       totalConsumption += val;
     }
+    totalConsumption += u16;
 
     /** ---------------- TRANSFERS ---------------- */
     const totalTransferredToUnit4 = this.safeRound(
-      u16 + u2 +
+      
       (consumptionTotals["U22_GW02_Del_ActiveEnergy"] ?? 0) +
       legs.PDB1CD1_U5 +
       legs.PDB2CD2_U5
@@ -227,8 +228,11 @@ export class Unit5LT3Service {
       ...plcLegs,
 
       { from: "TotalLT3", to: meterMap["U22_GW02"], value: consumptionTotals["U22_GW02_Del_ActiveEnergy"] },
+      { from: "TotalLT3", to: "Compressor 303 kW", value: u16 },
       { from: "TotalLT3", to: "PDBCD1 → U4LT2", value: legs.PDB1CD1_U5 },
       { from: "TotalLT3", to: "PDBCD2 → U4LT2", value: legs.PDB2CD2_U5 },
+       // Add compressor on the consumption side
+      
 
       { from: "TotalLT3", to: "Unaccounted Energy", value: unaccountedEnergy },
     ];

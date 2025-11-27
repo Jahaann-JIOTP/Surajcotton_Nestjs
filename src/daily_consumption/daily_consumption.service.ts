@@ -120,7 +120,7 @@ export class DailyConsumptionService {
 
   { energy: 'U10_GW02_Del_ActiveEnergy', power: 'U10_GW02_ActivePower_Total', powerFactor: 'U10_GW02_PowerFactor_Avg', voltage: 'U10_GW02_Voltage_Avg', metername: 'Ring 4-6', deptname: 'Ring Dept', MCS: '3', installedLoad: '425.7' },
 
-  { energy: 'U11_GW02_Del_ActiveEnergy', power: 'U11_GW02_ActivePower_Total', powerFactor: 'U11_GW02_PowerFactor_Avg', voltage: 'U11_GW02_Voltage_Avg', metername: 'A/C Back Process', deptname: 'Back Process A/C', MCS: '1', installedLoad: '239.1' },
+  { energy: 'U11_GW02_Del_ActiveEnergy', power: 'U11_GW02_ActivePower_Total', powerFactor: 'U11_GW02_PowerFactor_Avg', voltage: 'U11_GW02_Voltage_Avg', metername: 'Back Process A/C', deptname: 'Back Process A/C', MCS: '1', installedLoad: '239.1' },
   { energy: 'U12_GW02_Del_ActiveEnergy', power: 'U12_GW02_ActivePower_Total', powerFactor: 'U12_GW02_PowerFactor_Avg', voltage: 'U12_GW02_Voltage_Avg', metername: 'Lighting Internal', deptname: 'Mills Lighting', MCS: '1479', installedLoad: '30' },
 
   { energy: 'U14_GW02_Del_ActiveEnergy', power: 'U14_GW02_ActivePower_Total', powerFactor: 'U14_GW02_PowerFactor_Avg', voltage: 'U14_GW02_Voltage_Avg', metername: 'Comber 1-14 + Lap Former 1-3', deptname: 'Comber + Lap Former', MCS: '17', installedLoad: '196.9', info:'14*11kW + 03*14.3kW'},

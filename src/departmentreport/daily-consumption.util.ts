@@ -75,7 +75,7 @@ const totalHours = Math.max(
   const meters: any[] = [];
 
   for (const meter of metersConfig) {
-    const { energy, power, powerFactor, voltage, metername, deptname, MCS, installedLoad } = meter;
+    const { energy, power, powerFactor, voltage, metername, deptname, MCS, installedLoad,lt } = meter;
 
     // console.log(`\n================= Meter: ${metername} (${energy}) =================`);
 
@@ -150,6 +150,7 @@ const totalHours = Math.max(
       deptname,
       MCS,
       installedLoad,
+      lt, 
     };
 
     meters.push(result);

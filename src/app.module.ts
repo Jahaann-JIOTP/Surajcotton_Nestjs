@@ -37,6 +37,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AlarmsModule } from './alarms/alarms.module';
 import { DailyConsumptionModule } from './daily_consumption/daily_consumption.module';
 import { PlantsTrendsModule } from './plants_trends/plants_trends.module';
+import { departmentreportModule } from './departmentreport/daily_consumption.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { PlantsTrendsModule } from './plants_trends/plants_trends.module';
     PowerSummaryReportModule,
     DailyConsumptionModule,
     PlantsTrendsModule,
+    departmentreportModule,
   ],
   controllers: [AppController],
   providers: [AppService],

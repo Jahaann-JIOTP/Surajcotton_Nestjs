@@ -277,6 +277,85 @@ const { totalHours } = result;
 
   return result;
 }
+// ------------------------------------------------------
+// ✅ NEW METHOD: Department + Area Based Final Output
+// ------------------------------------------------------
+async getDepartmentDailySummary(dto: ConsumptionDto) {
+  // 1. AREA → decide which LT groups to include
+  const selectedLines: (
+    'LT1' | 'LT2' | 'Unit5-LT1' | 'Unit5-LT2'
+  )[] = [];
+
+  switch (dto.area) {
+    case 'Unit4':
+      selectedLines.push('LT1', 'LT2');
+      break;
+
+    case 'Unit5':
+      selectedLines.push('Unit5-LT1', 'Unit5-LT2');
+      break;
+
+    case 'All':
+      selectedLines.push('LT1', 'LT2', 'Unit5-LT1', 'Unit5-LT2');
+      break;
+
+    default:
+      throw new Error(`❌ Invalid area selected: ${dto.area}`);
+  }
+
+  // 2. RUN calculateConsumption() for each LT group
+  const allMeters: any[] = [];
+
+  for (const line of selectedLines) {
+    const res = await this.calculateConsumption(dto, line);
+    if (res?.meters) {
+      allMeters.push(...res.meters);
+    }
+  }
+
+  // 3. FILTER BY DEPARTMENT (you confirmed only one dept at a time)
+  const filtered = allMeters.filter(
+    (m) => m.deptname?.toLowerCase() === dto.department.toLowerCase(),
+  );
+
+  // 4. MAP TO REQUIRED CLEAN OUTPUT FORMAT
+  const meters = filtered.map((m) => {
+    const energyTag = m.energyTag ?? m.energy ?? null;
+
+    const baseName = energyTag
+      ? String(energyTag).replace('_Del_ActiveEnergy', '')
+      : null;
+
+    const energy = baseName
+      ? Number(m[`${baseName}_energy_consumption`] ?? 0)
+      : 0;
+
+    const pf = baseName
+      ? Number(m[`${baseName}_avgPowerFactor`] ?? 0)
+      : 0;
+
+    const voltage = baseName
+      ? Number(m[`${baseName}_avgVoltage`] ?? 0)
+      : 0;
+
+    return {
+      meterName: m.metername,
+      area: dto.area,
+      lt: m.lt ?? null,               // YOU CONFIRMED OPTION B
+      connectedLoad: Number(m.installedLoad ?? 0),
+      MCS: Number(m.MCS ?? 0),
+      avgPowerFactor: pf,
+      energy: energy,
+      voltage: voltage,
+    };
+  });
+
+  return {
+    departmentName: dto.department,
+    meters,
+  };
+}
+
 
 
 

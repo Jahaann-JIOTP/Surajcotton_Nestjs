@@ -20,4 +20,4 @@ import { MeterModule } from 'src/meter/meter.module';
   controllers: [DailyConsumptionController],
   
 })
-export class DailyConsumptionModule {}
+export class departmentreportModule {}

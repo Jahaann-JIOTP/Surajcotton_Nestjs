@@ -33,4 +33,8 @@ export class DailyConsumptionController {
   async getUnit5LT2(@Body() dto: ConsumptionDto) {
     return this.service.calculateConsumption(dto, 'Unit5-LT2');
   }
+  @Post('department-daily')
+async getDepartmentDaily(@Body() dto: ConsumptionDto) {
+  return this.service.getDepartmentDailySummary(dto);
+}
 }
