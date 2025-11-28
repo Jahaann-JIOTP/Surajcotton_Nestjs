@@ -23,6 +23,33 @@ export class DailyConsumptionService {
       info: m.info ?? '', // add empty string if info not provided
     }));
   }
+  // Function to dynamically assign `unit` and `lt`
+  private assignUnitAndLt(meter: any) {
+    let unit = '';
+    let lt = '';
+
+    // Logic to assign unit and lt based on meter's energy field or meter name
+    if (meter.energy.startsWith('PLC')) {
+      unit = 'Unit4';
+      lt = 'LT1';
+    } else if (meter.energy.includes('GW01')) {
+      unit = 'Unit4';
+      lt = 'LT2';
+    } else if (meter.energy.includes('GW02')) {
+      unit = 'Unit5';
+      lt = 'LT1';
+    } else if (meter.energy.includes('GW03')) {
+      unit = 'Unit5';
+      lt = 'LT2';
+    }
+
+    // Add the dynamically assigned unit and lt to the meter object
+    return {
+      ...meter,
+      unit,
+      lt,
+    };
+  }
 
   // 🔹 LT1 meters
   private lt1Meters = [
@@ -63,7 +90,7 @@ export class DailyConsumptionService {
 
   // { energy: 'U25_PLC_Del_ActiveEnergy', power: 'U25_PLC_ActivePower_Total', powerFactor: 'U25_PLC_PowerFactor_Avg', voltage: 'U25_PLC_Voltage_Avg', metername: 'HFO AUX', deptname: 'HFO + JMS Auxiliary', MCS: '1', installedLoad: '250.0' }
 
-];
+].map(this.assignUnitAndLt); // Apply the dynamic assignment
 
 
   // 🔹 LT2 meters
@@ -105,7 +132,7 @@ export class DailyConsumptionService {
   { energy: 'U20_GW01_Del_ActiveEnergy', power: 'U20_GW01_ActivePower_Total', powerFactor: 'U20_GW01_PowerFactor_Avg', voltage: 'U20_GW01_Voltage_Avg', metername: 'Bailing Press', deptname: 'Bailing Press', MCS: '1', installedLoad: '15' },
 
   { energy: 'U21_GW01_Del_ActiveEnergy', power: 'U21_GW01_ActivePower_Total', powerFactor: 'U21_GW01_PowerFactor_Avg', voltage: 'U21_GW01_Voltage_Avg', metername: 'Spare 2', deptname: 'Spare/PF Panels', MCS: '0', installedLoad: '0' }
-];
+ ].map(this.assignUnitAndLt); // Apply the dynamic assignmen
 
 
 
@@ -142,7 +169,7 @@ export class DailyConsumptionService {
   { energy: 'U21_GW02_Del_ActiveEnergy', power: 'U21_GW02_ActivePower_Total', powerFactor: 'U21_GW02_PowerFactor_Avg', voltage: 'U21_GW02_Voltage_Avg', metername: 'Simplex + Drawing Breaker', deptname: 'Simplex + Drawing Breaker', MCS: '11', installedLoad: '209.2', info:'5*33.2kW + 3*14.4kW' },
 
   { energy: 'U23_GW02_Del_ActiveEnergy', power: 'U23_GW02_ActivePower_Total', powerFactor: 'U23_GW02_PowerFactor_Avg', voltage: 'U23_GW02_Voltage_Avg', metername: 'Drawing Finisher 1-8', deptname: 'Drawing Finisher', MCS: '8', installedLoad: '119.2', info:'8*14.9kW' }
-];
+ ].map(this.assignUnitAndLt); // Apply the dynamic assignment
 
       private unit5Lt2Meters = [
     { energy: 'U1_GW03_Del_ActiveEnergy', power: 'U1_GW03_ActivePower_Total', powerFactor: 'U1_GW03_PowerFactor_Avg', voltage: 'U1_GW03_Voltage_Avg', metername: 'Ring 7-9', deptname: 'Ring Dept', MCS: '3', installedLoad: '425.7' },
@@ -161,7 +188,7 @@ export class DailyConsumptionService {
     { energy: 'U14_GW03_Del_ActiveEnergy', power: 'U14_GW03_ActivePower_Total', powerFactor: 'U14_GW03_PowerFactor_Avg', voltage: 'U14_GW03_Voltage_Avg', metername: 'Lighting Internal', deptname: 'Mills Lighting', MCS: '1479', installedLoad: '30' },
     { energy: 'U15_GW03_Del_ActiveEnergy', power: 'U15_GW03_ActivePower_Total', powerFactor: 'U15_GW03_PowerFactor_Avg', voltage: 'U15_GW03_Voltage_Avg', metername: 'Deep Valve Turbine', deptname: 'Deep Valve Turbine', MCS: '1', installedLoad: '22' },
     { energy: 'U18_GW03_Del_ActiveEnergy', power: 'U18_GW03_ActivePower_Total', powerFactor: 'U18_GW03_PowerFactor_Avg', voltage: 'U18_GW03_Voltage_Avg', metername: 'PF Panel', deptname: 'PF Panels', MCS: '12', installedLoad: '0'},
-  ];
+  ].map(this.assignUnitAndLt); // Apply the dynamic assignment
 
   // ✅ merged function
  // ✅ Main function
@@ -261,6 +288,7 @@ const { totalHours } = result;
       [energyField]: +adjustedEnergy.toFixed(2),
       avgPower: +avgPower.toFixed(2), // new field
       info: m.info ?? '',
+       lt: m.lt ?? null,
     };
   });
 
@@ -313,40 +341,39 @@ async getDepartmentDailySummary(dto: ConsumptionDto) {
     }
   }
 
-  // 3. FILTER BY DEPARTMENT (you confirmed only one dept at a time)
+  // 3. FILTER BY DEPARTMENT
   const filtered = allMeters.filter(
     (m) => m.deptname?.toLowerCase() === dto.department.toLowerCase(),
   );
+  console.log(filtered.map(m => m.lt));
 
   // 4. MAP TO REQUIRED CLEAN OUTPUT FORMAT
   const meters = filtered.map((m) => {
-    const energyTag = m.energyTag ?? m.energy ?? null;
+    // Automatically detect prefix (example: "U12_GW03")
+    const prefix = Object.keys(m).find((key) =>
+      key.endsWith('_energy_consumption'),
+    )?.replace('_energy_consumption', '');
 
-    const baseName = energyTag
-      ? String(energyTag).replace('_Del_ActiveEnergy', '')
-      : null;
+    const meterKey = m.metername.replace(/\s+/g, '_'); // example: Ring_16-18
 
-    const energy = baseName
-      ? Number(m[`${baseName}_energy_consumption`] ?? 0)
-      : 0;
-
-    const pf = baseName
-      ? Number(m[`${baseName}_avgPowerFactor`] ?? 0)
-      : 0;
-
-    const voltage = baseName
-      ? Number(m[`${baseName}_avgVoltage`] ?? 0)
-      : 0;
+    // Extract final values
+    const energy = prefix ? Number(m[`${prefix}_energy_consumption`] ?? 0) : 0;
+    const pf = prefix ? Number(m[`${prefix}_avgPowerFactor`] ?? 0) : 0;
+    const voltage = prefix ? Number(m[`${prefix}_avgVoltage`] ?? 0) : 0;
+      const avgPower = Number(m.avgPower ?? 0);
 
     return {
+      // Final format
       meterName: m.metername,
+      [`energy_consumption`]: energy,
+      [`avgPower`]: avgPower,
+      [`avgPowerFactor`]: pf,
+      [`avgVoltage`]: voltage,
+
       area: dto.area,
-      lt: m.lt ?? null,               // YOU CONFIRMED OPTION B
+      lt: m.lt ?? null,
       connectedLoad: Number(m.installedLoad ?? 0),
       MCS: Number(m.MCS ?? 0),
-      avgPowerFactor: pf,
-      energy: energy,
-      voltage: voltage,
     };
   });
 
@@ -355,10 +382,5 @@ async getDepartmentDailySummary(dto: ConsumptionDto) {
     meters,
   };
 }
-
-
-
-
-
-
 }
+
