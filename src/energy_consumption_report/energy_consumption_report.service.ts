@@ -344,7 +344,7 @@ export class EnergyconsumptionreportService {
     const departmentInfo = {
       "Blow Room": { u4mcs: 2, u5mcs: 2, u4Lpd: 151, u5Lpd: 166},
       "Card +Breaker": { u4mcs: 16, u5mcs: 15, u4Lpd: 292.4, u5Lpd: 313.6 },
-      "Comber + Lap former": { u4mcs: 12, u5mcs: 17, u4Lpd: 84, u5Lpd: 196.9 },
+      "Comber + Lap Former": { u4mcs: 12, u5mcs: 17, u4Lpd: 84, u5Lpd: 196.9 },
       "Drawing Finsher+Breaker": { u4mcs: 10, u5mcs: 8, u4Lpd: 126, u5Lpd: 119.2 },
       "Simplex": { u4mcs: 6, u5mcs: 11, u4Lpd: 109, u5Lpd: 209.2 },
       "R.Transport System": { u4mcs: 1, u5mcs: 1, u4Lpd: 30, u5Lpd: 30 },
@@ -371,7 +371,7 @@ export class EnergyconsumptionreportService {
     const deptProcessKeyMap: Record<string, string> = {
       "Blow Room": "BlowRoom",
       "Card +Breaker": "Card_Breaker",
-      "Comber + Lap former": "Comberandunilap",
+      "Comber + Lap Former": "Comberandunilap",
       "Drawing Finsher+Breaker": "DrawingFinisherand2Breaker",
       "Simplex": "Simplex",
       "R.Transport System": "RTransportSystem",

@@ -7,7 +7,7 @@ import { Historical } from './schemas/historical.schema';
 // Bucket timestamp into 15-minute slot
 function bucket15min(ts: string) {
   const m = moment(ts).tz('Asia/Karachi');
-  const minutes = Math.floor(m.minutes() / 15) * 15;
+  const minutes = Math.round(m.minutes() / 15) * 15;
   return m.clone().minutes(minutes).seconds(0).milliseconds(0).toISOString();
 }
 
@@ -17,7 +17,7 @@ function generateTimeSlots(startISO: string, endISO: string): string[] {
   let cursor = moment(startISO).tz('Asia/Karachi');
   const end = moment(endISO).tz('Asia/Karachi');
 
-  while (cursor.isBefore(end)) {
+  while (cursor.isSameOrBefore(end)) {
     slots.push(cursor.toISOString());
     cursor.add(15, 'minutes');
   }
@@ -66,19 +66,28 @@ export async function calculateConsumptionCore(
   let startISO: string;
   let endISO: string;
 
+   /* -------------------- Updated Logic -------------------- */
   if (startTime && endTime) {
+    // User provided custom times — use exactly as given.
     startISO = moment.tz(`${startDate}T${startTime}`, 'Asia/Karachi').toISOString();
-    endISO = moment.tz(`${endDate}T${endTime}`, 'Asia/Karachi').toISOString();
+    endISO = moment.tz(`${endDate}T${endTime}`, 'Asia/Karachi').add(2, 'minutes').format();
 
-    if (moment(endISO).isSameOrBefore(moment(startISO))) {
+    // ❌ No auto +1 day for same date/time
+    // Only add +1 day when END is earlier than START AND times are different.
+    if (
+      moment(endISO).isSameOrBefore(moment(startISO)) &&
+      !(startDate === endDate && startTime === endTime)
+    ) {
       endISO = moment(endISO).add(1, 'day').toISOString();
     }
   } else {
+    // Default 06:00 → 06:00 window (always +1 day)
     startISO = moment.tz(`${startDate}T06:00:00`, 'Asia/Karachi').toISOString();
-    endISO = moment.tz(`${endDate}T06:00:59`, 'Asia/Karachi').add(1, 'day').toISOString();
+    endISO = moment.tz(`${endDate}T06::00`, 'Asia/Karachi').add(1, 'day').toISOString();
   }
 
   const totalHours = Math.max(moment(endISO).diff(moment(startISO), 'milliseconds') / 3600000, 0);
+  console.log(totalHours);
 
   const slots = generateTimeSlots(startISO, endISO);
 
@@ -91,7 +100,7 @@ export async function calculateConsumptionCore(
         $expr: {
           $and: [
             { $gte: [{ $dateFromString: { dateString: '$timestamp' } }, { $dateFromString: { dateString: startISO } }] },
-            { $lt:  [{ $dateFromString: { dateString: '$timestamp' } }, { $dateFromString: { dateString: endISO } }] },
+            { $lte:  [{ $dateFromString: { dateString: '$timestamp' } }, { $dateFromString: { dateString: endISO } }] },
           ],
         },
       },

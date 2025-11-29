@@ -54,7 +54,7 @@ export class DailyConsumptionService {
   // 🔹 LT1 meters
   private lt1Meters = [
 
-  { energy: 'U1_PLC_Del_ActiveEnergy',  power: 'U1_PLC_ActivePower_Total',  powerFactor: 'U1_PLC_PowerFactor_Avg',  voltage: 'U1_PLC_Voltage_Avg',  metername: 'Roving Transport System', deptname: 'R. Transport System', MCS: '1', installedLoad: '30' },
+  { energy: 'U1_PLC_Del_ActiveEnergy',  power: 'U1_PLC_ActivePower_Total',  powerFactor: 'U1_PLC_PowerFactor_Avg',  voltage: 'U1_PLC_Voltage_Avg',  metername: 'Roving Transport System', deptname: 'R.Transport System', MCS: '1', installedLoad: '30' },
 
   { energy: 'U3_PLC_Del_ActiveEnergy',  power: 'U3_PLC_ActivePower_Total',  powerFactor: 'U3_PLC_PowerFactor_Avg',  voltage: 'U3_PLC_Voltage_Avg',  metername: 'Lighting Outside', deptname: 'Mills Lighting', MCS: '48', installedLoad: '10' },
 
@@ -64,7 +64,7 @@ export class DailyConsumptionService {
 
   { energy: 'U6_PLC_Del_ActiveEnergy',  power: 'U6_PLC_ActivePower_Total',  powerFactor: 'U6_PLC_PowerFactor_Avg',  voltage: 'U6_PLC_Voltage_Avg',  metername: 'Deep Valve Turbine', deptname: 'Deep Valve Turbine', MCS: '1', installedLoad: '22' },
 
-  { energy: 'U8_PLC_Del_ActiveEnergy',  power: 'U8_PLC_ActivePower_Total',  powerFactor: 'U8_PLC_PowerFactor_Avg',  voltage: 'U8_PLC_Voltage_Avg',  metername: 'Drawing Finisher 1-6 + Breaker 1-4', deptname: 'Drawing Finisher + Breaker', MCS: '10', installedLoad: '126',info:'6*15kW + 2*18kW' },
+  { energy: 'U8_PLC_Del_ActiveEnergy',  power: 'U8_PLC_ActivePower_Total',  powerFactor: 'U8_PLC_PowerFactor_Avg',  voltage: 'U8_PLC_Voltage_Avg',  metername: 'Drawing Finisher 1-6 + Breaker 1-4', deptname: 'Drawing Finisher', MCS: '10', installedLoad: '126',info:'6*15kW + 2*18kW' },
 
   { energy: 'U9_PLC_Del_ActiveEnergy', power: 'U9_PLC_ActivePower_Total', powerFactor: 'U9_PLC_PowerFactor_Avg', voltage: 'U9_PLC_Voltage_Avg', metername: 'Winding 7-9', deptname: 'Winding', MCS: '3', installedLoad: '125.7' },
 
@@ -103,17 +103,17 @@ export class DailyConsumptionService {
 
   { energy: 'U4_GW01_Del_ActiveEnergy', power: 'U4_GW01_ActivePower_Total', powerFactor: 'U4_GW01_PowerFactor_Avg', voltage: 'U4_GW01_Voltage_Avg', metername: 'Mills Residential Colony & Workshop', deptname: 'Residential Colony', MCS: '1', installedLoad: '60' },
 
-  { energy: 'U5_GW01_Del_ActiveEnergy', power: 'U5_GW01_ActivePower_Total', powerFactor: 'U5_GW01_PowerFactor_Avg', voltage: 'U5_GW01_Voltage_Avg', metername: 'Card 1-4 + 9-12', deptname: 'Card + Breaker', MCS: '8', installedLoad: '156.8', info:'7*19.37kW + 21.21kW' },
+  { energy: 'U5_GW01_Del_ActiveEnergy', power: 'U5_GW01_ActivePower_Total', powerFactor: 'U5_GW01_PowerFactor_Avg', voltage: 'U5_GW01_Voltage_Avg', metername: 'Card 1-4 + 9-12', deptname: 'Card', MCS: '8', installedLoad: '156.8', info:'7*19.37kW + 21.21kW' },
 
   { energy: 'U6_GW01_Del_ActiveEnergy', power: 'U6_GW01_ActivePower_Total', powerFactor: 'U6_GW01_PowerFactor_Avg', voltage: 'U6_GW01_Voltage_Avg', metername: 'Spare', deptname: 'Spare/PF Panels', MCS: '0', installedLoad: '0' },
 
   { energy: 'U8_GW01_Del_ActiveEnergy', power: 'U8_GW01_ActivePower_Total', powerFactor: 'U8_GW01_PowerFactor_Avg', voltage: 'U8_GW01_Voltage_Avg', metername: 'Blow Room', deptname: 'Blow Room', MCS: '2', installedLoad: '151' },
 
-  { energy: 'U9_GW01_Del_ActiveEnergy', power: 'U9_GW01_ActivePower_Total', powerFactor: 'U9_GW01_PowerFactor_Avg', voltage: 'U9_GW01_Voltage_Avg', metername: 'Card 5-8 + 13-14 + Breaker 5-6', deptname: 'Card + Breaker', MCS: '8', installedLoad: '135.6', info:'7*19.37kW' },
+  { energy: 'U9_GW01_Del_ActiveEnergy', power: 'U9_GW01_ActivePower_Total', powerFactor: 'U9_GW01_PowerFactor_Avg', voltage: 'U9_GW01_Voltage_Avg', metername: 'Card 5-8 + 13-14 + Breaker 5-6', deptname: 'Card', MCS: '8', installedLoad: '135.6', info:'7*19.37kW' },
 
   { energy: 'U10_GW01_Del_ActiveEnergy', power: 'U10_GW01_ActivePower_Total', powerFactor: 'U10_GW01_PowerFactor_Avg', voltage: 'U10_GW01_Voltage_Avg', metername: 'Winding 1-6', deptname: 'Winding', MCS: '6', installedLoad: '251.4' },
 
-  { energy: 'U7_GW01_Del_ActiveEnergy', power: 'U7_GW01_ActivePower_Total', powerFactor: 'U7_GW01_PowerFactor_Avg', voltage: 'U7_GW01_Voltage_Avg', metername: 'Gas Plant Aux (2nd Source)', deptname: 'Gas Plant Aux (2nd Source)', MCS: '16', installedLoad: '0' },
+  { energy: 'U7_GW01_Del_ActiveEnergy', power: 'U7_GW01_ActivePower_Total', powerFactor: 'U7_GW01_PowerFactor_Avg', voltage: 'U7_GW01_Voltage_Avg', metername: 'Gas Plant Aux(2nd Source)', deptname: 'Gas Plant Aux(2nd Source)', MCS: '16', installedLoad: '0' },
 
   { energy: 'U14_GW01_Del_ActiveEnergy', power: 'U14_GW01_ActivePower_Total', powerFactor: 'U14_GW01_PowerFactor_Avg', voltage: 'U14_GW01_Voltage_Avg', metername: 'B/Card + Comber Filter', deptname: 'B/Card + Comber Filter', MCS: '3', installedLoad: '203.2' },
 
@@ -166,7 +166,7 @@ export class DailyConsumptionService {
 
   { energy: 'U20_GW02_Del_ActiveEnergy', power: 'U20_GW02_ActivePower_Total', powerFactor: 'U20_GW02_PowerFactor_Avg', voltage: 'U20_GW02_Voltage_Avg', metername: 'Winding A/C', deptname: 'Winding A/C', MCS: '1', installedLoad: '108', info:'100.5kW + 7.5kW' },
 
-  { energy: 'U21_GW02_Del_ActiveEnergy', power: 'U21_GW02_ActivePower_Total', powerFactor: 'U21_GW02_PowerFactor_Avg', voltage: 'U21_GW02_Voltage_Avg', metername: 'Simplex + Drawing Breaker', deptname: 'Simplex + Drawing Breaker', MCS: '11', installedLoad: '209.2', info:'5*33.2kW + 3*14.4kW' },
+  { energy: 'U21_GW02_Del_ActiveEnergy', power: 'U21_GW02_ActivePower_Total', powerFactor: 'U21_GW02_PowerFactor_Avg', voltage: 'U21_GW02_Voltage_Avg', metername: 'Simplex + Drawing Breaker', deptname: 'Simplex', MCS: '11', installedLoad: '209.2', info:'5*33.2kW + 3*14.4kW' },
 
   { energy: 'U23_GW02_Del_ActiveEnergy', power: 'U23_GW02_ActivePower_Total', powerFactor: 'U23_GW02_PowerFactor_Avg', voltage: 'U23_GW02_Voltage_Avg', metername: 'Drawing Finisher 1-8', deptname: 'Drawing Finisher', MCS: '8', installedLoad: '119.2', info:'8*14.9kW' }
  ].map(this.assignUnitAndLt); // Apply the dynamic assignment
@@ -175,7 +175,7 @@ export class DailyConsumptionService {
     { energy: 'U1_GW03_Del_ActiveEnergy', power: 'U1_GW03_ActivePower_Total', powerFactor: 'U1_GW03_PowerFactor_Avg', voltage: 'U1_GW03_Voltage_Avg', metername: 'Ring 7-9', deptname: 'Ring Dept', MCS: '3', installedLoad: '425.7' },
     { energy: 'U2_GW03_Del_ActiveEnergy', power: 'U2_GW03_ActivePower_Total', powerFactor: 'U2_GW03_PowerFactor_Avg', voltage: 'U2_GW03_Voltage_Avg', metername: 'Conditioning Machine', deptname: 'Conditioning Machine', MCS: '1', installedLoad: '80' },
     { energy: 'U3_GW03_Del_ActiveEnergy', power: 'U3_GW03_ActivePower_Total', powerFactor: 'U3_GW03_PowerFactor_Avg', voltage: 'U3_GW03_Voltage_Avg', metername: 'Colony', deptname: 'Residential Colony', MCS: '1', installedLoad: '0' },
-    { energy: 'U4_GW03_Del_ActiveEnergy', power: 'U4_GW03_ActivePower_Total', powerFactor: 'U4_GW03_PowerFactor_Avg', voltage: 'U4_GW03_Voltage_Avg', metername: 'Roving Transport System', deptname: 'R. Transport System', MCS: '1', installedLoad: '30' },
+    { energy: 'U4_GW03_Del_ActiveEnergy', power: 'U4_GW03_ActivePower_Total', powerFactor: 'U4_GW03_PowerFactor_Avg', voltage: 'U4_GW03_Voltage_Avg', metername: 'Roving Transport System', deptname: 'R.Transport System', MCS: '1', installedLoad: '30' },
     { energy: 'U5_GW03_Del_ActiveEnergy', power: 'U5_GW03_ActivePower_Total', powerFactor: 'U5_GW03_PowerFactor_Avg', voltage: 'U5_GW03_Voltage_Avg', metername: 'Ring 10-12', deptname: 'Ring Dept', MCS: '3', installedLoad: '425.7' },
     { energy: 'U6_GW03_Del_ActiveEnergy', power: 'U6_GW03_ActivePower_Total', powerFactor: 'U6_GW03_PowerFactor_Avg', voltage: 'U6_GW03_Voltage_Avg', metername: 'Spare 2', deptname: 'Comber + Lap Former', MCS: '0', installedLoad: '0' },
     //  { energy: 'U7_GW03_Del_ActiveEnergy', power: 'U7_GW03_ActivePower_Total', powerFactor: 'U7_GW03_PowerFactor_Avg', voltage: 'U7_GW03_Voltage_Avg', metername: 'Spare 1', deptname: 'Spare/PF panels', MCS: '0', installedLoad: '0' },
@@ -221,7 +221,7 @@ const startDate = dto.startDate;
 let endDate = new Date(dto.endDate); // Convert endDate to Date object
 
 // Add 1 day to the endDate
-endDate.setDate(endDate.getDate() + 1);
+endDate.setDate(endDate.getDate() + 0);
 
 // Format the new endDate back to the required string format (YYYY-MM-DD)
 const formattedEndDate = endDate.toISOString().split('T')[0];
@@ -233,7 +233,7 @@ const fmCons = await this.meterService.getMeterWiseConsumption(
   { startTime: dto.startTime, endTime: dto.endTime }
 );
 
-console.log('Meter Wise Consumption Data:', fmCons);
+// console.log('Meter Wise Consumption Data:', fmCons);
   
 // console.log('Meter Wise Consumption Datas:', fmCons);
   // --- same energy adjustments as before ---
