@@ -2,85 +2,91 @@ import * as moment from 'moment-timezone';
 import { Model } from 'mongoose';
 import { Historical } from './schemas/historical.schema';
 
-// helper functions
+/* -------------------- Helpers -------------------- */
+
+// Bucket timestamp into 15-minute slot
 function bucket15min(ts: string) {
-  const m = moment(ts);
+  const m = moment(ts).tz('Asia/Karachi');
   const minutes = Math.floor(m.minutes() / 15) * 15;
   return m.clone().minutes(minutes).seconds(0).milliseconds(0).toISOString();
 }
+
+// Generate expected 15-minute time slots
 function generateTimeSlots(startISO: string, endISO: string): string[] {
   const slots: string[] = [];
-  let cursor = moment(startISO);
-  const end = moment(endISO);
+  let cursor = moment(startISO).tz('Asia/Karachi');
+  const end = moment(endISO).tz('Asia/Karachi');
+
   while (cursor.isBefore(end)) {
     slots.push(cursor.toISOString());
     cursor.add(15, 'minutes');
   }
   return slots;
 }
-function alignSlots(docs: any[], field: string, slots: string[]) {
-  const seen = new Map<string, any>();
-  for (const d of docs) {
-    const bucket = bucket15min(d.timestamp);
-    if (!seen.has(bucket)) seen.set(bucket, d);
-  }
-  return slots.map(slot => seen.get(slot) || { timestamp: slot, [field]: null });
-}
 
-// ✅ Helper: Round huge / invalid numbers to 0
+// Sanitize raw numeric values
 function sanitizeValue(val: number | null): number {
   if (val === null || !Number.isFinite(val) || val > 1e12 || val < -1e12) return 0;
   return val;
 }
 
+// Align documents to time slots
+function alignAllSlots(docs: any[], slots: string[], fields: string[]) {
+  const map = new Map<string, any>();
 
-// ✅ Core function (reusable for LT1 and LT2)
+  docs.forEach(d => {
+    const bucket = bucket15min(d.timestamp);
+    if (!map.has(bucket)) {
+      const base: any = { timestamp: bucket };
+      fields.forEach(f => (base[f] = null));
+      map.set(bucket, base);
+    }
+
+    fields.forEach(f => {
+      if (d[f] !== undefined && d[f] !== null) {
+        map.get(bucket)[f] = sanitizeValue(d[f]);
+      }
+    });
+  });
+
+  return slots.map(slot => map.get(slot) || Object.fromEntries([['timestamp', slot], ...fields.map(f => [f, null])]));
+}
+
+/* -------------------- Main Function -------------------- */
+
 export async function calculateConsumptionCore(
   dto: any,
   metersConfig: any[],
   historicalModel: Model<Historical>,
+  debug = false, // optional debug flag
 ) {
   const { startDate, endDate, startTime, endTime } = dto;
 
-
+  // Build start/end ISO timestamps in Asia/Karachi
   let startISO: string;
   let endISO: string;
 
   if (startTime && endTime) {
-    startISO = `${startDate}T${startTime}:00.000+05:00`;
-    endISO   = `${endDate}T${endTime}:00.000+05:00`;
+    startISO = moment.tz(`${startDate}T${startTime}`, 'Asia/Karachi').toISOString();
+    endISO = moment.tz(`${endDate}T${endTime}`, 'Asia/Karachi').toISOString();
 
     if (moment(endISO).isSameOrBefore(moment(startISO))) {
       endISO = moment(endISO).add(1, 'day').toISOString();
     }
   } else {
-    startISO = `${startDate}T06:00:00.000+05:00`;
-    const nextDay = moment(endDate).add(1, 'day').format('YYYY-MM-DD');
-    endISO = `${nextDay}T06:00:59.999+05:00`;
+    startISO = moment.tz(`${startDate}T06:00:00`, 'Asia/Karachi').toISOString();
+    endISO = moment.tz(`${endDate}T06:00:59`, 'Asia/Karachi').add(1, 'day').toISOString();
   }
-  // --- Calculate total hours using the SAME start and end used in MongoDB query ---
-const totalHours = Math.max(
-  moment(endISO).diff(moment(startISO), 'milliseconds') / 3600000,
-  0
-);
- 
 
+  const totalHours = Math.max(moment(endISO).diff(moment(startISO), 'milliseconds') / 3600000, 0);
 
+  const slots = generateTimeSlots(startISO, endISO);
 
-  // console.log('📌 Querying range [start, end):', startISO, '->', endISO);
+  const meters = await Promise.all(
+    metersConfig.map(async meter => {
+      const { energy, power, powerFactor, voltage, metername, deptname, MCS, installedLoad, lt } = meter;
 
-  const expectedSlots = generateTimeSlots(startISO, endISO);
-  // console.log(`📌 Expected slots = ${expectedSlots.length}`);
-
-  const meters: any[] = [];
-
-  for (const meter of metersConfig) {
-    const { energy, power, powerFactor, voltage, metername, deptname, MCS, installedLoad,lt } = meter;
-
-    // console.log(`\n================= Meter: ${metername} (${energy}) =================`);
-
-    // Fetch raw docs
-    let rawDocs = await historicalModel.find(
+      let rawDocs = await historicalModel.find(
       {
         $expr: {
           $and: [
@@ -93,69 +99,57 @@ const totalHours = Math.max(
     )
       .sort({ timestamp: 1 })
       .lean();
-
-    // console.log(`   [RawDocs] fetched = ${rawDocs.length}`);
-
-    // Align slots
-    const energyDocs = alignSlots(rawDocs, energy, expectedSlots);
-    const powerDocs  = alignSlots(rawDocs, power, expectedSlots);
-    const pfDocs     = alignSlots(rawDocs, powerFactor, expectedSlots);
-    const voltDocs   = alignSlots(rawDocs, voltage, expectedSlots);
+       // Debugging: Log first and last document for U17_GW02 meter
+      // if (metername === 'Card 8-14') {  // Adjust this to match the correct meter name for U17_GW02
+      //   console.log("👉 First RawDoc for U17_GW02:", rawDocs[0]);
+      //   console.log("👉 Last RawDoc for U17_GW02:", rawDocs[rawDocs.length - 1]);
+      // }
+      
 
     
+        // console.log("👉 Query Window:", startISO, "-", endISO);
+        // console.log("📌 RawDocs Count:", rawDocs.length);
+      
+        //   console.log("⏳ First Timestamp:", rawDocs[0].timestamp);
+        //   console.log("⌛ Last Timestamp:", rawDocs[rawDocs.length - 1].timestamp);
+        
+      
 
-    // console.log(`   [Aligned] slots = ${energyDocs.length}`);
+      const aligned = alignAllSlots(rawDocs, slots, [energy, power, powerFactor, voltage]);
+      
+      const totalSlots = aligned.length;
 
-    // Energy consumption
-    const firstDoc = energyDocs.find(d => d[energy] !== null);
-    const lastDoc  = [...energyDocs].reverse().find(d => d[energy] !== null);
+      // First and last valid energy readings
+      const firstDoc = aligned.find(d => d[energy] !== null);
+      const lastDoc = [...aligned].reverse().find(d => d[energy] !== null);
+      const consumption = firstDoc && lastDoc ? sanitizeValue(lastDoc[energy] - firstDoc[energy]) : 0;
+      
 
-    let consumption = 0;
-    if (firstDoc && lastDoc) {
-     consumption = sanitizeValue(parseFloat(((lastDoc[energy] || 0) - (firstDoc[energy] || 0)).toFixed(2)));
+      // Average calculations (ignore nulls)
+      const avg = (field: string) => {
+        const values = aligned.map(d => d[field]).filter(v => v !== null);
+        return values.length ? sanitizeValue(values.reduce((a, b) => a + b, 0) / values.length) : 0;
+      };
 
-      // console.log(`   [Energy] First=${firstDoc[energy]} (${firstDoc.timestamp})`);
-      // console.log(`   [Energy] Last =${lastDoc[energy]} (${lastDoc.timestamp})`);
-      // console.log(`   [Energy] Consumption = ${consumption}`);
-    } else {
-      // console.log(`   [Energy] ❌ No data in range`);
-    }
+      const baseName = energy.replace('_Del_ActiveEnergy', '');
 
-    // Avg Power
-    const powerVals = powerDocs.map(d => d[power]).filter(v => v !== null);
-   const avgPower = sanitizeValue(powerVals.length ? parseFloat((powerVals.reduce((a,b)=>a+b,0)/powerVals.length).toFixed(2)) : 0);
-    // console.log(`   [Power] Count=${powerVals.length}, Avg=${avgPower}`);
+      return {
+        [`${baseName}_energy_consumption`]: consumption,
+        [`${baseName}_avgPower`]: avg(power),
+        [`${baseName}_avgPower_count`]: totalSlots,
+        [`${baseName}_avgPowerFactor`]: avg(powerFactor),
+        [`${baseName}_avgPowerFactor_count`]: totalSlots,
+        [`${baseName}_avgVoltage`]: avg(voltage),
+        [`${baseName}_avgVoltage_count`]: totalSlots,
 
-    // Avg PF
-    const pfVals = pfDocs.map(d => d[powerFactor]).filter(v => v !== null);
-   const avgPF = sanitizeValue(pfVals.length ? parseFloat((pfVals.reduce((a,b)=>a+b,0)/pfVals.length).toFixed(2)) : 0);
-    // console.log(`   [PF]    Count=${pfVals.length}, Avg=${avgPF}`);
+        metername,
+        deptname,
+        MCS,
+        installedLoad,
+        lt,
+      };
+    }),
+  );
 
-    // Avg Voltage
-    const voltVals = voltDocs.map(d => d[voltage]).filter(v => v !== null);
-   const avgVolt = sanitizeValue(voltVals.length ? parseFloat((voltVals.reduce((a,b)=>a+b,0)/voltVals.length).toFixed(2)) : 0);
-    // console.log(`   [Volt]  Count=${voltVals.length}, Avg=${avgVolt}`);
-
-    // Push result
-    const baseName = energy.replace('_Del_ActiveEnergy', '');
-    const result = {
-      [`${baseName}_energy_consumption`]: consumption,
-      [`${baseName}_avgPower`]: avgPower,
-      [`${baseName}_avgPower_count`]: powerDocs.length,
-      [`${baseName}_avgPowerFactor`]: avgPF,
-      [`${baseName}_avgPowerFactor_count`]: pfDocs.length,
-      [`${baseName}_avgVoltage`]: avgVolt,
-      [`${baseName}_avgVoltage_count`]: voltDocs.length,
-      metername,
-      deptname,
-      MCS,
-      installedLoad,
-      lt, 
-    };
-
-    meters.push(result);
-    // console.log('✅ Final Result:', result);
-  }
-
-  return { startISO, endISO,totalHours, meters };
+  return { startISO, endISO, totalHours, meters };
 }

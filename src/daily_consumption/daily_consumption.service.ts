@@ -86,7 +86,7 @@ export class DailyConsumptionService {
 
   { energy: 'U10_GW01_Del_ActiveEnergy', power: 'U10_GW01_ActivePower_Total', powerFactor: 'U10_GW01_PowerFactor_Avg', voltage: 'U10_GW01_Voltage_Avg', metername: 'Winding 1-6', deptname: 'Winding', MCS: '6', installedLoad: '251.4' },
 
-  { energy: 'U11_GW01_Del_ActiveEnergy', power: 'U11_GW01_ActivePower_Total', powerFactor: 'U11_GW01_PowerFactor_Avg', voltage: 'U11_GW01_Voltage_Avg', metername: 'Gas Plant Aux (2nd Source)', deptname: 'Gas Plant Aux (2nd Source)', MCS: '16', installedLoad: '0' },
+  { energy: 'U7_GW01_Del_ActiveEnergy', power: 'U7_GW01_ActivePower_Total', powerFactor: 'U7_GW01_PowerFactor_Avg', voltage: 'U7_GW01_Voltage_Avg', metername: 'Gas Plant Aux (2nd Source)', deptname: 'Gas Plant Aux (2nd Source)', MCS: '16', installedLoad: '0' },
 
   { energy: 'U14_GW01_Del_ActiveEnergy', power: 'U14_GW01_ActivePower_Total', powerFactor: 'U14_GW01_PowerFactor_Avg', voltage: 'U14_GW01_Voltage_Avg', metername: 'B/Card + Comber Filter', deptname: 'B/Card + Comber Filter', MCS: '3', installedLoad: '203.2' },
 
@@ -194,6 +194,7 @@ async calculateConsumption(
     dto.endDate,
     { startTime: dto.startTime, endTime: dto.endTime },
   );
+  
 
   // --- same energy adjustments as before ---
   const PDB07_U4 = +(Number(fmCons?.U4_U22_GW03_Del_ActiveEnergy ?? 0).toFixed(2));

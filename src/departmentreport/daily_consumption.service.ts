@@ -6,7 +6,7 @@ import { ConsumptionDto } from './dto/consumption.dto';
 import { calculateConsumptionCore } from './daily-consumption.util';
 import { MeterService } from 'src/meter/meter.service';
 import * as moment from 'moment-timezone';
-import { info } from 'console';
+import { Console, info } from 'console';
 
 
 @Injectable()
@@ -29,17 +29,17 @@ export class DailyConsumptionService {
     let lt = '';
 
     // Logic to assign unit and lt based on meter's energy field or meter name
-    if (meter.energy.startsWith('PLC')) {
-      unit = 'Unit4';
+    if (meter.energy.includes('PLC')) {
+      unit = '4'
       lt = 'LT1';
     } else if (meter.energy.includes('GW01')) {
-      unit = 'Unit4';
+      unit = '4';
       lt = 'LT2';
     } else if (meter.energy.includes('GW02')) {
-      unit = 'Unit5';
+      unit = '5';
       lt = 'LT1';
     } else if (meter.energy.includes('GW03')) {
-      unit = 'Unit5';
+      unit = '5';
       lt = 'LT2';
     }
 
@@ -113,7 +113,7 @@ export class DailyConsumptionService {
 
   { energy: 'U10_GW01_Del_ActiveEnergy', power: 'U10_GW01_ActivePower_Total', powerFactor: 'U10_GW01_PowerFactor_Avg', voltage: 'U10_GW01_Voltage_Avg', metername: 'Winding 1-6', deptname: 'Winding', MCS: '6', installedLoad: '251.4' },
 
-  { energy: 'U11_GW01_Del_ActiveEnergy', power: 'U11_GW01_ActivePower_Total', powerFactor: 'U11_GW01_PowerFactor_Avg', voltage: 'U11_GW01_Voltage_Avg', metername: 'Gas Plant Aux (2nd Source)', deptname: 'Gas Plant Aux (2nd Source)', MCS: '16', installedLoad: '0' },
+  { energy: 'U7_GW01_Del_ActiveEnergy', power: 'U7_GW01_ActivePower_Total', powerFactor: 'U7_GW01_PowerFactor_Avg', voltage: 'U7_GW01_Voltage_Avg', metername: 'Gas Plant Aux (2nd Source)', deptname: 'Gas Plant Aux (2nd Source)', MCS: '16', installedLoad: '0' },
 
   { energy: 'U14_GW01_Del_ActiveEnergy', power: 'U14_GW01_ActivePower_Total', powerFactor: 'U14_GW01_PowerFactor_Avg', voltage: 'U14_GW01_Voltage_Avg', metername: 'B/Card + Comber Filter', deptname: 'B/Card + Comber Filter', MCS: '3', installedLoad: '203.2' },
 
@@ -216,12 +216,26 @@ async calculateConsumption(
       throw new Error(`❌ No metersConfig found for line=${line}`);
   }
 
-  const fmCons = await this.meterService.getMeterWiseConsumption(
-    dto.startDate,
-    dto.endDate,
-    { startTime: dto.startTime, endTime: dto.endTime },
-  );
+ // Get the startDate and endDate from the dto
+const startDate = dto.startDate;
+let endDate = new Date(dto.endDate); // Convert endDate to Date object
 
+// Add 1 day to the endDate
+endDate.setDate(endDate.getDate() + 1);
+
+// Format the new endDate back to the required string format (YYYY-MM-DD)
+const formattedEndDate = endDate.toISOString().split('T')[0];
+
+// Make the API call with the updated endDate
+const fmCons = await this.meterService.getMeterWiseConsumption(
+  startDate, // Use original startDate
+  formattedEndDate, // Use updated endDate
+  { startTime: dto.startTime, endTime: dto.endTime }
+);
+
+console.log('Meter Wise Consumption Data:', fmCons);
+  
+// console.log('Meter Wise Consumption Datas:', fmCons);
   // --- same energy adjustments as before ---
   const PDB07_U4 = +(Number(fmCons?.U4_U22_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
   const deepValve = +(Number(fmCons?.U15_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
@@ -247,13 +261,16 @@ async calculateConsumption(
   const result = await calculateConsumptionCore(dto, metersConfig, this.historicalModel);
 
   const adjustedMeters = metersConfig.map((m) => {
+    
     const foundMeter = result?.meters?.find((x: any) => x.metername === m.metername);
     const energyField = `${m.energy.replace('_Del_ActiveEnergy', '')}_energy_consumption`;
     let adjustedEnergy = foundMeter?.[energyField] ?? 0;
+    
 
     switch (m.energy) {
       case 'U12_PLC_Del_ActiveEnergy':
         adjustedEnergy = Math.max(0, adjustedEnergy - PDB07_U4);
+        
         break;
       case 'U5_GW01_Del_ActiveEnergy':
         adjustedEnergy = PDB1CD1_Total;
@@ -289,6 +306,7 @@ const { totalHours } = result;
       avgPower: +avgPower.toFixed(2), // new field
       info: m.info ?? '',
        lt: m.lt ?? null,
+       unit:m.unit,
     };
   });
 
@@ -309,68 +327,59 @@ const { totalHours } = result;
 // ✅ NEW METHOD: Department + Area Based Final Output
 // ------------------------------------------------------
 async getDepartmentDailySummary(dto: ConsumptionDto) {
-  // 1. AREA → decide which LT groups to include
-  const selectedLines: (
-    'LT1' | 'LT2' | 'Unit5-LT1' | 'Unit5-LT2'
-  )[] = [];
+  // 1. Determine which LT groups to include
+  const selectedLines: ('LT1' | 'LT2' | 'Unit5-LT1' | 'Unit5-LT2')[] = [];
 
   switch (dto.area) {
     case 'Unit4':
       selectedLines.push('LT1', 'LT2');
       break;
-
     case 'Unit5':
       selectedLines.push('Unit5-LT1', 'Unit5-LT2');
       break;
-
     case 'All':
       selectedLines.push('LT1', 'LT2', 'Unit5-LT1', 'Unit5-LT2');
       break;
-
     default:
       throw new Error(`❌ Invalid area selected: ${dto.area}`);
   }
 
-  // 2. RUN calculateConsumption() for each LT group
-  const allMeters: any[] = [];
-
-  for (const line of selectedLines) {
-    const res = await this.calculateConsumption(dto, line);
-    if (res?.meters) {
-      allMeters.push(...res.meters);
-    }
-  }
-
-  // 3. FILTER BY DEPARTMENT
-  const filtered = allMeters.filter(
-    (m) => m.deptname?.toLowerCase() === dto.department.toLowerCase(),
+  // 2. Run calculateConsumption() for each LT group in parallel
+  const results = await Promise.all(
+    selectedLines.map(async (line) => {
+      const res = await this.calculateConsumption(dto, line);
+      return res?.meters ?? [];
+    })
   );
-  console.log(filtered.map(m => m.lt));
 
-  // 4. MAP TO REQUIRED CLEAN OUTPUT FORMAT
+  // Flatten the array
+  const allMeters = results.flat();
+
+  // 3. Filter by department
+  const filtered = allMeters.filter(
+    (m) => m.deptname?.toLowerCase() === dto.department.toLowerCase()
+  );
+  // console.log(filtered);
+
+  // console.log('Filtered LT groups:', filtered.map((m) => m.lt));
+
+  // 4. Map to clean output format
   const meters = filtered.map((m) => {
-    // Automatically detect prefix (example: "U12_GW03")
-    const prefix = Object.keys(m).find((key) =>
-      key.endsWith('_energy_consumption'),
-    )?.replace('_energy_consumption', '');
-
-    const meterKey = m.metername.replace(/\s+/g, '_'); // example: Ring_16-18
-
-    // Extract final values
-    const energy = prefix ? Number(m[`${prefix}_energy_consumption`] ?? 0) : 0;
-    const pf = prefix ? Number(m[`${prefix}_avgPowerFactor`] ?? 0) : 0;
-    const voltage = prefix ? Number(m[`${prefix}_avgVoltage`] ?? 0) : 0;
-      const avgPower = Number(m.avgPower ?? 0);
+    // Detect prefix dynamically
+    const prefixKey = Object.keys(m).find((key) =>
+      key.endsWith('_energy_consumption')
+    );
+    const prefix = prefixKey?.replace('_energy_consumption', '') ?? '';
+    
 
     return {
-      // Final format
-      meterName: m.metername,
-      [`energy_consumption`]: energy,
-      [`avgPower`]: avgPower,
-      [`avgPowerFactor`]: pf,
-      [`avgVoltage`]: voltage,
-
-      area: dto.area,
+      meterName: m.metername ?? '',
+      energy_consumption: Number(m[`${prefix}_energy_consumption`] ?? 0),
+      avgPower: Number(m.avgPower ?? 0),
+      avgPowerFactor: Number(m[`${prefix}_avgPowerFactor`] ?? 0),
+      avgVoltage: Number(m[`${prefix}_avgVoltage`] ?? 0),
+      // area: dto.area,
+      area: m.unit ?? '', // Ensure unit is included in the return object
       lt: m.lt ?? null,
       connectedLoad: Number(m.installedLoad ?? 0),
       MCS: Number(m.MCS ?? 0),
@@ -382,5 +391,6 @@ async getDepartmentDailySummary(dto: ConsumptionDto) {
     meters,
   };
 }
+
 }
 
