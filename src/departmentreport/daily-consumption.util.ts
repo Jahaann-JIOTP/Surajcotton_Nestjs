@@ -87,7 +87,7 @@ export async function calculateConsumptionCore(
   }
 
   const totalHours = Math.max(moment(endISO).diff(moment(startISO), 'milliseconds') / 3600000, 0);
-  console.log(totalHours);
+  // console.log(totalHours);
 
   const slots = generateTimeSlots(startISO, endISO);
 

@@ -27,7 +27,30 @@ export class DailyConsumptionService {
   private assignUnitAndLt(meter: any) {
     let unit = '';
     let lt = '';
+   // 🔥 SPECIAL CASE OVERRIDE
+  if (meter.energy === 'U22_GW02_Del_ActiveEnergy') {
+    return {
+      ...meter,
+      unit: '4',   // Force into Unit 4
+      lt: 'LT1',   // Force LT1
+    };
+  }
+  // 2) Compressor 303 kW — U16_PLC meter
+  if (meter.energy === 'U16_PLC_Del_ActiveEnergy') {
+    return {
+      ...meter,
+      unit: '5',
+      lt: 'LT1',
+    };
+  }
 
+  if (meter.energy === 'U2_PLC_Del_ActiveEnergy') {
+    return {
+      ...meter,
+      unit: '5',
+      lt: 'LT1',
+    };
+  }
     // Logic to assign unit and lt based on meter's energy field or meter name
     if (meter.energy.includes('PLC')) {
       unit = '4'
