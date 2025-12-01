@@ -331,6 +331,7 @@ export class EnergyconsumptionreportService {
           const lt2Incoming = PDB10_U4;
           const totalIncoming = lt1Incoming + lt2Incoming;
           dayRecord['Unit_5_I/C OU'] = +totalIncoming.toFixed(2);
+          
         }
       }
 
@@ -781,14 +782,27 @@ for (const record of dailyConsumption) {
   Unit_4_Total_I_C_G += Number(record['Unit_4_Total_I/C G'] || 0);
   Unit_4_I_C_OU += Number(record['Unit_4_Total_I/C OU'] || 0);
   Unit_5_Total_I_C_G += Number(record['Unit_5_Total_I/C G'] || 0);
-  Unit_5_I_C_OU += Number(record['Unit_5_I/C OU'] || 0);
+  Unit_5_I_C_OU= Number(record['Unit_5_I/C OU'] || 0);
+  // console.log(Unit_5_I_C_OU);
+  // console.log(Unit_5_I_C_OU);
+//   console.log("🔍 UNIT 5 I_C_OU Breakdown", {
+//   PDB07_U4,
+//   CardPDB1_U4,
+//   PDB08_U4,
+//   PDB10_U4,
+//   U16_PLC,
+//   U2_PLC,
+//   Total_I_C_OU: Unit_5_I_C_OU
+// });
+
 }
-Unit_5_I_C_OU += U16_PLC + U2_PLC;
+ Unit_5_I_C_OU += U16_PLC + U2_PLC;
 Unit_4_I_C_OU += U22_GW02;
 Unit_4_Total_I_C_G = +Unit_4_Total_I_C_G.toFixed(2);
 Unit_5_Total_I_C_G = +Unit_5_Total_I_C_G.toFixed(2);
 Unit_4_I_C_OU = +Unit_4_I_C_OU.toFixed(2);
 Unit_5_I_C_OU = +Unit_5_I_C_OU.toFixed(2);
+// console.log(Unit_5_I_C_OU);
 
 // ------------------------------------------------
 // 🧮 Compute Unaccounted Energy for each Unit
