@@ -7,7 +7,7 @@ import { firstValueFrom } from 'rxjs';
 export class meter_dataService {
   constructor(private readonly httpService: HttpService) {}
 
-  private readonly url = 'http://13.234.241.103:1880/surajcotton';
+  private readonly url = 'http://43.204.118.114:6881/surajcotton';
 
  private getMeterPrefixes(groupKey: string): string[] {
   

@@ -226,7 +226,7 @@ async getToggleBasedRealTime() {
     }
 
     // 🔹 External API call
-    const apiRes = await axios.get('http://13.234.241.103:1880/surajcotton');
+    const apiRes = await axios.get('http://43.204.118.114:6881/surajcotton');
     const apiData = apiRes.data || {};
 
     // 🔹 Timestamp unique by minute

@@ -18,7 +18,7 @@ export class NodeRedLinkService {
   ) {}
   async fetchNodeRedData(): Promise<any> {
     try {
-      const response = await this.httpService.axiosRef.get('http://13.234.241.103:1880/surajcotton');
+      const response = await this.httpService.axiosRef.get('http://43.204.118.114:6881/surajcotton');
       return response.data;
     } catch (error) {
       throw new HttpException('Unable to fetch data from Node-RED', 500);
@@ -31,7 +31,7 @@ async checkNodeRedLink(): Promise<string> {
 
   try {
     const { data } = await firstValueFrom(
-      this.httpService.get('http://13.234.241.103:1880/surajcotton')
+      this.httpService.get('http://43.204.118.114:6881/surajcotton')
     );
 
     if (data?.error === 'Invalid data structure') {
