@@ -7,8 +7,8 @@ export type NodeRedStatusDocument1 = NodeRedStatus1 & Document;
 
 @Schema({ timestamps: false })
 export class NodeRedStatus1 {
-  @Prop({ required: true })
-  status: 'up' | 'down';
+  @Prop({ required: true, enum: ['up', 'down', 'cache'] })
+ status: 'up' | 'down' | 'cache';
 
   @Prop({ required: true })
   message: string;
