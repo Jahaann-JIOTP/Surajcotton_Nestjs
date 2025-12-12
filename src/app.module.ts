@@ -38,6 +38,7 @@ import { AlarmsModule } from './alarms/alarms.module';
 import { DailyConsumptionModule } from './daily_consumption/daily_consumption.module';
 import { PlantsTrendsModule } from './plants_trends/plants_trends.module';
 import { departmentreportModule } from './departmentreport/daily_consumption.module';
+import { HarmonicsModule } from './harmonics/harmonics.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { departmentreportModule } from './departmentreport/daily_consumption.mod
     DailyConsumptionModule,
     PlantsTrendsModule,
     departmentreportModule,
+    HarmonicsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
