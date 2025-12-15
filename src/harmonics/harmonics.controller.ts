@@ -11,6 +11,6 @@ export class HarmonicsController
     async getHarmonics ( @Body() body: any )
     {
         // Call the new service method
-        return this.harmonicsService.getRawHarmonicsData( body );
+        return this.harmonicsService.getHarmonicsFromPayload( body );
     }
 }

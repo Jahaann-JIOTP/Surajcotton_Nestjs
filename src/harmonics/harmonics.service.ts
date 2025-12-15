@@ -3,212 +3,102 @@ import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import * as moment from 'moment-timezone';
 
-interface HarmonicsPayload
+/* ===================== DTOs ===================== */
+
+export interface HarmonicsPayload
 {
     Period1startDate: string;
     Period1startTime: string;
     Period1endDate: string;
     Period1endTime: string;
+
     Period2startDate: string;
     Period2startTime: string;
     Period2endDate: string;
     Period2endTime: string;
-    resolution: string;
+
+    resolution: '15mins' | '30mins' | 'hour' | '1hour' | 'day' | '1day';
     DeviceId: string[];
 }
 
-interface HarmonicsResponse
+export interface HarmonicsResponse
 {
     period1Data: any[];
     period2Data: any[];
-    metadata: {
-        period1: {
-            start: string;
-            end: string;
-        };
-        period2: {
-            start: string;
-            end: string;
-        };
-        resolution: string;
-        devices: string[];
-        totalTags: number;
-        queryTime: string;
-    };
+    metadata: any;
 }
+
+/* ===================== SERVICE ===================== */
 
 @Injectable()
 export class HarmonicsService
 {
     private readonly TIMEZONE = 'Asia/Kolkata';
 
-    constructor ( @InjectConnection( 'surajcotton' ) private readonly connection: Connection ) { }
+    constructor (
+        @InjectConnection( 'surajcotton' )
+        private readonly connection: Connection
+    ) { }
 
-    async getHarmonicsFromPayload ( payload: HarmonicsPayload ): Promise<HarmonicsResponse>
+    /* ===================== MAIN ===================== */
+
+    async getHarmonicsFromPayload (
+        payload: HarmonicsPayload
+    ): Promise<HarmonicsResponse>
     {
-        // Validate payload
         this.validatePayload( payload );
 
-        // Parse and validate time periods
-        const period1 = this.parseTimePeriod(
+        const p1 = this.parsePeriod(
             payload.Period1startDate,
             payload.Period1startTime,
             payload.Period1endDate,
-            payload.Period1endTime,
-            'Period 1'
+            payload.Period1endTime
         );
 
-        const period2 = this.parseTimePeriod(
+        const p2 = this.parsePeriod(
             payload.Period2startDate,
             payload.Period2startTime,
             payload.Period2endDate,
-            payload.Period2endTime,
-            'Period 2'
+            payload.Period2endTime
         );
 
-        // Validate that periods don't overlap (if needed)
-        if ( period1.end > period2.start )
-        {
-            throw new BadRequestException( 'Period 1 end time cannot be after Period 2 start time' );
-        }
-
-        // Generate tags for both periods
         const tags = this.generateTags( payload.DeviceId );
 
-        // Fetch data for both periods in parallel
-        const [ period1Data, period2Data ] = await Promise.all( [
-            this.fetchHarmonicsData( period1.start, period1.end, tags, payload.resolution ),
-            this.fetchHarmonicsData( period2.start, period2.end, tags, payload.resolution )
+        const [ raw1, raw2 ] = await Promise.all( [
+            this.fetchHarmonicsData( p1.start, p1.end, tags, payload.resolution ),
+            this.fetchHarmonicsData( p2.start, p2.end, tags, payload.resolution ),
         ] );
 
-        // Process data to calculate averages and restructure
-        const processedPeriod1Data = this.processHarmonicsData( period1Data, payload.DeviceId );
-        const processedPeriod2Data = this.processHarmonicsData( period2Data, payload.DeviceId );
+        let d1 = this.processHarmonicsData( raw1, payload.DeviceId );
+        let d2 = this.processHarmonicsData( raw2, payload.DeviceId );
 
-        // Apply grouping based on resolution
-        let finalPeriod1Data = processedPeriod1Data;
-        let finalPeriod2Data = processedPeriod2Data;
-
-        if ( payload.resolution === 'hour' || payload.resolution === '1hour' )
+        if ( [ 'hour', '1hour' ].includes( payload.resolution ) )
         {
-            finalPeriod1Data = this.groupByHourWithMinMax( processedPeriod1Data, payload.DeviceId );
-            finalPeriod2Data = this.groupByHourWithMinMax( processedPeriod2Data, payload.DeviceId );
-        }
-        else if ( payload.resolution === 'day' || payload.resolution === '1day' )
-        {
-            finalPeriod1Data = this.groupByDayWithMinMax( processedPeriod1Data, payload.DeviceId );
-            finalPeriod2Data = this.groupByDayWithMinMax( processedPeriod2Data, payload.DeviceId );
+            d1 = this.addHourlyIntervalInfo( d1 );
+            d2 = this.addHourlyIntervalInfo( d2 );
         }
 
-        // Prepare response
+        if ( [ 'day', '1day' ].includes( payload.resolution ) )
+        {
+            d1 = this.groupByDay( d1, payload.DeviceId );
+            d2 = this.groupByDay( d2, payload.DeviceId );
+        }
+
         return {
-            period1Data: finalPeriod1Data,
-            period2Data: finalPeriod2Data,
+            period1Data: d1,
+            period2Data: d2,
             metadata: {
-                period1: {
-                    start: period1.start.toISOString(),
-                    end: period1.end.toISOString()
-                },
-                period2: {
-                    start: period2.start.toISOString(),
-                    end: period2.end.toISOString()
-                },
+                period1: { start: p1.start.toISOString(), end: p1.end.toISOString() },
+                period2: { start: p2.start.toISOString(), end: p2.end.toISOString() },
                 resolution: payload.resolution,
                 devices: payload.DeviceId,
                 totalTags: tags.length,
-                queryTime: new Date().toISOString()
-            }
+                queryTime: new Date().toISOString(),
+            },
         };
     }
 
-    private validatePayload ( payload: HarmonicsPayload ): void
-    {
-        const requiredFields = [
-            'Period1startDate', 'Period1startTime', 'Period1endDate', 'Period1endTime',
-            'Period2startDate', 'Period2startTime', 'Period2endDate', 'Period2endTime',
-            'resolution', 'DeviceId'
-        ];
-
-        const missingFields = requiredFields.filter( field => !payload[ field as keyof HarmonicsPayload ] );
-
-        if ( missingFields.length > 0 )
-        {
-            throw new BadRequestException( `Missing required fields: ${ missingFields.join( ', ' ) }` );
-        }
-
-        if ( !Array.isArray( payload.DeviceId ) || payload.DeviceId.length === 0 )
-        {
-            throw new BadRequestException( 'DeviceId must be a non-empty array' );
-        }
-
-        // Update to include "day" and "1day" as valid resolution
-        if ( ![ '15mins', '30mins', 'hour', '1hour', 'day', '1day' ].includes( payload.resolution ) )
-        {
-            throw new BadRequestException( 'Invalid resolution. Allowed values: 15mins, 30mins, hour, 1hour, day, 1day' );
-        }
-    }
-
-    private parseTimePeriod (
-        startDate: string,
-        startTime: string,
-        endDate: string,
-        endTime: string,
-        periodName: string
-    ): { start: Date; end: Date }
-    {
-        try
-        {
-            const start = moment.tz(
-                `${ startDate } ${ startTime }`,
-                'YYYY-MM-DD HH:mm:ss',
-                this.TIMEZONE
-            );
-
-            const end = moment.tz(
-                `${ endDate } ${ endTime }`,
-                'YYYY-MM-DD HH:mm:ss',
-                this.TIMEZONE
-            );
-
-            if ( !start.isValid() || !end.isValid() )
-            {
-                throw new BadRequestException( `Invalid date/time format for ${ periodName }` );
-            }
-
-            if ( start.isAfter( end ) )
-            {
-                throw new BadRequestException( `${ periodName } start time cannot be after end time` );
-            }
-
-            return {
-                start: start.toDate(),
-                end: end.toDate()
-            };
-        } catch ( error )
-        {
-            if ( error instanceof BadRequestException )
-            {
-                throw error;
-            }
-            throw new BadRequestException( `Error parsing ${ periodName } time: ${ error.message }` );
-        }
-    }
-
-    private generateTags ( deviceIds: string[] ): string[]
-    {
-        const tagTypes = [
-            'Harmonics_V1_THD',
-            'Harmonics_V2_THD',
-            'Harmonics_V3_THD',
-            'Harmonics_I1_THD',
-            'Harmonics_I2_THD',
-            'Harmonics_I3_THD'
-        ];
-
-        return deviceIds.flatMap( deviceId =>
-            tagTypes.map( tagType => `${ deviceId }_${ tagType }` )
-        );
-    }
+    /* ===================== AGGREGATION ===================== */
 
     private async fetchHarmonicsData (
         start: Date,
@@ -219,491 +109,210 @@ export class HarmonicsService
     {
         const collection = this.connection.collection( 'historical' );
 
-        // Format dates in local timezone for query
-        const formatDateForQuery = ( date: Date ): string =>
+        if ( [ 'day', '1day' ].includes( resolution ) )
         {
-            return moment( date ).tz( this.TIMEZONE ).format( 'YYYY-MM-DDTHH:mm:ss' ) + '+05:30';
-        };
-
-        // Determine time grouping based on resolution
-        const minuteSlotSize = this.getMinuteSlotSize( resolution );
-
-        const pipeline = [
-            {
-                $match: {
-                    timestamp: {
-                        $gte: formatDateForQuery( start ),
-                        $lt: formatDateForQuery( end )
-                    }
-                }
-            },
-            {
-                $addFields: {
-                    timestampDate: {
-                        $dateFromString: {
-                            dateString: "$timestamp",
-                            timezone: this.TIMEZONE
+            return collection
+                .aggregate( [
+                    {
+                        $addFields: {
+                            ts: { $dateFromString: { dateString: '$timestamp' } }
                         }
+                    },
+                    {
+                        $match: {
+                            ts: { $gte: start, $lt: end }
+                        }
+                    },
+                    { $project: { timestamp: 1, ...this.roundFields( tags ) } },
+                    { $sort: { timestamp: 1 } }
+                ] )
+                .toArray();
+        }
+
+
+        const { unit, binSize } = this.getBucketConfig( resolution );
+
+        return collection
+            .aggregate( [
+                { $addFields: { ts: { $dateFromString: { dateString: '$timestamp' } } } },
+                { $match: { ts: { $gte: start, $lt: end } } },
+
+                // Shift timestamp by 6 hours for proper daily bucketing (ignored for sub-day)
+                { $addFields: { tsShifted: { $add: [ '$ts', 1000 * 60 * 60 * 6 ] } } },
+
+                {
+                    $group: {
+                        _id: {
+                            bucket: {
+                                $dateTrunc: {
+                                    date: '$tsShifted',
+                                    unit,
+                                    binSize,
+                                    timezone: this.TIMEZONE
+                                }
+                            }
+                        },
+                        ...this.avgFields( tags )
                     }
-                }
-            },
+                },
+
+                {
+                    $project: {
+                        _id: 0,
+                        timestamp: {
+                            $dateToString: {
+                                date: { $subtract: [ '$_id.bucket', 1000 * 60 * 60 * 6 ] },
+                                format: '%Y-%m-%dT%H:%M:%S',
+                                timezone: this.TIMEZONE
+                            }
+                        },
+                        ...this.roundFields( tags )
+                    }
+                },
+                { $sort: { timestamp: 1 } }
+            ] )
+            .toArray();
+    }
+
+    /* ===================== HELPERS ===================== */
+
+    private getBucketConfig ( res: string ): { unit: any; binSize: number }
+    {
+        switch ( res )
+        {
+            case '15mins': return { unit: 'minute', binSize: 15 };
+            case '30mins': return { unit: 'minute', binSize: 30 };
+            case 'hour':
+            case '1hour': return { unit: 'hour', binSize: 1 };
+            case 'day':
+            case '1day': return { unit: 'day', binSize: 1 };
+            default: return { unit: 'hour', binSize: 1 };
+        }
+    }
+
+    private avgFields ( tags: string[] )
+    {
+        return Object.fromEntries( tags.map( t => [ t, { $avg: `$${ t }` } ] ) );
+    }
+
+    private roundFields ( tags: string[] )
+    {
+        return Object.fromEntries( tags.map( t => [ t, { $round: [ `$${ t }`, 2 ] } ] ) );
+    }
+
+    /* ===================== POST PROCESS ===================== */
+
+    private processHarmonicsData ( data: any[], devices: string[] ): any[]
+    {
+        return data.map( d =>
+        {
+            const out: any = { timestamp: d.timestamp };
+
+            devices.forEach( dev =>
             {
-                $group: {
-                    _id: this.getGroupingStage( resolution ),
-                    timestamp: { $first: "$timestamp" },
-                    ...this.createAvgFields( tags )
-                }
-            },
+                const v = [ 'V1', 'V2', 'V3' ]
+                    .map( x => d[ `${ dev }_Harmonics_${ x }_THD` ] )
+                    .filter( v => typeof v === 'number' );
+
+                const i = [ 'I1', 'I2', 'I3' ]
+                    .map( x => d[ `${ dev }_Harmonics_${ x }_THD` ] )
+                    .filter( v => typeof v === 'number' );
+
+                out[ `${ dev }_Harmonics_V_THD` ] = v.length
+                    ? +( v.reduce( ( a, b ) => a + b, 0 ) / v.length ).toFixed( 2 )
+                    : 0;
+
+                out[ `${ dev }_Harmonics_I_THD` ] = i.length
+                    ? +( i.reduce( ( a, b ) => a + b, 0 ) / i.length ).toFixed( 2 )
+                    : 0;
+            } );
+
+            return out;
+        } );
+    }
+
+    private addHourlyIntervalInfo ( data: any[] ): any[]
+    {
+        return data.map( d =>
+        {
+            const t = moment.tz( d.timestamp, this.TIMEZONE ).startOf( 'hour' );
+            return {
+                ...d,
+                intervalStart: t.format( 'YYYY-MM-DD HH:mm:ss' ),
+                intervalEnd: t.clone().add( 1, 'hour' ).format( 'YYYY-MM-DD HH:mm:ss' ),
+            };
+        } );
+    }
+
+    private groupByDay ( data: any[], devices: string[] ): any[]
+    {
+        const map: Record<string, any[]> = {};
+
+        data.forEach( d =>
+        {
+            const t = moment.tz( d.timestamp, this.TIMEZONE );
+            const key = t.hour() < 6 ? t.clone().subtract( 1, 'day' ) : t.clone();
+            const k = key.format( 'YYYY-MM-DD' );
+            map[ k ] ??= [];
+            map[ k ].push( d );
+        } );
+
+        return Object.entries( map ).map( ( [ day, rows ] ) =>
+        {
+            const start = moment.tz( `${ day } 06:00:00`, this.TIMEZONE );
+
+            const out: any = {
+                timestamp: start.format(),
+                intervalStart: start.format( 'YYYY-MM-DD HH:mm:ss' ),
+                intervalEnd: start.clone().add( 24, 'hour' ).format( 'YYYY-MM-DD HH:mm:ss' ),
+                displayDate: day,
+            };
+
+            devices.forEach( dev =>
             {
-                $project: {
-                    _id: 0,
-                    timestamp: 1,
-                    ...this.createRoundedFields( tags )
-                }
-            },
-            { $sort: { timestamp: 1 } }
+                [ 'V', 'I' ].forEach( type =>
+                {
+                    const vals = rows
+                        .map( r => r[ `${ dev }_Harmonics_${ type }_THD` ] )
+                        .filter( v => typeof v === 'number' );
+
+                    out[ `${ dev }_Harmonics_${ type }_THD` ] = vals.length
+                        ? +( vals.reduce( ( a, b ) => a + b, 0 ) / vals.length ).toFixed( 2 )
+                        : 0;
+                } );
+            } );
+
+            return out;
+        } );
+    }
+
+    private validatePayload ( payload: HarmonicsPayload ): void
+    {
+        if ( !payload.DeviceId?.length )
+            throw new BadRequestException( 'DeviceId required' );
+        if ( !payload.resolution )
+            throw new BadRequestException( 'Resolution required' );
+    }
+
+    private parsePeriod ( sd: string, st: string, ed: string, et: string )
+    {
+        const start = moment.tz( `${ sd } ${ st }`, 'YYYY-MM-DD HH:mm:ss', this.TIMEZONE );
+        const end = moment.tz( `${ ed } ${ et }`, 'YYYY-MM-DD HH:mm:ss', this.TIMEZONE );
+        if ( !start.isValid() || !end.isValid() )
+            throw new BadRequestException( 'Invalid period' );
+        return { start: start.toDate(), end: end.toDate() };
+    }
+
+    private generateTags ( deviceIds: string[] ): string[]
+    {
+        const types = [
+            'Harmonics_V1_THD',
+            'Harmonics_V2_THD',
+            'Harmonics_V3_THD',
+            'Harmonics_I1_THD',
+            'Harmonics_I2_THD',
+            'Harmonics_I3_THD',
         ];
-
-        return await collection.aggregate( pipeline ).toArray();
-    }
-
-    private getMinuteSlotSize ( resolution: string ): number
-    {
-        const resolutionMap = {
-            '15mins': 15,
-            '30mins': 30,
-            'hour': 60,
-            '1hour': 60,
-            'day': 1440,
-            '1day': 1440
-        };
-        return resolutionMap[ resolution ] || 15;
-    }
-
-    private getGroupingStage ( resolution: string ): any
-    {
-        const baseGroup = {
-            year: { $year: "$timestampDate" },
-            month: { $month: "$timestampDate" },
-            day: { $dayOfMonth: "$timestampDate" },
-            hour: { $hour: "$timestampDate" }
-        };
-
-        const minuteSlotSize = this.getMinuteSlotSize( resolution );
-
-        if ( minuteSlotSize === 1440 )
-        { // 1 day or day
-            return {
-                year: baseGroup.year,
-                month: baseGroup.month,
-                day: baseGroup.day
-            };
-        } else if ( minuteSlotSize === 60 )
-        { // 1 hour or hour
-            return {
-                year: baseGroup.year,
-                month: baseGroup.month,
-                day: baseGroup.day,
-                hour: baseGroup.hour
-            };
-        } else
-        {
-            return {
-                ...baseGroup,
-                minuteSlot: {
-                    $floor: {
-                        $divide: [
-                            { $minute: "$timestampDate" },
-                            minuteSlotSize
-                        ]
-                    }
-                }
-            };
-        }
-    }
-
-    private createAvgFields ( tags: string[] ): any
-    {
-        return tags.reduce( ( acc, tag ) => ( {
-            ...acc,
-            [ tag ]: { $avg: `$${ tag }` }
-        } ), {} );
-    }
-
-    private createRoundedFields ( tags: string[] ): any
-    {
-        return tags.reduce( ( acc, tag ) => ( {
-            ...acc,
-            [ tag ]: { $round: [ `$${ tag }`, 2 ] }
-        } ), {} );
-    }
-
-    // Process harmonics data to calculate V_THD and I_THD averages
-    private processHarmonicsData ( data: any[], deviceIds: string[] ): any[]
-    {
-        return data.map( item =>
-        {
-            const processedItem: any = {
-                timestamp: item.timestamp,
-                originalTimestamp: item.timestamp // Keep original for grouping
-            };
-
-            // For each device, calculate averages
-            deviceIds.forEach( deviceId =>
-            {
-                // Calculate average of V1, V2, V3 for this device
-                const v1 = item[ `${ deviceId }_Harmonics_V1_THD` ] || 0;
-                const v2 = item[ `${ deviceId }_Harmonics_V2_THD` ] || 0;
-                const v3 = item[ `${ deviceId }_Harmonics_V3_THD` ] || 0;
-
-                // Calculate average (handle cases where some values might be missing)
-                const vValues = [ v1, v2, v3 ].filter( v => v !== 0 );
-                const vAvg = vValues.length > 0
-                    ? vValues.reduce( ( sum, val ) => sum + val, 0 ) / vValues.length
-                    : 0;
-
-                // Calculate average of I1, I2, I3 for this device
-                const i1 = item[ `${ deviceId }_Harmonics_I1_THD` ] || 0;
-                const i2 = item[ `${ deviceId }_Harmonics_I2_THD` ] || 0;
-                const i3 = item[ `${ deviceId }_Harmonics_I3_THD` ] || 0;
-
-                // Calculate average (handle cases where some values might be missing)
-                const iValues = [ i1, i2, i3 ].filter( i => i !== 0 );
-                const iAvg = iValues.length > 0
-                    ? iValues.reduce( ( sum, val ) => sum + val, 0 ) / iValues.length
-                    : 0;
-
-                // Add ONLY the calculated averages to the processed item (not individual values)
-                processedItem[ `${ deviceId }_Harmonics_V_THD` ] = Math.round( vAvg * 100 ) / 100; // Round to 2 decimal places
-                processedItem[ `${ deviceId }_Harmonics_I_THD` ] = Math.round( iAvg * 100 ) / 100; // Round to 2 decimal places
-            } );
-
-            return processedItem;
-        } );
-    }
-
-    // Group data by hour with min/max values and their timestamps
-    private groupByHourWithMinMax ( data: any[], deviceIds: string[] ): any[]
-    {
-        const groupedByHour: { [ key: string ]: any[] } = {};
-
-        // Group data by hour
-        data.forEach( item =>
-        {
-            const timestamp = moment.tz( item.timestamp, this.TIMEZONE );
-            const hourKey = timestamp.format( 'YYYY-MM-DD HH:00:00' ); // Group by hour
-
-            if ( !groupedByHour[ hourKey ] )
-            {
-                groupedByHour[ hourKey ] = [];
-            }
-            groupedByHour[ hourKey ].push( item );
-        } );
-
-        // Calculate hourly averages with min/max
-        const hourlyData: any[] = [];
-
-        Object.keys( groupedByHour ).sort().forEach( hourKey =>
-        {
-            const hourData = groupedByHour[ hourKey ];
-
-            const hourlyItem: any = {
-                timestamp: `${ hourKey }+05:30`, // Format with timezone
-                intervalStart: hourKey,
-                intervalEnd: moment.tz( hourKey, 'YYYY-MM-DD HH:mm:ss', this.TIMEZONE )
-                    .add( 1, 'hour' )
-                    .format( 'YYYY-MM-DD HH:mm:ss' )
-            };
-
-            // For each device, calculate statistics for this hour
-            deviceIds.forEach( deviceId =>
-            {
-                // Get all V_THD values for this device in this hour
-                const vDataPoints = hourData
-                    .map( item => ( {
-                        value: item[ `${ deviceId }_Harmonics_V_THD` ],
-                        timestamp: item.originalTimestamp
-                    } ) )
-                    .filter( point => point.value !== undefined && point.value !== 0 );
-
-                // Get all I_THD values for this device in this hour
-                const iDataPoints = hourData
-                    .map( item => ( {
-                        value: item[ `${ deviceId }_Harmonics_I_THD` ],
-                        timestamp: item.originalTimestamp
-                    } ) )
-                    .filter( point => point.value !== undefined && point.value !== 0 );
-
-                // Calculate V_THD statistics
-                if ( vDataPoints.length > 0 )
-                {
-                    const vValues = vDataPoints.map( point => point.value );
-                    const vAvg = vValues.reduce( ( sum, val ) => sum + val, 0 ) / vValues.length;
-
-                    // Find min V_THD
-                    const vMinPoint = vDataPoints.reduce( ( min, point ) =>
-                        point.value < min.value ? point : min, vDataPoints[ 0 ] );
-
-                    // Find max V_THD
-                    const vMaxPoint = vDataPoints.reduce( ( max, point ) =>
-                        point.value > max.value ? point : max, vDataPoints[ 0 ] );
-
-                    hourlyItem[ `${ deviceId }_Harmonics_V_THD` ] = Math.round( vAvg * 100 ) / 100;
-                    hourlyItem[ `${ deviceId }_Harmonics_V_THD_min` ] = Math.round( vMinPoint.value * 100 ) / 100;
-                    hourlyItem[ `${ deviceId }_Harmonics_V_THD_min_timestamp` ] = vMinPoint.timestamp;
-                    hourlyItem[ `${ deviceId }_Harmonics_V_THD_max` ] = Math.round( vMaxPoint.value * 100 ) / 100;
-                    hourlyItem[ `${ deviceId }_Harmonics_V_THD_max_timestamp` ] = vMaxPoint.timestamp;
-                }
-                else
-                {
-                    hourlyItem[ `${ deviceId }_Harmonics_V_THD` ] = 0;
-                    hourlyItem[ `${ deviceId }_Harmonics_V_THD_min` ] = 0;
-                    hourlyItem[ `${ deviceId }_Harmonics_V_THD_min_timestamp` ] = null;
-                    hourlyItem[ `${ deviceId }_Harmonics_V_THD_max` ] = 0;
-                    hourlyItem[ `${ deviceId }_Harmonics_V_THD_max_timestamp` ] = null;
-                }
-
-                // Calculate I_THD statistics
-                if ( iDataPoints.length > 0 )
-                {
-                    const iValues = iDataPoints.map( point => point.value );
-                    const iAvg = iValues.reduce( ( sum, val ) => sum + val, 0 ) / iValues.length;
-
-                    // Find min I_THD
-                    const iMinPoint = iDataPoints.reduce( ( min, point ) =>
-                        point.value < min.value ? point : min, iDataPoints[ 0 ] );
-
-                    // Find max I_THD
-                    const iMaxPoint = iDataPoints.reduce( ( max, point ) =>
-                        point.value > max.value ? point : max, iDataPoints[ 0 ] );
-
-                    hourlyItem[ `${ deviceId }_Harmonics_I_THD` ] = Math.round( iAvg * 100 ) / 100;
-                    hourlyItem[ `${ deviceId }_Harmonics_I_THD_min` ] = Math.round( iMinPoint.value * 100 ) / 100;
-                    hourlyItem[ `${ deviceId }_Harmonics_I_THD_min_timestamp` ] = iMinPoint.timestamp;
-                    hourlyItem[ `${ deviceId }_Harmonics_I_THD_max` ] = Math.round( iMaxPoint.value * 100 ) / 100;
-                    hourlyItem[ `${ deviceId }_Harmonics_I_THD_max_timestamp` ] = iMaxPoint.timestamp;
-                }
-                else
-                {
-                    hourlyItem[ `${ deviceId }_Harmonics_I_THD` ] = 0;
-                    hourlyItem[ `${ deviceId }_Harmonics_I_THD_min` ] = 0;
-                    hourlyItem[ `${ deviceId }_Harmonics_I_THD_min_timestamp` ] = null;
-                    hourlyItem[ `${ deviceId }_Harmonics_I_THD_max` ] = 0;
-                    hourlyItem[ `${ deviceId }_Harmonics_I_THD_max_timestamp` ] = null;
-                }
-            } );
-
-            hourlyData.push( hourlyItem );
-        } );
-
-        return hourlyData;
-    }
-
-    // Group data by day with min/max values and their timestamps
-    private groupByDayWithMinMax ( data: any[], deviceIds: string[] ): any[]
-    {
-        const groupedByDay: { [ key: string ]: any[] } = {};
-
-        // Group data by day
-        data.forEach( item =>
-        {
-            const timestamp = moment.tz( item.timestamp, this.TIMEZONE );
-            const dayKey = timestamp.format( 'YYYY-MM-DD' ); // Group by day
-
-            if ( !groupedByDay[ dayKey ] )
-            {
-                groupedByDay[ dayKey ] = [];
-            }
-            groupedByDay[ dayKey ].push( item );
-        } );
-
-        // Calculate daily averages with min/max
-        const dailyData: any[] = [];
-
-        Object.keys( groupedByDay ).sort().forEach( dayKey =>
-        {
-            const dayData = groupedByDay[ dayKey ];
-
-            const dailyItem: any = {
-                timestamp: `${ dayKey }T00:00:00+05:30`, // Format with timezone (start of day)
-                intervalStart: `${ dayKey } 00:00:00`,
-                intervalEnd: `${ dayKey } 23:59:59`
-            };
-
-            // For each device, calculate statistics for this day
-            deviceIds.forEach( deviceId =>
-            {
-                // Get all V_THD values for this device in this day
-                const vDataPoints = dayData
-                    .map( item => ( {
-                        value: item[ `${ deviceId }_Harmonics_V_THD` ],
-                        timestamp: item.originalTimestamp
-                    } ) )
-                    .filter( point => point.value !== undefined && point.value !== 0 );
-
-                // Get all I_THD values for this device in this day
-                const iDataPoints = dayData
-                    .map( item => ( {
-                        value: item[ `${ deviceId }_Harmonics_I_THD` ],
-                        timestamp: item.originalTimestamp
-                    } ) )
-                    .filter( point => point.value !== undefined && point.value !== 0 );
-
-                // Calculate V_THD statistics
-                if ( vDataPoints.length > 0 )
-                {
-                    const vValues = vDataPoints.map( point => point.value );
-                    const vAvg = vValues.reduce( ( sum, val ) => sum + val, 0 ) / vValues.length;
-
-                    // Find min V_THD
-                    const vMinPoint = vDataPoints.reduce( ( min, point ) =>
-                        point.value < min.value ? point : min, vDataPoints[ 0 ] );
-
-                    // Find max V_THD
-                    const vMaxPoint = vDataPoints.reduce( ( max, point ) =>
-                        point.value > max.value ? point : max, vDataPoints[ 0 ] );
-
-                    dailyItem[ `${ deviceId }_Harmonics_V_THD` ] = Math.round( vAvg * 100 ) / 100;
-                    dailyItem[ `${ deviceId }_Harmonics_V_THD_min` ] = Math.round( vMinPoint.value * 100 ) / 100;
-                    dailyItem[ `${ deviceId }_Harmonics_V_THD_min_timestamp` ] = vMinPoint.timestamp;
-                    dailyItem[ `${ deviceId }_Harmonics_V_THD_max` ] = Math.round( vMaxPoint.value * 100 ) / 100;
-                    dailyItem[ `${ deviceId }_Harmonics_V_THD_max_timestamp` ] = vMaxPoint.timestamp;
-                }
-                else
-                {
-                    dailyItem[ `${ deviceId }_Harmonics_V_THD` ] = 0;
-                    dailyItem[ `${ deviceId }_Harmonics_V_THD_min` ] = 0;
-                    dailyItem[ `${ deviceId }_Harmonics_V_THD_min_timestamp` ] = null;
-                    dailyItem[ `${ deviceId }_Harmonics_V_THD_max` ] = 0;
-                    dailyItem[ `${ deviceId }_Harmonics_V_THD_max_timestamp` ] = null;
-                }
-
-                // Calculate I_THD statistics
-                if ( iDataPoints.length > 0 )
-                {
-                    const iValues = iDataPoints.map( point => point.value );
-                    const iAvg = iValues.reduce( ( sum, val ) => sum + val, 0 ) / iValues.length;
-
-                    // Find min I_THD
-                    const iMinPoint = iDataPoints.reduce( ( min, point ) =>
-                        point.value < min.value ? point : min, iDataPoints[ 0 ] );
-
-                    // Find max I_THD
-                    const iMaxPoint = iDataPoints.reduce( ( max, point ) =>
-                        point.value > max.value ? point : max, iDataPoints[ 0 ] );
-
-                    dailyItem[ `${ deviceId }_Harmonics_I_THD` ] = Math.round( iAvg * 100 ) / 100;
-                    dailyItem[ `${ deviceId }_Harmonics_I_THD_min` ] = Math.round( iMinPoint.value * 100 ) / 100;
-                    dailyItem[ `${ deviceId }_Harmonics_I_THD_min_timestamp` ] = iMinPoint.timestamp;
-                    dailyItem[ `${ deviceId }_Harmonics_I_THD_max` ] = Math.round( iMaxPoint.value * 100 ) / 100;
-                    dailyItem[ `${ deviceId }_Harmonics_I_THD_max_timestamp` ] = iMaxPoint.timestamp;
-                }
-                else
-                {
-                    dailyItem[ `${ deviceId }_Harmonics_I_THD` ] = 0;
-                    dailyItem[ `${ deviceId }_Harmonics_I_THD_min` ] = 0;
-                    dailyItem[ `${ deviceId }_Harmonics_I_THD_min_timestamp` ] = null;
-                    dailyItem[ `${ deviceId }_Harmonics_I_THD_max` ] = 0;
-                    dailyItem[ `${ deviceId }_Harmonics_I_THD_max_timestamp` ] = null;
-                }
-            } );
-
-            dailyData.push( dailyItem );
-        } );
-
-        return dailyData;
-    }
-
-    // Optional: Add a method to get raw data without aggregation
-    async getRawHarmonicsData ( payload: HarmonicsPayload ): Promise<any>
-    {
-        this.validatePayload( payload );
-
-        const period1 = this.parseTimePeriod(
-            payload.Period1startDate,
-            payload.Period1startTime,
-            payload.Period1endDate,
-            payload.Period1endTime,
-            'Period 1'
-        );
-
-        const period2 = this.parseTimePeriod(
-            payload.Period2startDate,
-            payload.Period2startTime,
-            payload.Period2endDate,
-            payload.Period2endTime,
-            'Period 2'
-        );
-
-        const tags = this.generateTags( payload.DeviceId );
-        const collection = this.connection.collection( 'historical' );
-
-        // Format dates in local timezone for query
-        const formatDateForQuery = ( date: Date ): string =>
-        {
-            return moment( date ).tz( this.TIMEZONE ).format( 'YYYY-MM-DDTHH:mm:ss' ) + '+05:30';
-        };
-
-        // Raw data without aggregation
-        const period1Raw = await collection.find( {
-            timestamp: {
-                $gte: formatDateForQuery( period1.start ),
-                $lt: formatDateForQuery( period1.end )
-            }
-        } )
-            .project( this.createProjection( tags ) )
-            .sort( { timestamp: 1 } )
-            .toArray();
-
-        const period2Raw = await collection.find( {
-            timestamp: {
-                $gte: formatDateForQuery( period2.start ),
-                $lt: formatDateForQuery( period2.end )
-            }
-        } )
-            .project( this.createProjection( tags ) )
-            .sort( { timestamp: 1 } )
-            .toArray();
-
-        // Process the raw data as well
-        const processedPeriod1Raw = this.processHarmonicsData( period1Raw, payload.DeviceId );
-        const processedPeriod2Raw = this.processHarmonicsData( period2Raw, payload.DeviceId );
-
-        // Apply grouping based on resolution
-        let finalPeriod1Raw = processedPeriod1Raw;
-        let finalPeriod2Raw = processedPeriod2Raw;
-
-        if ( payload.resolution === 'hour' || payload.resolution === '1hour' )
-        {
-            finalPeriod1Raw = this.groupByHourWithMinMax( processedPeriod1Raw, payload.DeviceId );
-            finalPeriod2Raw = this.groupByHourWithMinMax( processedPeriod2Raw, payload.DeviceId );
-        }
-        else if ( payload.resolution === 'day' || payload.resolution === '1day' )
-        {
-            finalPeriod1Raw = this.groupByDayWithMinMax( processedPeriod1Raw, payload.DeviceId );
-            finalPeriod2Raw = this.groupByDayWithMinMax( processedPeriod2Raw, payload.DeviceId );
-        }
-
-        return {
-            period1: finalPeriod1Raw,
-            period2: finalPeriod2Raw,
-            metadata: {
-                period1: { start: period1.start.toISOString(), end: period1.end.toISOString() },
-                period2: { start: period2.start.toISOString(), end: period2.end.toISOString() },
-                devices: payload.DeviceId,
-                tags: tags,
-                queryTime: new Date().toISOString()
-            }
-        };
-    }
-
-    private createProjection ( tags: string[] ): any
-    {
-        const projection: any = { timestamp: 1 };
-        tags.forEach( tag =>
-        {
-            projection[ tag ] = 1;
-        } );
-        return projection;
+        return deviceIds.flatMap( id => types.map( t => `${ id }_${ t }` ) );
     }
 }
