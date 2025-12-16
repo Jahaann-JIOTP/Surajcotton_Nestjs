@@ -42,9 +42,7 @@ export class HarmonicsService
 
     /* ===================== MAIN ===================== */
 
-    async getHarmonicsFromPayload (
-        payload: HarmonicsPayload
-    ): Promise<HarmonicsResponse>
+    async getHarmonicsFromPayload ( payload: HarmonicsPayload ): Promise<HarmonicsResponse>
     {
         this.validatePayload( payload );
 
@@ -74,14 +72,14 @@ export class HarmonicsService
 
         if ( [ 'hour', '1hour' ].includes( payload.resolution ) )
         {
-            d1 = this.addHourlyIntervalInfo( d1 );
-            d2 = this.addHourlyIntervalInfo( d2 );
+            d1 = this.groupByHourWithMinMax( d1, payload.DeviceId );
+            d2 = this.groupByHourWithMinMax( d2, payload.DeviceId );
         }
 
         if ( [ 'day', '1day' ].includes( payload.resolution ) )
         {
-            d1 = this.groupByDay( d1, payload.DeviceId );
-            d2 = this.groupByDay( d2, payload.DeviceId );
+            d1 = this.groupByDayWithMinMax( d1, payload.DeviceId );
+            d2 = this.groupByDayWithMinMax( d2, payload.DeviceId );
         }
 
         return {
@@ -111,67 +109,50 @@ export class HarmonicsService
 
         if ( [ 'day', '1day' ].includes( resolution ) )
         {
-            return collection
-                .aggregate( [
-                    {
-                        $addFields: {
-                            ts: { $dateFromString: { dateString: '$timestamp' } }
-                        }
-                    },
-                    {
-                        $match: {
-                            ts: { $gte: start, $lt: end }
-                        }
-                    },
-                    { $project: { timestamp: 1, ...this.roundFields( tags ) } },
-                    { $sort: { timestamp: 1 } }
-                ] )
-                .toArray();
+            return collection.aggregate( [
+                { $addFields: { ts: { $dateFromString: { dateString: '$timestamp' } } } },
+                { $match: { ts: { $gte: start, $lt: end } } },
+                { $project: { timestamp: 1, ...this.roundFields( tags ) } },
+                { $sort: { timestamp: 1 } }
+            ] ).toArray();
         }
-
 
         const { unit, binSize } = this.getBucketConfig( resolution );
 
-        return collection
-            .aggregate( [
-                { $addFields: { ts: { $dateFromString: { dateString: '$timestamp' } } } },
-                { $match: { ts: { $gte: start, $lt: end } } },
-
-                // Shift timestamp by 6 hours for proper daily bucketing (ignored for sub-day)
-                { $addFields: { tsShifted: { $add: [ '$ts', 1000 * 60 * 60 * 6 ] } } },
-
-                {
-                    $group: {
-                        _id: {
-                            bucket: {
-                                $dateTrunc: {
-                                    date: '$tsShifted',
-                                    unit,
-                                    binSize,
-                                    timezone: this.TIMEZONE
-                                }
-                            }
-                        },
-                        ...this.avgFields( tags )
-                    }
-                },
-
-                {
-                    $project: {
-                        _id: 0,
-                        timestamp: {
-                            $dateToString: {
-                                date: { $subtract: [ '$_id.bucket', 1000 * 60 * 60 * 6 ] },
-                                format: '%Y-%m-%dT%H:%M:%S',
+        return collection.aggregate( [
+            { $addFields: { ts: { $dateFromString: { dateString: '$timestamp' } } } },
+            { $match: { ts: { $gte: start, $lt: end } } },
+            { $addFields: { tsShifted: { $add: [ '$ts', 1000 * 60 * 60 * 6 ] } } },
+            {
+                $group: {
+                    _id: {
+                        bucket: {
+                            $dateTrunc: {
+                                date: '$tsShifted',
+                                unit,
+                                binSize,
                                 timezone: this.TIMEZONE
                             }
-                        },
-                        ...this.roundFields( tags )
-                    }
-                },
-                { $sort: { timestamp: 1 } }
-            ] )
-            .toArray();
+                        }
+                    },
+                    ...this.avgFields( tags )
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    timestamp: {
+                        $dateToString: {
+                            date: { $subtract: [ '$_id.bucket', 1000 * 60 * 60 * 6 ] },
+                            format: '%Y-%m-%dT%H:%M:%S',
+                            timezone: this.TIMEZONE
+                        }
+                    },
+                    ...this.roundFields( tags )
+                }
+            },
+            { $sort: { timestamp: 1 } }
+        ] ).toArray();
     }
 
     /* ===================== HELPERS ===================== */
@@ -218,43 +199,80 @@ export class HarmonicsService
                     .map( x => d[ `${ dev }_Harmonics_${ x }_THD` ] )
                     .filter( v => typeof v === 'number' );
 
-                out[ `${ dev }_Harmonics_V_THD` ] = v.length
-                    ? +( v.reduce( ( a, b ) => a + b, 0 ) / v.length ).toFixed( 2 )
-                    : 0;
-
-                out[ `${ dev }_Harmonics_I_THD` ] = i.length
-                    ? +( i.reduce( ( a, b ) => a + b, 0 ) / i.length ).toFixed( 2 )
-                    : 0;
+                out[ `${ dev }_Harmonics_V_THD` ] = v.length ? +( v.reduce( ( a, b ) => a + b, 0 ) / v.length ).toFixed( 2 ) : 0;
+                out[ `${ dev }_Harmonics_I_THD` ] = i.length ? +( i.reduce( ( a, b ) => a + b, 0 ) / i.length ).toFixed( 2 ) : 0;
             } );
 
             return out;
         } );
     }
 
-    private addHourlyIntervalInfo ( data: any[] ): any[]
+    /* ===================== HOUR MIN / MAX ===================== */
+
+    private groupByHourWithMinMax ( data: any[], devices: string[] ): any[]
     {
-        return data.map( d =>
+        const map: Record<string, any[]> = {};
+
+        data.forEach( d =>
         {
             const t = moment.tz( d.timestamp, this.TIMEZONE ).startOf( 'hour' );
-            return {
-                ...d,
-                intervalStart: t.format( 'YYYY-MM-DD HH:mm:ss' ),
-                intervalEnd: t.clone().add( 1, 'hour' ).format( 'YYYY-MM-DD HH:mm:ss' ),
+            const key = t.format( 'YYYY-MM-DD HH:00:00' );
+            map[ key ] ??= [];
+            map[ key ].push( d );
+        } );
+
+        return Object.entries( map ).map( ( [ hour, rows ] ) =>
+        {
+            const start = moment.tz( hour, 'YYYY-MM-DD HH:mm:ss', this.TIMEZONE );
+
+            const out: any = {
+                timestamp: start.format(),
+                intervalStart: start.format( 'YYYY-MM-DD HH:mm:ss' ),
+                intervalEnd: start.clone().add( 1, 'hour' ).format( 'YYYY-MM-DD HH:mm:ss' )
             };
+
+            devices.forEach( dev =>
+            {
+                [ 'V', 'I' ].forEach( type =>
+                {
+                    const k = `${ dev }_Harmonics_${ type }_THD`;
+                    const pts = rows.map( r => ( { v: r[ k ], t: r.timestamp } ) ).filter( p => typeof p.v === 'number' );
+
+                    if ( !pts.length )
+                    {
+                        out[ k ] = out[ `${ k }_min` ] = out[ `${ k }_max` ] = 0;
+                        out[ `${ k }_minTime` ] = out[ `${ k }_maxTime` ] = null;
+                        return;
+                    }
+
+                    const min = pts.reduce( ( a, b ) => b.v < a.v ? b : a );
+                    const max = pts.reduce( ( a, b ) => b.v > a.v ? b : a );
+
+                    out[ k ] = +( pts.reduce( ( s, p ) => s + p.v, 0 ) / pts.length ).toFixed( 2 );
+                    out[ `${ k }_min` ] = +min.v.toFixed( 2 );
+                    out[ `${ k }_minTime` ] = min.t;
+                    out[ `${ k }_max` ] = +max.v.toFixed( 2 );
+                    out[ `${ k }_maxTime` ] = max.t;
+                } );
+            } );
+
+            return out;
         } );
     }
 
-    private groupByDay ( data: any[], devices: string[] ): any[]
+    /* ===================== DAY MIN / MAX (6AM) ===================== */
+
+    private groupByDayWithMinMax ( data: any[], devices: string[] ): any[]
     {
         const map: Record<string, any[]> = {};
 
         data.forEach( d =>
         {
             const t = moment.tz( d.timestamp, this.TIMEZONE );
-            const key = t.hour() < 6 ? t.clone().subtract( 1, 'day' ) : t.clone();
-            const k = key.format( 'YYYY-MM-DD' );
-            map[ k ] ??= [];
-            map[ k ].push( d );
+            const day = t.hour() < 6 ? t.clone().subtract( 1, 'day' ) : t.clone();
+            const key = day.format( 'YYYY-MM-DD' );
+            map[ key ] ??= [];
+            map[ key ].push( d );
         } );
 
         return Object.entries( map ).map( ( [ day, rows ] ) =>
@@ -265,26 +283,39 @@ export class HarmonicsService
                 timestamp: start.format(),
                 intervalStart: start.format( 'YYYY-MM-DD HH:mm:ss' ),
                 intervalEnd: start.clone().add( 24, 'hour' ).format( 'YYYY-MM-DD HH:mm:ss' ),
-                displayDate: day,
+                displayDate: day
             };
 
             devices.forEach( dev =>
             {
                 [ 'V', 'I' ].forEach( type =>
                 {
-                    const vals = rows
-                        .map( r => r[ `${ dev }_Harmonics_${ type }_THD` ] )
-                        .filter( v => typeof v === 'number' );
+                    const k = `${ dev }_Harmonics_${ type }_THD`;
+                    const pts = rows.map( r => ( { v: r[ k ], t: r.timestamp } ) ).filter( p => typeof p.v === 'number' );
 
-                    out[ `${ dev }_Harmonics_${ type }_THD` ] = vals.length
-                        ? +( vals.reduce( ( a, b ) => a + b, 0 ) / vals.length ).toFixed( 2 )
-                        : 0;
+                    if ( !pts.length )
+                    {
+                        out[ k ] = out[ `${ k }_min` ] = out[ `${ k }_max` ] = 0;
+                        out[ `${ k }_minTime` ] = out[ `${ k }_maxTime` ] = null;
+                        return;
+                    }
+
+                    const min = pts.reduce( ( a, b ) => b.v < a.v ? b : a );
+                    const max = pts.reduce( ( a, b ) => b.v > a.v ? b : a );
+
+                    out[ k ] = +( pts.reduce( ( s, p ) => s + p.v, 0 ) / pts.length ).toFixed( 2 );
+                    out[ `${ k }_min` ] = +min.v.toFixed( 2 );
+                    out[ `${ k }_minTime` ] = min.t;
+                    out[ `${ k }_max` ] = +max.v.toFixed( 2 );
+                    out[ `${ k }_maxTime` ] = max.t;
                 } );
             } );
 
             return out;
         } );
     }
+
+    /* ===================== VALIDATION ===================== */
 
     private validatePayload ( payload: HarmonicsPayload ): void
     {
