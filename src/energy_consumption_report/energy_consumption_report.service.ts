@@ -780,19 +780,19 @@ let Unit_5_Total_I_C_G = 0, Unit_5_I_C_OU = 0;
 
 for (const record of dailyConsumption) {
   Unit_4_Total_I_C_G += Number(record['Unit_4_Total_I/C G'] || 0);
-  Unit_4_I_C_OU += Number(record['Unit_4_Total_I/C OU'] || 0);
+  Unit_4_I_C_OU= Number(record['Unit_4_Total_I/C OU'] || 0);
   Unit_5_Total_I_C_G += Number(record['Unit_5_Total_I/C G'] || 0);
   Unit_5_I_C_OU= Number(record['Unit_5_I/C OU'] || 0);
-  // console.log(Unit_5_I_C_OU);
-  // console.log(Unit_5_I_C_OU);
-//   console.log("🔍 UNIT 5 I_C_OU Breakdown", {
-//   PDB07_U4,
-//   CardPDB1_U4,
-//   PDB08_U4,
-//   PDB10_U4,
-//   U16_PLC,
-//   U2_PLC,
-//   Total_I_C_OU: Unit_5_I_C_OU
+//   console.log(Unit_4_I_C_OU);
+//   // console.log(Unit_5_I_C_OU);
+//   console.log("🔍 UNIT 4 I_C_OU Breakdown", {
+//   // PDB07_U4,
+//   // CardPDB1_U4,
+//   // PDB08_U4,
+//   // PDB10_U4,
+//   // U16_PLC,
+//   // U2_PLC,
+//   Total_I_C_OU: Unit_4_I_C_OU
 // });
 
 }
@@ -802,7 +802,7 @@ Unit_4_Total_I_C_G = +Unit_4_Total_I_C_G.toFixed(2);
 Unit_5_Total_I_C_G = +Unit_5_Total_I_C_G.toFixed(2);
 Unit_4_I_C_OU = +Unit_4_I_C_OU.toFixed(2);
 Unit_5_I_C_OU = +Unit_5_I_C_OU.toFixed(2);
-// console.log(Unit_5_I_C_OU);
+//  console.log(Unit_4_I_C_OU);
 
 // ------------------------------------------------
 // 🧮 Compute Unaccounted Energy for each Unit
