@@ -2,10 +2,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { consumption_energy } from './schemas/consumption_energy.schema';
-import { Consumption_energyDto  } from './dto/consumption_energy.dto'; // Correct import for DTO
-
 import * as moment from 'moment-timezone';
+
+import { consumption_energy } from './schemas/consumption_energy.schema';
+import { Consumption_energyDto } from './dto/consumption_energy.dto';
+
+/* ───────────────────────────────
+   RESPONSE TYPES
+─────────────────────────────── */
 
 export interface HourlyData {
   Time: string;
@@ -13,11 +17,70 @@ export interface HourlyData {
   Yesterday: number;
 }
 
+export interface WeeklyRow {
+  Day: string;
+  'This Week': number;
+  'Last Week': number;
+}
+
+export interface MonthlyRow {
+  Weeks: string;
+  'This Month': number;
+  'Last Month': number;
+}
+
+export interface YearlyRow {
+  Month: string;
+  'Current Year': number;
+  'Previous Year': number;
+}
+
+/* ───────────────────────────────
+   SERVICE
+─────────────────────────────── */
+
 @Injectable()
 export class ConsumptionEnergyService {
   constructor(
-    @InjectModel( consumption_energy.name, 'surajcotton') private readonly generationModel: Model< consumption_energy>
+    @InjectModel(consumption_energy.name, 'surajcotton')
+    private readonly model: Model<consumption_energy>,
   ) {}
+
+  /* ───────────────────────────────
+     CENTRALIZED METER CONFIG
+  ─────────────────────────────── */
+
+  private readonly METER_GROUPS = {
+    LT: [
+      'U19_PLC_Del_ActiveEnergy',
+      'U11_GW01_Del_ActiveEnergy',
+    ],
+    SOLAR: [
+      'U6_GW02_Del_ActiveEnergy',
+      'U17_GW03_Del_ActiveEnergy',
+      'U24_GW01_Del_ActiveEnergy',
+      'U28_PLC_Del_ActiveEnergy',
+    ],
+    HT: [
+      'U22_PLC_Del_ActiveEnergy',
+      'U26_PLC_Del_ActiveEnergy',
+    ],
+    WAPDA: [
+      'U23_GW01_Del_ActiveEnergy',
+      'U27_PLC_Del_ActiveEnergy',
+    ],
+  };
+
+  private readonly ALL_KEYS = [
+    ...this.METER_GROUPS.LT,
+    ...this.METER_GROUPS.SOLAR,
+    ...this.METER_GROUPS.HT,
+    ...this.METER_GROUPS.WAPDA,
+  ];
+
+  /* ───────────────────────────────
+     QUERY ROUTER
+  ─────────────────────────────── */
 
   async handleQuery(query: Consumption_energyDto) {
     switch (query.value) {
@@ -34,644 +97,227 @@ export class ConsumptionEnergyService {
     }
   }
 
-private async calculateConsumption(range: { start: string; end: string }) {
-   const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
-    const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy' , 'U24_GW01_Del_ActiveEnergy', 'U28_PLC_Del_ActiveEnergy'];
-    const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];                                                                         //is may sum show karvana ha nilgata or jms ka jab us k tags ayain gay
-    const WapdaImportKeys = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
-// const TR2Keys = ["U19_PLC_Del_ActiveEnergy"];
-// const TR1Keys = ["U21_PLC_Del_ActiveEnergy"];
-// const GasLTPanelKeys = ["U7_GW01_Del_ActiveEnergy"];
-// const PowerHouseKeys = ["U13_GW01_Del_ActiveEnergy"];
-// const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
-// const Transformer1LT1CBKeys = ["U13_GW02_Del_ActiveEnergy"];
-// const Transformer2ACBKeys = ["U16_GW03_Del_ActiveEnergy"];
-// const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
-  const allMeterKeys = [...LTGenerationKeys, ...SolarGenerationKeys, ...HTGenerationKeys, ...WapdaImportKeys];
+  /* ───────────────────────────────
+     CORE CONSUMPTION ENGINE
+  ─────────────────────────────── */
 
-  // console.log(`\n🔍 Calculating Consumption for Range: ${range.start} -> ${range.end}`);
-  // console.log(`📌 Meters: ${allMeterKeys.join(", ")}`);
+  private async calculateConsumption(range: {
+    start: string;
+    end: string;
+  }): Promise<number> {
+    const projection = this.ALL_KEYS.reduce(
+      (acc, k) => ({ ...acc, [k]: 1 }),
+      { timestamp: 1 },
+    );
 
-  const meterSuffixMap: Record<string, string> = {};
-  allMeterKeys.forEach(fullKey => {
-    const [meterId, ...suffixParts] = fullKey.split("_");
-    meterSuffixMap[meterId] = suffixParts.join("_");
-  });
-
-  const projection: Record<string, number> = { timestamp: 1 };
-  Object.entries(meterSuffixMap).forEach(([meterId, suffix]) => {
-    projection[`${meterId}_${suffix}`] = 1;
-  });
-
-  const data = await this.generationModel.aggregate([
-    {
-      $match: {
-        timestamp: {
-          $gte: range.start,
-          $lte: range.end,
-        },
-      },
-    },
-    { $project: projection },
-    { $sort: { timestamp: 1 } },
-  ]);
-
-  // console.log(`📦 Docs Found: ${data.length}`);
-  if (data.length === 0) {
-    // console.log("⚠️ No data found for this range!");
-    return 0;
-  }
-
-  const firstValues: Record<string, number | null> = {};
-  const lastValues: Record<string, number | null> = {};
-  Object.entries(meterSuffixMap).forEach(([meterId, suffix]) => {
-    const key = `${meterId}_${suffix}`;
-    firstValues[key] = null;
-    lastValues[key] = null;
-  });
-
-  // ✅ Step-by-step log
-  for (const doc of data) {
-    // console.log(`   ⏰ Doc Timestamp: ${doc.timestamp}`);
-    Object.entries(meterSuffixMap).forEach(([meterId, suffix]) => {
-      const key = `${meterId}_${suffix}`;
-      const val = doc[key];
-
-      if (typeof val === "number") {
-        if (firstValues[key] === null) {
-          firstValues[key] = val;
-          // console.log(`      🟢 First Value for ${key}: ${val} (from ${doc.timestamp})`);
-        }
-        lastValues[key] = val;
-        // console.log(`      🔵 Last Value Updated for ${key}: ${val} (from ${doc.timestamp})`);
-      }
-    });
-  }
-
-  const consumption: Record<string, number> = {};
-  Object.keys(firstValues).forEach(key => {
-    if (firstValues[key] !== null && lastValues[key] !== null) {
-      let diff = lastValues[key]! - firstValues[key]!;
-      diff = diff >= 0 ? diff : 0; // no negative
-      if (diff > 1e12 || diff < 1e-6) diff = 0; // filter invalid
-      consumption[key] = diff;
-      // console.log(`   ⚡ Consumption for ${key}: ${lastValues[key]} - ${firstValues[key]} = ${diff}`);
-    } else {
-      consumption[key] = 0;
-      // console.log(`   ⚠️ No valid values for ${key}, consumption = 0`);
-    }
-  });
-
-  const sumByMeterGroup = (meterKeys: string[]) =>
-    meterKeys.reduce((sum, fullKey) => {
-      const [meterId, ...suffixParts] = fullKey.split("_");
-      const key = `${meterId}_${suffixParts.join("_")}`;
-      const value = consumption[key];
-      return sum + (Number.isFinite(value) ? value : 0);
-    }, 0);
-
-  const LTGeneration = sumByMeterGroup(LTGenerationKeys);
-  const SolarGeneration = sumByMeterGroup(SolarGenerationKeys);
-  const HTGeneration = sumByMeterGroup(HTGenerationKeys);
-  const WapdaImport = sumByMeterGroup(WapdaImportKeys);
-  // const Solar1 = sumByMeterGroup(Solar1Keys);
-  // const Transformer1LT1CB = sumByMeterGroup(Transformer1LT1CBKeys);
-  // const Transformer2ACB = sumByMeterGroup(Transformer2ACBKeys);
-  // const Solar2 = sumByMeterGroup(Solar2Keys);
-
-  const totalConsumption = LTGeneration + SolarGeneration + WapdaImport + HTGeneration
-  // const totalConsumption1= Solar1 + Transformer1LT1CB +Transformer2ACB + Solar2
-  const total= totalConsumption;
- 
-
-  // console.log(`\n✅ Final Total Consumption for Range: ${total.toFixed(2)}\n`);
-  return +total.toFixed(2);
-}
-
-
-
-
-
-
-
- 
-
-async calculateConsumption1(range: { start: string; end: string }): Promise<number> {
-   const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
-    const SolarGenerationKeys = ['U6_GW02_Del_ActiveEnergy', 'U17_GW03_Del_ActiveEnergy', 'U24_GW01_Del_ActiveEnergy' , 'U28_PLC_Del_ActiveEnergy'];
-    const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];                                                                         //is may sum show karvana ha nilgata or jms ka jab us k tags ayain gay
-    const WapdaImportKeys = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
-  // const TR2Keys = ["U19_PLC_Del_ActiveEnergy"];
-  // const TR1Keys = ["U21_PLC_Del_ActiveEnergy"];
-  // const GasLTPanelKeys = ["U7_GW01_Del_ActiveEnergy"];
-  // const PowerHouseKeys = ["U13_GW01_Del_ActiveEnergy"];
-  // const Solar1Keys = ["U6_GW02_Del_ActiveEnergy"];
-  // const Transformer1LT1CBKeys = ["U13_GW02_Del_ActiveEnergy"];
-  // const Transformer2ACBKeys = ["U16_GW03_Del_ActiveEnergy"];
-  // const Solar2Keys = ["U17_GW03_Del_ActiveEnergy"];
-
-  const allKeys = [
-    ...LTGenerationKeys, ...SolarGenerationKeys, ...HTGenerationKeys, ...WapdaImportKeys
-  ];
-
-  // Range as ISO (UTC Z); aap ki caller (getWeeklyGeneration) Asia/Karachi ko UTC mēn convert karke bhej rahi hai — sahi.
-  const startUTC = range.start;
-  const endUTC = range.end;
-
-  // Log: incoming range
-  // console.log(`[CONSUMP] Query range (UTC): start=${startUTC} end=${endUTC}`);
-
-  // Build projection
-  const projection: Record<string, number> = { timestamp: 1 };
-  allKeys.forEach(key => (projection[key] = 1));
-
-  // 🔒 Safer match: handle both string and Date timestamps (mixed collections)
-  // NOTE: Agar aapke collection mēn timestamp 100% Date ho, to is $match ko
-  // simple { timestamp: { $gte: new Date(startUTC), $lte: new Date(endUTC) } } se replace kar sakte hain.
-  const data = await this.generationModel.aggregate([
+    const data = await this.model.aggregate([
     {
       $match: {
         $expr: {
           $and: [
-            { $gte: [ { $toDate: '$timestamp' }, new Date(startUTC) ] },
-            { $lte: [ { $toDate: '$timestamp' }, new Date(endUTC) ] },
-          ]
-        }
-      }
+              { $gte: [{ $toDate: '$timestamp' }, new Date(range.start)] },
+              { $lte: [{ $toDate: '$timestamp' }, new Date(range.end)] },
+            ],
+          },
+        },
     },
     { $project: projection },
     { $sort: { timestamp: 1 } },
   ]);
 
-  // console.log(`[CONSUMP] Docs found: ${data.length}`);
+    if (!data.length) return 0;
 
-  if (data.length > 0) {
-    const firstTs = data[0].timestamp instanceof Date ? data[0].timestamp.toISOString() : data[0].timestamp;
-    const lastTs  = data[data.length - 1].timestamp instanceof Date ? data[data.length - 1].timestamp.toISOString() : data[data.length - 1].timestamp;
-    // console.log(`[CONSUMP] First doc ts: ${firstTs} | Last doc ts: ${lastTs}`);
-  } else {
-    // console.log(`[CONSUMP] No docs in range.`);
-  }
+    const first = new Map<string, number>();
+    const last = new Map<string, number>();
 
-  const firstValues: Record<string, number | null> = {};
-  const lastValues: Record<string, number | null> = {};
-  const consumption: Record<string, number> = {};
-  allKeys.forEach(k => { firstValues[k] = null; lastValues[k] = null; consumption[k] = 0; });
-
-  // Single pass: capture first/last numeric values
   for (const doc of data) {
-    for (const key of allKeys) {
-      const val = doc[key];
-      if (typeof val === "number") {
-        if (firstValues[key] === null) firstValues[key] = val;
-        lastValues[key] = val;
+      for (const key of this.ALL_KEYS) {
+        const v = doc[key];
+        if (typeof v === 'number') {
+          if (!first.has(key)) first.set(key, v);
+          last.set(key, v);
       }
     }
   }
 
-  // Compute per-key deltas + guardrails
-  allKeys.forEach(key => {
-    const s = firstValues[key];
-    const e = lastValues[key];
-    let delta = (s !== null && e !== null) ? Math.max(0, e - s) : 0;
+    const sumGroup = (keys: string[]) =>
+      keys.reduce((t, k) => {
+        const s = first.get(k);
+        const e = last.get(k);
+        let d = s !== undefined && e !== undefined ? e - s : 0;
+        if (d <= 0 || d > 1e12 || d < 1e-6) d = 0;
+        return t + d;
+      }, 0);
 
-    // Outlier clamp (scientific sanity)
-    if (delta > 1e12 || delta < 1e-6) delta = 0;
-
-    consumption[key] = delta;
-  });
-
-  // Optional: concise per-key debug (only non-zero)
-  const nonZero = allKeys
-    .filter(k => (consumption[k] || 0) > 0)
-    .slice(0, 10) // log limit
-    .map(k => ({
-      key: k,
-      first: firstValues[k],
-      last: lastValues[k],
-      delta: consumption[k]
-    }));
-  // console.log(`[CONSUMP] Non-zero sample (up to 10):`, nonZero);
-
-  // Group sums
-  const sum = (keys: string[]) => keys.reduce((t, k) => t + (consumption[k] || 0), 0);
-
-  const LTGeneration = sum(LTGenerationKeys);
-  const SolarGeneration= sum(SolarGenerationKeys);
-  const HTGeneration = sum(HTGenerationKeys);
-  const WapdaImport = sum(WapdaImportKeys);
-  // const Solar1 = sum(Solar1Keys);
-  // const Transformer1LT1CB = sum(Transformer1LT1CBKeys);
-  // const Transformer2ACB = sum(Transformer2ACBKeys);
-  // const Solar2 = sum(Solar2Keys);
-  
-  
-
-  const totalConsumption = LTGeneration+ SolarGeneration + HTGeneration + WapdaImport;
-  // const totalConsumption1 = Solar1 + Transformer1LT1CB + Transformer2ACB + Solar2;
-  const total = totalConsumption;
-  
-
-
-  // console.log(`[CONSUMP] Group sums => TR2:${TR2.toFixed(2)} TR1:${TR1.toFixed(2)} GasLT:${GasLTPanel.toFixed(2)} PH:${PowerHouse.toFixed(2)} | Solar1:${Solar1.toFixed(2)} T1LT1CB:${Transformer1LT1CB.toFixed(2)} T2ACB:${Transformer2ACB.toFixed(2)} Solar2:${Solar2.toFixed(2)}`);
-  // console.log(`[CONSUMP] Totals => Import:${totalConsumption.toFixed(2)} Export:${totalConsumption1.toFixed(2)} Overall:${total.toFixed(2)}`);
+    const total =
+      sumGroup(this.METER_GROUPS.LT) +
+      sumGroup(this.METER_GROUPS.SOLAR) +
+      sumGroup(this.METER_GROUPS.HT) +
+      sumGroup(this.METER_GROUPS.WAPDA);
 
   return +total.toFixed(2);
 }
 
+  /* ───────────────────────────────
+     WEEKLY (6AM → 6AM)
+  ─────────────────────────────── */
 
-
-
-async getWeeklyGeneration() {
+  async getWeeklyGeneration(): Promise<WeeklyRow[]> {
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const result: { Day: string; [key: string]: number | string }[] = [];
+    const result: WeeklyRow[] = [];
 
-  const now = moment().tz('Asia/Karachi');
-  const monday = now.clone().startOf('week').add(1, 'day'); // Monday in PKT
+    const monday = moment.tz('Asia/Karachi').startOf('week').add(1, 'day');
 
   for (let i = 0; i < 7; i++) {
-    const currentDate = monday.clone().add(i, "days").format("YYYY-MM-DD");
-
-    // ✅ Start = 6:00 AM current day
-    const thisDayStart = `${currentDate}T06:00:00.000+05:00`;
-
-    // ✅ End   = 6:00:59 next day
-    const nextDay = moment(currentDate).add(1, "day").format("YYYY-MM-DD");
-    const thisDayEnd = `${nextDay}T06:00:59.999+05:00`;
-
-    // ✅ Last week window
-    const lastWeekStart = moment(thisDayStart).subtract(7, "days").format("YYYY-MM-DDTHH:mm:ss.SSSZ");
-    const lastWeekEnd   = moment(thisDayEnd).subtract(7, "days").format("YYYY-MM-DDTHH:mm:ss.SSSZ");
-
-    // 🔎 Debug logs
-    // console.log(`\n[${days[i]}] This Week: ${thisDayStart} → ${thisDayEnd}`);
-    // console.log(`[${days[i]}] Last Week: ${lastWeekStart} → ${lastWeekEnd}`);
+      const start = monday.clone().add(i, 'days').hour(6).toISOString();
+      const end = moment(start).add(1, 'day').toISOString();
 
     const [thisWeek, lastWeek] = await Promise.all([
-      this.calculateConsumption1({ start: thisDayStart, end: thisDayEnd }),
-      this.calculateConsumption1({ start: lastWeekStart, end: lastWeekEnd }),
+        this.calculateConsumption({ start, end }),
+        this.calculateConsumption({
+          start: moment(start).subtract(7, 'days').toISOString(),
+          end: moment(end).subtract(7, 'days').toISOString(),
+        }),
     ]);
 
     result.push({
       Day: days[i],
-      "This Week": +thisWeek.toFixed(2),
-      "Last Week": +lastWeek.toFixed(2),
+        'This Week': thisWeek,
+        'Last Week': lastWeek,
     });
   }
 
-  // console.log("\n✅ Final Weekly:", JSON.stringify(result, null, 2));
   return result;
 }
 
+  /* ───────────────────────────────
+     DAILY HOURLY
+  ─────────────────────────────── */
 
-
-
-
-
-private getDayRange(offsetDays: number) {
-  const start = moment.tz("Asia/Karachi")
-    .startOf("day")
-    .add(offsetDays, "days")
-    .hour(6)
-    .minute(0)
-    .second(0)
-    .millisecond(0)
-    .toDate();
-
-  const end = moment.tz("Asia/Karachi")
-    .startOf("day")
-    .add(offsetDays + 1, "days")
-    .hour(7) // 🔹 Changed from 7 → 6
-    .minute(0)
-    .second(0)
-    .millisecond(0)
-    .toDate();
-
-  return { start, end };
+  private getDayRange(offset: number) {
+    const start = moment.tz('Asia/Karachi').startOf('day').add(offset, 'days').hour(6);
+    return {
+      start: start.toDate(),
+      end: start.clone().add(25, 'hours').toDate(),
+    };
 }
 
 
 async getTodayGeneration(): Promise<HourlyData[]> {
-  const todayRange = this.getDayRange(0);
-  const yesterdayRange = this.getDayRange(-1);
+    const today = this.getDayRange(0);
+    const yesterday = this.getDayRange(-1);
 
-  const meterKeys = [
-    "U19_PLC_Del_ActiveEnergy",
-    "U11_GW01_Del_ActiveEnergy",
-    "U6_GW02_Del_ActiveEnergy",
-    "U17_GW03_Del_ActiveEnergy",
-    "U22_PLC_Del_ActiveEnergy",
-    "U26_PLC_Del_ActiveEnergy",
-    "U23_GW01_Del_ActiveEnergy",
-    "U27_PLC_Del_ActiveEnergy",
-    'U24_GW01_Del_ActiveEnergy',
-    'U28_PLC_Del_ActiveEnergy'
+    const fetch = (range: { start: Date; end: Date }) =>
+      this.model.aggregate([
+        { $addFields: { ts: { $toDate: '$timestamp' } } },
+        { $match: { ts: { $gte: range.start, $lt: range.end } } },
+        {
+          $project: this.ALL_KEYS.reduce(
+            (acc, k) => ({ ...acc, [k]: 1 }),
+            { ts: 1 },
+          ),
+        },
+        { $sort: { ts: 1 } },
+      ]);
 
-
-
-    // "U21_PLC_Del_ActiveEnergy",
-    
-    // "U13_GW01_Del_ActiveEnergy",
-    
-    // "U13_GW02_Del_ActiveEnergy",
-    // "U16_GW03_Del_ActiveEnergy",
-    
-  ];
-
-  const projection: Record<string, number> = { ts: 1, timestamp: 1 };
-  meterKeys.forEach(k => (projection[k] = 1));
-
-  // Fetch today & yesterday data
   const [todayData, yesterdayData] = await Promise.all([
-    this.generationModel.aggregate([
-      { $addFields: { ts: { $toDate: "$timestamp" } } },
-      { $match: { ts: { $gte: todayRange.start, $lt: todayRange.end } } },
-      { $project: projection },
-      { $sort: { ts: 1 } },
-    ]),
-    this.generationModel.aggregate([
-      { $addFields: { ts: { $toDate: "$timestamp" } } },
-      { $match: { ts: { $gte: yesterdayRange.start, $lt: yesterdayRange.end } } },
-      { $project: projection },
-      { $sort: { ts: 1 } },
-    ]),
+      fetch(today),
+      fetch(yesterday),
   ]);
 
-  // console.log("🔹 Today Docs Found:", todayData.length);
-  // console.log("🔹 Yesterday Docs Found:", yesterdayData.length);
+    const calcHour = (data: any[], base: moment.Moment, h: number) => {
+      const s = base.clone().add(h, 'hours');
+      const e = s.clone().add(1, 'hour');
+      let total = 0;
 
-  const calculateHourly = (data: any[], baseStart: moment.Moment, hour: number): number => {
-    const hourStart = baseStart.clone().add(hour, "hours");
-    const hourEnd = hourStart.clone().add(1, "hour");
+      for (const key of this.ALL_KEYS) {
+        let first: number | undefined;
+        let last: number | undefined;
 
-    const firstValues: Record<string, number | null> = {};
-    const lastValues: Record<string, number | null> = {};
-
-    // 1) First inside hour
-    for (const doc of data) {
-      const t = moment(doc.ts).tz("Asia/Karachi");
-      if (t.isBetween(hourStart, hourEnd, null, "[)")) {
-        for (const key of meterKeys) {
-          const v = doc[key];
-          if (typeof v === "number" && firstValues[key] == null) firstValues[key] = v;
-        }
-      }
-    }
-
-    // 2) First after hourEnd
-    for (const doc of data) {
-      const t = moment(doc.ts).tz("Asia/Karachi");
-      if (t.isSameOrAfter(hourEnd)) {
-        for (const key of meterKeys) {
-          const v = doc[key];
-          if (typeof v === "number" && lastValues[key] == null) lastValues[key] = v;
-        }
-        break;
-      }
-    }
-
-    // 3) Fallback: last doc inside the hour
-    if (Object.values(lastValues).every(v => v == null)) {
-      for (let i = data.length - 1; i >= 0; i--) {
-        const t = moment(data[i].ts).tz("Asia/Karachi");
-        if (t.isBetween(hourStart, hourEnd, null, "[)")) {
-          for (const key of meterKeys) {
-            const v = data[i][key];
-            if (typeof v === "number") lastValues[key] = v;
+        for (const d of data) {
+          const t = moment(d.ts);
+          if (t.isBetween(s, e, null, '[)') && typeof d[key] === 'number') {
+            if (first === undefined) first = d[key];
+            last = d[key];
           }
-          break;
         }
+
+        if (first !== undefined && last !== undefined) {
+          const diff = last - first;
+          if (diff > 0 && diff < 1e12) total += diff;
       }
     }
-
-    // 4) Safe delta
-    let total = 0;
-    for (const key of meterKeys) {
-      const first = firstValues[key];
-      const last = lastValues[key];
-      if (first != null && last != null) {
-        let diff = last - first;
-        if (diff < 0 || diff > 1e12 || Math.abs(diff) < 1e-6) diff = 0;
-        total += diff;
-      }
-    }
-
-    // Debug log per hour
-    // console.log(`[${hourStart.format("HH:mm")} - ${hourEnd.format("HH:mm")}] Total:`, total);
 
     return +total.toFixed(2);
   };
 
-  const baseToday = moment.tz(todayRange.start, "Asia/Karachi");
-  const baseYesterday = moment.tz(yesterdayRange.start, "Asia/Karachi");
+    const baseToday = moment(today.start).tz('Asia/Karachi');
+    const baseYesterday = moment(yesterday.start).tz('Asia/Karachi');
 
-  const hourlyData: HourlyData[] = [];
-  for (let hour = 0; hour < 25; hour++) {
-    const todayVal = calculateHourly(todayData, baseToday, hour);
-    const yesterdayVal = calculateHourly(yesterdayData, baseYesterday, hour);
-
-    const displayDateTime = baseToday.clone().add(hour, "hours").format("YYYY-MM-DD HH:mm");
-
-  hourlyData.push({
-    Time: displayDateTime,  // instead of just HH:mm
-    Today: todayVal,
-    Yesterday: yesterdayVal,
-  });
-  }
-
-  // console.log("📊 Final Hourly Data:", hourlyData);
-  return hourlyData;
+    return Array.from({ length: 25 }).map((_, h) => ({
+      Time: baseToday.clone().add(h, 'hours').format('YYYY-MM-DD HH:mm'),
+      Today: calcHour(todayData, baseToday, h),
+      Yesterday: calcHour(yesterdayData, baseYesterday, h),
+    }));
 }
   
+  /* ───────────────────────────────
+     MONTHLY
+  ─────────────────────────────── */
 
-async getMonthlyGeneration() {
-  const weekLabels = ["Week1", "Week2", "Week3", "Week4"];
-  const result: { Weeks: string; [key: string]: number | string }[] = [];
+  async getMonthlyGeneration(): Promise<MonthlyRow[]> {
+    const labels = ['Week1', 'Week2', 'Week3', 'Week4'];
+    const result: MonthlyRow[] = [];
 
-  // ✅ Helper function: Date ko Asia/Karachi ISO string me convert karega
-  function toKarachiISO(date: Date): string {
-    // Karachi offset = +05:00
-    const offset = "+05:00";
-    const pad = (n: number) => String(n).padStart(2, "0");
+    const now = moment.tz('Asia/Karachi');
+    const prev = now.clone().subtract(1, 'month');
 
-    return (
-      date.getFullYear() +
-      "-" +
-      pad(date.getMonth() + 1) +
-      "-" +
-      pad(date.getDate()) +
-      "T" +
-      pad(date.getHours()) +
-      ":" +
-      pad(date.getMinutes()) +
-      ":" +
-      pad(date.getSeconds()) +
-      offset
-    );
-  }
+    const weeks = (m: moment.Moment) =>
+      Array.from({ length: 4 }).map((_, i) => {
+        const s = m.clone().startOf('month').startOf('week').add(1 + i * 7, 'day').hour(6);
+        return { start: s.toISOString(), end: s.clone().add(7, 'days').toISOString() };
+      });
 
-  const getWeekRanges = (month: number, year: number) => {
-    const weeks: [string, string][] = [];
-    const startDate = new Date(year, month - 1, 1); // Month ka pehla din
-    const firstMonday = new Date(startDate);
+    const w1 = weeks(now);
+    const w2 = weeks(prev);
 
-    // ✅ First Monday dhoondo
-    while (firstMonday.getDay() !== 1) {
-      firstMonday.setDate(firstMonday.getDate() + 1);
-    }
-
-    // ✅ 4 weeks banao
     for (let i = 0; i < 4; i++) {
-      const weekStart = new Date(firstMonday);
-      weekStart.setDate(firstMonday.getDate() + i * 7);
-      weekStart.setHours(6, 0, 0, 0); // 6 AM start
-
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 7); // Next Monday
-      weekEnd.setHours(6, 0, 0, 0); // 6 AM end
-
-      // ✅ Karachi offset ke sath ISO strings
-      const startISO = toKarachiISO(weekStart);
-      const endISO = toKarachiISO(weekEnd);
-
-      weeks.push([startISO, endISO]);
-    }
-
-    return weeks;
-  };
-
-  // ✅ Abhi ka month aur pichla month nikalo
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
-  const lastMonthDate = new Date(now.setMonth(now.getMonth() - 1));
-  const lastMonth = lastMonthDate.getMonth() + 1;
-  const lastYear = lastMonthDate.getFullYear();
-
-  const weeksThisMonth = getWeekRanges(currentMonth, currentYear);
-  const weeksLastMonth = getWeekRanges(lastMonth, lastYear);
-
-  // console.log("🟢 Weeks This Month:", weeksThisMonth);
-  // console.log("🟡 Weeks Last Month:", weeksLastMonth);
-
-  // ✅ Consumption calculate karo
-  for (let i = 0; i < 4; i++) {
-    // console.log(`\n📅 ${weekLabels[i]}:`);
-    // console.log("   🔹 This Month Range:", weeksThisMonth[i][0], "->", weeksThisMonth[i][1]);
-    // console.log("   🔹 Last Month Range:", weeksLastMonth[i][0], "->", weeksLastMonth[i][1]);
-
-    const thisMonth = await this.calculateConsumption({
-      start: weeksThisMonth[i][0],
-      end: weeksThisMonth[i][1],
-    });
-
-    const lastMonthVal = await this.calculateConsumption({
-      start: weeksLastMonth[i][0],
-      end: weeksLastMonth[i][1],
-    });
-
-    // console.log(`   ⚡ This Month Consumption: ${thisMonth.toFixed(2)}`);
-    // console.log(`   ⚡ Last Month Consumption: ${lastMonthVal.toFixed(2)}`);
-
     result.push({
-      Weeks: weekLabels[i],
-      "This Month": +thisMonth.toFixed(2),
-      "Last Month": +lastMonthVal.toFixed(2),
+        Weeks: labels[i],
+        'This Month': await this.calculateConsumption(w1[i]),
+        'Last Month': await this.calculateConsumption(w2[i]),
     });
   }
 
-  // console.log("📊 Final Monthly Data:", result);
   return result;
 }
 
+  /* ───────────────────────────────
+     YEARLY
+  ─────────────────────────────── */
 
+  async getYearlyGeneration(): Promise<YearlyRow[]> {
+    const months = moment.monthsShort();
+    const year = moment().year();
+    const result: YearlyRow[] = [];
 
-  // private getMonthDateRange(year: number, month: number): { start: string; end: string } {
-  //   const start = new Date(Date.UTC(year, month, 1, 0, 0, 0));
-  //   const end = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999)); // last day of month
-  
-  //   return {
-  //     start: start.toISOString(),
-  //     end: end.toISOString(),
-  //   };
-  // }
-  
-
-async getYearlyGeneration(): Promise<{ Month: string; [key: string]: number | string }[]> {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const currentYear = new Date().getFullYear();
-  const previousYear = currentYear - 1;
-
-  const result: { Month: string; [key: string]: number | string }[] = [];
-
-  // ✅ Helper: Convert Date to ISO string with +05:00 (Karachi)
-  function toKarachiISO(date: Date): string {
-    const offset = "+05:00";
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return (
-      date.getFullYear() + "-" +
-      pad(date.getMonth() + 1) + "-" +
-      pad(date.getDate()) +
-      "T" +
-      pad(date.getHours()) + ":" +
-      pad(date.getMinutes()) + ":" +
-      pad(date.getSeconds()) +
-      offset
-    );
-  }
-
-  // ✅ Helper: Get 6 AM - 6 AM range for a month
-  function getMonth6to6Range(year: number, month: number) {
-    const start = new Date(year, month, 1, 6, 0, 0); // 1st day 6 AM
-    const end = new Date(year, month + 1, 1, 6, 0, 0); // 1st day of next month 6 AM
-    return { start: toKarachiISO(start), end: toKarachiISO(end) };
-  }
-
-  // 🔹 Loop through all months (0 = Jan, 11 = Dec)
-  for (let month = 0; month < 12; month++) {
-    const currentYearRange = getMonth6to6Range(currentYear, month);
-    const previousYearRange = getMonth6to6Range(previousYear, month);
-
-    // console.log(`\n📅 Month: ${months[month]}`);
-    // console.log("   🔹 Current Year Range:", currentYearRange.start, "->", currentYearRange.end);
-    // console.log("   🔹 Previous Year Range:", previousYearRange.start, "->", previousYearRange.end);
-
-    // ✅ Call calculateConsumption with detailed logs
-    const currentYearConsumption = await this.calculateConsumption({
-      start: currentYearRange.start,
-      end: currentYearRange.end,
-    });
-
-    const previousYearConsumption = await this.calculateConsumption({
-      start: previousYearRange.start,
-      end: previousYearRange.end,
-    });
-
-    // console.log(`   ⚡ Current Year Consumption: ${currentYearConsumption.toFixed(2)}`);
-    // console.log(`   ⚡ Previous Year Consumption: ${previousYearConsumption.toFixed(2)}`);
+    for (let m = 0; m < 12; m++) {
+      const start = moment.tz({ year, month: m, day: 1, hour: 6 }, 'Asia/Karachi');
+      const end = start.clone().add(1, 'month');
 
     result.push({
-      Month: months[month],
-      "Current Year": +currentYearConsumption.toFixed(2),
-      "Previous Year": +previousYearConsumption.toFixed(2),
+        Month: months[m],
+        'Current Year': await this.calculateConsumption({
+          start: start.toISOString(),
+          end: end.toISOString(),
+        }),
+        'Previous Year': await this.calculateConsumption({
+          start: start.clone().subtract(1, 'year').toISOString(),
+          end: end.clone().subtract(1, 'year').toISOString(),
+        }),
     });
   }
 
-  // console.log("\n📊 Full Year Data:", result);
   return result;
 }
-
-
-
-
 }
-  
-  
-  
-  
-  
-  
-  
-  
-
-
