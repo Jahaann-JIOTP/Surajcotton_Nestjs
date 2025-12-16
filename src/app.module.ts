@@ -39,6 +39,7 @@ import { DailyConsumptionModule } from './daily_consumption/daily_consumption.mo
 import { PlantsTrendsModule } from './plants_trends/plants_trends.module';
 import { departmentreportModule } from './departmentreport/daily_consumption.module';
 import { HarmonicsModule } from './harmonics/harmonics.module';
+import { HarmonicsDetailModule } from './harmonics_detail/harmonics_detail.module';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { HarmonicsModule } from './harmonics/harmonics.module';
     PlantsTrendsModule,
     departmentreportModule,
     HarmonicsModule,
+    HarmonicsDetailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -31,7 +31,7 @@ export interface HarmonicsResponse
 /* ===================== SERVICE ===================== */
 
 @Injectable()
-export class HarmonicsService
+export class HarmonicsDetailService
 {
     private readonly TIMEZONE = 'Asia/Karachi';
 
@@ -42,7 +42,7 @@ export class HarmonicsService
 
     /* ===================== MAIN ===================== */
 
-    async getHarmonicsFromPayload ( payload: HarmonicsPayload ): Promise<HarmonicsResponse>
+    async getHarmonicsDetailFromPayload ( payload: HarmonicsPayload ): Promise<HarmonicsResponse>
     {
         this.validatePayload( payload );
 
@@ -70,11 +70,21 @@ export class HarmonicsService
                 this.fetchHarmonicsData( p2.start, p2.end, tags, '15mins' ),
             ] );
 
+            // Get energy consumption data for both periods
+            const [ energyData1, energyData2 ] = await Promise.all( [
+                this.getEnergyConsumed( p1.start, p1.end, payload.DeviceId ),
+                this.getEnergyConsumed( p2.start, p2.end, payload.DeviceId ),
+            ] );
+
             let d1 = this.processHarmonicsData( raw15min1, payload.DeviceId );
             let d2 = this.processHarmonicsData( raw15min2, payload.DeviceId );
 
             d1 = this.groupByHourWithMinMax( d1, payload.DeviceId );
             d2 = this.groupByHourWithMinMax( d2, payload.DeviceId );
+
+            // Add energy consumption to results
+            d1 = this.addEnergyConsumedToResults( d1, energyData1 );
+            d2 = this.addEnergyConsumedToResults( d2, energyData2 );
 
             return {
                 period1: d1,
@@ -96,6 +106,12 @@ export class HarmonicsService
             this.fetchHarmonicsData( p2.start, p2.end, tags, payload.resolution ),
         ] );
 
+        // Get energy consumption data for both periods
+        const [ energyData1, energyData2 ] = await Promise.all( [
+            this.getEnergyConsumed( p1.start, p1.end, payload.DeviceId ),
+            this.getEnergyConsumed( p2.start, p2.end, payload.DeviceId ),
+        ] );
+
         let d1 = this.processHarmonicsData( raw1, payload.DeviceId );
         let d2 = this.processHarmonicsData( raw2, payload.DeviceId );
 
@@ -107,9 +123,14 @@ export class HarmonicsService
 
         if ( [ 'day', '1day' ].includes( payload.resolution ) )
         {
-            d1 = this.groupByDayWithMinMax( d1, payload.DeviceId );
-            d2 = this.groupByDayWithMinMax( d2, payload.DeviceId );
+            // For day resolution, calculate overall min/max for the entire period
+            d1 = this.calculateOverallMinMax( d1, payload.DeviceId );
+            d2 = this.calculateOverallMinMax( d2, payload.DeviceId );
         }
+
+        // Add energy consumption to results
+        d1 = this.addEnergyConsumedToResults( d1, energyData1 );
+        d2 = this.addEnergyConsumedToResults( d2, energyData2 );
 
         return {
             period1: d1,
@@ -122,6 +143,227 @@ export class HarmonicsService
                 totalTags: tags.length,
                 queryTime: new Date().toISOString(),
             },
+        };
+    }
+
+    /* ===================== ENERGY CONSUMPTION CALCULATION ===================== */
+
+    private async getEnergyConsumed ( start: Date, end: Date, devices: string[] ): Promise<Record<string, number>>
+    {
+        const energyData: Record<string, number> = {};
+
+        // Get energy consumption for each device
+        for ( const device of devices )
+        {
+            const energyTag = `${ device }_Del_ActiveEnergy`;
+            const collection = this.connection.collection( 'historical' );
+
+            try
+            {
+                // Get first and last values of energy meter reading
+                const results = await collection
+                    .aggregate( [
+                        { $addFields: { ts: { $dateFromString: { dateString: '$timestamp' } } } },
+                        { $match: { ts: { $gte: start, $lt: end }, [ energyTag ]: { $exists: true } } },
+                        { $sort: { ts: 1 } },
+                        {
+                            $group: {
+                                _id: null,
+                                firstValue: { $first: `$${ energyTag }` },
+                                lastValue: { $last: `$${ energyTag }` },
+                                firstTimestamp: { $first: '$ts' },
+                                lastTimestamp: { $last: '$ts' }
+                            }
+                        }
+                    ] )
+                    .toArray();
+
+                if ( results.length > 0 && results[ 0 ].firstValue !== null && results[ 0 ].lastValue !== null )
+                {
+                    const firstValue = results[ 0 ].firstValue;
+                    const lastValue = results[ 0 ].lastValue;
+
+                    // Calculate energy consumed: last reading - first reading
+                    energyData[ device ] = lastValue - firstValue;
+                }
+                else
+                {
+                    energyData[ device ] = 0;
+                }
+            }
+            catch ( error )
+            {
+                console.error( `Error fetching energy data for device ${ device }:`, error );
+                energyData[ device ] = 0;
+            }
+        }
+
+        return energyData;
+    }
+
+    private addEnergyConsumedToResults ( data: any[], energyData: Record<string, number> ): any[]
+    {
+        return data.map( ( row ) =>
+        {
+            // Add energy consumption for each device
+            Object.keys( energyData ).forEach( device =>
+            {
+                const energyKey = `${ device }_Total_Energy_Consumed`;
+                row[ energyKey ] = +energyData[ device ].toFixed( 3 ); // Keep 3 decimal places for energy
+            } );
+
+            return row;
+        } );
+    }
+
+    /* ===================== NEW: OVERALL CALCULATIONS FOR DAY RESOLUTION ===================== */
+
+    private calculateOverallMinMax ( data: any[], devices: string[] ): any[]
+    {
+        if ( data.length === 0 )
+        {
+            return [ this.createEmptyOverallSummary() ];
+        }
+
+        // Initialize overall tracking objects for each device
+        const overallStats: Record<string, {
+            vValues: Array<{ value: number, timestamp: string }>;
+            iValues: Array<{ value: number, timestamp: string }>;
+        }> = {};
+
+        // Initialize for all devices
+        devices.forEach( dev =>
+        {
+            overallStats[ dev ] = {
+                vValues: [],
+                iValues: []
+            };
+        } );
+
+        // Collect all values from all intervals
+        data.forEach( row =>
+        {
+            devices.forEach( dev =>
+            {
+                const vKey = `${ dev }_Harmonics_V_THD`;
+                const iKey = `${ dev }_Harmonics_I_THD`;
+
+                const vValue = row[ vKey ];
+                const iValue = row[ iKey ];
+
+                if ( typeof vValue === 'number' && !isNaN( vValue ) )
+                {
+                    overallStats[ dev ].vValues.push( {
+                        value: vValue,
+                        timestamp: row.timestamp
+                    } );
+                }
+
+                if ( typeof iValue === 'number' && !isNaN( iValue ) )
+                {
+                    overallStats[ dev ].iValues.push( {
+                        value: iValue,
+                        timestamp: row.timestamp
+                    } );
+                }
+            } );
+        } );
+
+        // Create overall summary
+        const firstData = data[ 0 ];
+        const lastData = data[ data.length - 1 ];
+
+        const overallSummary: any = {
+            timestamp: firstData.timestamp,
+            periodStart: firstData.timestamp,
+            periodEnd: lastData.timestamp,
+            intervalCount: data.length,
+            isOverallSummary: true,
+            displayLabel: 'Overall Period'
+        };
+
+        // Calculate statistics for each device
+        devices.forEach( dev =>
+        {
+            const vKey = `${ dev }_Harmonics_V_THD`;
+            const iKey = `${ dev }_Harmonics_I_THD`;
+
+            const vValues = overallStats[ dev ].vValues;
+            const iValues = overallStats[ dev ].iValues;
+
+            // Voltage THD calculations
+            if ( vValues.length > 0 )
+            {
+                // Calculate average
+                const vAvg = vValues.reduce( ( sum, item ) => sum + item.value, 0 ) / vValues.length;
+                overallSummary[ vKey ] = +vAvg.toFixed( 2 );
+
+                // Find overall min and max
+                const vMin = vValues.reduce( ( min, current ) =>
+                    current.value < min.value ? current : min
+                );
+                const vMax = vValues.reduce( ( max, current ) =>
+                    current.value > max.value ? current : max
+                );
+
+                overallSummary[ `${ vKey }_min` ] = +vMin.value.toFixed( 2 );
+                overallSummary[ `${ vKey }_minTime` ] = vMin.timestamp;
+                overallSummary[ `${ vKey }_max` ] = +vMax.value.toFixed( 2 );
+                overallSummary[ `${ vKey }_maxTime` ] = vMax.timestamp;
+                overallSummary[ `${ vKey }_count` ] = vValues.length;
+            } else
+            {
+                overallSummary[ vKey ] = 0;
+                overallSummary[ `${ vKey }_min` ] = 0;
+                overallSummary[ `${ vKey }_max` ] = 0;
+                overallSummary[ `${ vKey }_minTime` ] = null;
+                overallSummary[ `${ vKey }_maxTime` ] = null;
+                overallSummary[ `${ vKey }_count` ] = 0;
+            }
+
+            // Current THD calculations
+            if ( iValues.length > 0 )
+            {
+                // Calculate average
+                const iAvg = iValues.reduce( ( sum, item ) => sum + item.value, 0 ) / iValues.length;
+                overallSummary[ iKey ] = +iAvg.toFixed( 2 );
+
+                // Find overall min and max
+                const iMin = iValues.reduce( ( min, current ) =>
+                    current.value < min.value ? current : min
+                );
+                const iMax = iValues.reduce( ( max, current ) =>
+                    current.value > max.value ? current : max
+                );
+
+                overallSummary[ `${ iKey }_min` ] = +iMin.value.toFixed( 2 );
+                overallSummary[ `${ iKey }_minTime` ] = iMin.timestamp;
+                overallSummary[ `${ iKey }_max` ] = +iMax.value.toFixed( 2 );
+                overallSummary[ `${ iKey }_maxTime` ] = iMax.timestamp;
+                overallSummary[ `${ iKey }_count` ] = iValues.length;
+            } else
+            {
+                overallSummary[ iKey ] = 0;
+                overallSummary[ `${ iKey }_min` ] = 0;
+                overallSummary[ `${ iKey }_max` ] = 0;
+                overallSummary[ `${ iKey }_minTime` ] = null;
+                overallSummary[ `${ iKey }_maxTime` ] = null;
+                overallSummary[ `${ iKey }_count` ] = 0;
+            }
+        } );
+
+        return [ overallSummary ]; // Return as array with single overall summary object
+    }
+
+    private createEmptyOverallSummary (): any
+    {
+        return {
+            timestamp: new Date().toISOString(),
+            periodStart: null,
+            periodEnd: null,
+            intervalCount: 0,
+            isOverallSummary: true,
+            displayLabel: 'No Data Available'
         };
     }
 
@@ -440,162 +682,6 @@ export class HarmonicsService
             } );
 
             result.push( hourlySummary );
-        } );
-
-        return result;
-    }
-
-    /* ===================== DAY MIN / MAX (6AM) ===================== */
-
-    private groupByDayWithMinMax ( data: any[], devices: string[] ): any[]
-    {
-        const dayMap: Record<string, {
-            dayStart: moment.Moment;
-            dayEnd: moment.Moment;
-            intervals: any[];
-            deviceData: Record<string, {
-                vData: Array<{ value: number, timestamp: string }>;
-                iData: Array<{ value: number, timestamp: string }>;
-            }>;
-        }> = {};
-
-        data.forEach( ( row ) =>
-        {
-            // Parse timestamp with timezone
-            const timestampStr = row.timestamp;
-            let timestamp: moment.Moment;
-
-            if ( timestampStr.includes( '+' ) && timestampStr.length > 19 )
-            {
-                timestamp = moment.parseZone( timestampStr );
-            } else
-            {
-                timestamp = moment.tz( timestampStr, this.TIMEZONE );
-            }
-
-            // Determine which day bucket this belongs to (6AM-based)
-            let dayBucket = timestamp.clone();
-            if ( timestamp.hour() < 6 )
-            {
-                dayBucket = timestamp.clone().subtract( 1, 'day' );
-            }
-
-            const dayKey = dayBucket.format( 'YYYY-MM-DD' );
-            const dayStart = moment.tz( `${ dayKey } 06:00:00`, this.TIMEZONE );
-            const dayEnd = dayStart.clone().add( 24, 'hours' );
-
-            if ( !dayMap[ dayKey ] )
-            {
-                dayMap[ dayKey ] = {
-                    dayStart,
-                    dayEnd,
-                    intervals: [],
-                    deviceData: {}
-                };
-
-                devices.forEach( dev =>
-                {
-                    dayMap[ dayKey ].deviceData[ dev ] = {
-                        vData: [],
-                        iData: []
-                    };
-                } );
-            }
-
-            dayMap[ dayKey ].intervals.push( row );
-
-            devices.forEach( dev =>
-            {
-                const vKey = `${ dev }_Harmonics_V_THD`;
-                const iKey = `${ dev }_Harmonics_I_THD`;
-
-                const vValue = row[ vKey ];
-                const iValue = row[ iKey ];
-
-                if ( typeof vValue === 'number' )
-                {
-                    dayMap[ dayKey ].deviceData[ dev ].vData.push( {
-                        value: vValue,
-                        timestamp: row.timestamp
-                    } );
-                }
-
-                if ( typeof iValue === 'number' )
-                {
-                    dayMap[ dayKey ].deviceData[ dev ].iData.push( {
-                        value: iValue,
-                        timestamp: row.timestamp
-                    } );
-                }
-            } );
-        } );
-
-        const result = Object.keys( dayMap ).sort().map( dayKey =>
-        {
-            const { dayStart, dayEnd, intervals, deviceData } = dayMap[ dayKey ];
-
-            const dailySummary: any = {
-                timestamp: dayStart.format(),
-                intervalStart: dayStart.format( 'YYYY-MM-DD HH:mm:ss' ),
-                intervalEnd: dayEnd.format( 'YYYY-MM-DD HH:mm:ss' ),
-                displayDate: dayStart.format( 'YYYY-MM-DD' ),
-                intervalCount: intervals.length
-            };
-
-            devices.forEach( ( dev ) =>
-            {
-                const vKey = `${ dev }_Harmonics_V_THD`;
-                const iKey = `${ dev }_Harmonics_I_THD`;
-
-                const vIntervals = deviceData[ dev ].vData;
-                const iIntervals = deviceData[ dev ].iData;
-
-                if ( vIntervals.length > 0 )
-                {
-                    const vAvg = vIntervals.reduce( ( sum, item ) => sum + item.value, 0 ) / vIntervals.length;
-                    dailySummary[ vKey ] = +vAvg.toFixed( 2 );
-
-                    const vMin = vIntervals.reduce( ( min, current ) => current.value < min.value ? current : min );
-                    const vMax = vIntervals.reduce( ( max, current ) => current.value > max.value ? current : max );
-
-                    dailySummary[ `${ vKey }_min` ] = +vMin.value.toFixed( 2 );
-                    dailySummary[ `${ vKey }_minTime` ] = vMin.timestamp;
-                    dailySummary[ `${ vKey }_max` ] = +vMax.value.toFixed( 2 );
-                    dailySummary[ `${ vKey }_maxTime` ] = vMax.timestamp;
-                }
-                else
-                {
-                    dailySummary[ vKey ] = 0;
-                    dailySummary[ `${ vKey }_min` ] = 0;
-                    dailySummary[ `${ vKey }_max` ] = 0;
-                    dailySummary[ `${ vKey }_minTime` ] = null;
-                    dailySummary[ `${ vKey }_maxTime` ] = null;
-                }
-
-                if ( iIntervals.length > 0 )
-                {
-                    const iAvg = iIntervals.reduce( ( sum, item ) => sum + item.value, 0 ) / iIntervals.length;
-                    dailySummary[ iKey ] = +iAvg.toFixed( 2 );
-
-                    const iMin = iIntervals.reduce( ( min, current ) => current.value < min.value ? current : min );
-                    const iMax = iIntervals.reduce( ( max, current ) => current.value > max.value ? current : max );
-
-                    dailySummary[ `${ iKey }_min` ] = +iMin.value.toFixed( 2 );
-                    dailySummary[ `${ iKey }_minTime` ] = iMin.timestamp;
-                    dailySummary[ `${ iKey }_max` ] = +iMax.value.toFixed( 2 );
-                    dailySummary[ `${ iKey }_maxTime` ] = iMax.timestamp;
-                }
-                else
-                {
-                    dailySummary[ iKey ] = 0;
-                    dailySummary[ `${ iKey }_min` ] = 0;
-                    dailySummary[ `${ iKey }_max` ] = 0;
-                    dailySummary[ `${ iKey }_minTime` ] = null;
-                    dailySummary[ `${ iKey }_maxTime` ] = null;
-                }
-            } );
-
-            return dailySummary;
         } );
 
         return result;
