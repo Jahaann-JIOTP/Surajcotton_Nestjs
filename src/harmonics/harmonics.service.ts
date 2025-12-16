@@ -23,8 +23,8 @@ export interface HarmonicsPayload
 
 export interface HarmonicsResponse
 {
-    period1Data: any[];
-    period2Data: any[];
+    period1: any[];
+    period2: any[];
     metadata: any;
 }
 
@@ -70,6 +70,12 @@ export class HarmonicsService
         let d1 = this.processHarmonicsData( raw1, payload.DeviceId );
         let d2 = this.processHarmonicsData( raw2, payload.DeviceId );
 
+        if ( [ '15mins', '30mins' ].includes( payload.resolution ) )
+        {
+            d1 = this.attachMinMaxSamePoint( d1, payload.DeviceId );
+            d2 = this.attachMinMaxSamePoint( d2, payload.DeviceId );
+        }
+
         if ( [ 'hour', '1hour' ].includes( payload.resolution ) )
         {
             d1 = this.groupByHourWithMinMax( d1, payload.DeviceId );
@@ -83,8 +89,8 @@ export class HarmonicsService
         }
 
         return {
-            period1Data: d1,
-            period2Data: d2,
+            period1: d1,
+            period2: d2,
             metadata: {
                 period1: { start: p1.start.toISOString(), end: p1.end.toISOString() },
                 period2: { start: p2.start.toISOString(), end: p2.end.toISOString() },
@@ -204,6 +210,30 @@ export class HarmonicsService
             } );
 
             return out;
+        } );
+    }
+
+    /* ===================== 15 / 30 MIN MIN–MAX ===================== */
+
+    private attachMinMaxSamePoint ( data: any[], devices: string[] ): any[]
+    {
+        return data.map( row =>
+        {
+            devices.forEach( dev =>
+            {
+                [ 'V', 'I' ].forEach( type =>
+                {
+                    const k = `${ dev }_Harmonics_${ type }_THD`;
+                    const v = row[ k ];
+
+                    row[ `${ k }_min` ] = typeof v === 'number' ? v : 0;
+                    row[ `${ k }_max` ] = typeof v === 'number' ? v : 0;
+                    row[ `${ k }_minTime` ] = row.timestamp;
+                    row[ `${ k }_maxTime` ] = row.timestamp;
+                } );
+            } );
+
+            return row;
         } );
     }
 
