@@ -40,6 +40,7 @@ import { PlantsTrendsModule } from './plants_trends/plants_trends.module';
 import { departmentreportModule } from './departmentreport/daily_consumption.module';
 import { HarmonicsModule } from './harmonics/harmonics.module';
 import { HarmonicsDetailModule } from './harmonics_detail/harmonics_detail.module';
+import { TLTrendsModule } from './tltrends/trends.module';
 
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { HarmonicsDetailModule } from './harmonics_detail/harmonics_detail.modul
     departmentreportModule,
     HarmonicsModule,
     HarmonicsDetailModule,
+    TLTrendsModule
   ],
   controllers: [AppController],
   providers: [AppService],
