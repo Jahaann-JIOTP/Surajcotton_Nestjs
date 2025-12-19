@@ -62,6 +62,71 @@ export class HarmonicsService
 
         const tags = this.generateTags( payload.DeviceId );
 
+        console.log( '\n=== FETCHING PARAMETERS ===' );
+        console.log( 'Period 1:', { start: p1.start, end: p1.end } );
+        console.log( 'Period 2:', { start: p2.start, end: p2.end } );
+        console.log( 'Resolution:', payload.resolution );
+
+        // For daily resolution, fetch at finer resolution and group by day
+        if ( [ 'day', '1day' ].includes( payload.resolution ) )
+        {
+            console.log( '\n=== DAY RESOLUTION DETECTED ===' );
+            console.log( 'Will fetch 15-minute data and group by 6AM days' );
+
+            const [ raw15min1, raw15min2 ] = await Promise.all( [
+                this.fetchHarmonicsData( p1.start, p1.end, tags, '15mins' ),
+                this.fetchHarmonicsData( p2.start, p2.end, tags, '15mins' ),
+            ] );
+
+            console.log( `\nPeriod 1 - Fetched ${ raw15min1.length } 15-minute intervals` );
+            console.log( `Period 2 - Fetched ${ raw15min2.length } 15-minute intervals` );
+
+            let d1 = this.processHarmonicsData( raw15min1, payload.DeviceId );
+            let d2 = this.processHarmonicsData( raw15min2, payload.DeviceId );
+
+            d1 = this.groupByDayWithMinMax( d1, payload.DeviceId );
+            d2 = this.groupByDayWithMinMax( d2, payload.DeviceId );
+
+            console.log( '\n=== AFTER DAY GROUPING ===' );
+            console.log( `Period 1 - ${ d1.length } day groups (6AM to 6AM)` );
+            console.log( `Period 2 - ${ d2.length } day groups (6AM to 6AM)` );
+
+            if ( d1.length > 0 )
+            {
+                console.log( '\nPeriod 1 first day group:' );
+                console.log( JSON.stringify( d1[ 0 ], null, 2 ) );
+                if ( d1.length > 1 )
+                {
+                    console.log( '\nPeriod 1 last day group:' );
+                    console.log( JSON.stringify( d1[ d1.length - 1 ], null, 2 ) );
+                }
+            }
+
+            if ( d2.length > 0 )
+            {
+                console.log( '\nPeriod 2 first day group:' );
+                console.log( JSON.stringify( d2[ 0 ], null, 2 ) );
+                if ( d2.length > 1 )
+                {
+                    console.log( '\nPeriod 2 last day group:' );
+                    console.log( JSON.stringify( d2[ d2.length - 1 ], null, 2 ) );
+                }
+            }
+
+            return {
+                period1: d1,
+                period2: d2,
+                metadata: {
+                    period1: { start: p1.start.toISOString(), end: p1.end.toISOString() },
+                    period2: { start: p2.start.toISOString(), end: p2.end.toISOString() },
+                    resolution: payload.resolution,
+                    devices: payload.DeviceId,
+                    totalTags: tags.length,
+                    queryTime: new Date().toISOString(),
+                },
+            };
+        }
+
         // For hourly resolution, fetch 15-minute data to track min/max within each hour
         if ( [ 'hour', '1hour' ].includes( payload.resolution ) )
         {
@@ -90,7 +155,7 @@ export class HarmonicsService
             };
         }
 
-        // For other resolutions, use the original logic
+        // For 15min and 30min resolutions, use the original logic
         const [ raw1, raw2 ] = await Promise.all( [
             this.fetchHarmonicsData( p1.start, p1.end, tags, payload.resolution ),
             this.fetchHarmonicsData( p2.start, p2.end, tags, payload.resolution ),
@@ -103,12 +168,6 @@ export class HarmonicsService
         {
             d1 = this.attachMinMaxSamePoint( d1, payload.DeviceId );
             d2 = this.attachMinMaxSamePoint( d2, payload.DeviceId );
-        }
-
-        if ( [ 'day', '1day' ].includes( payload.resolution ) )
-        {
-            d1 = this.groupByDayWithMinMax( d1, payload.DeviceId );
-            d2 = this.groupByDayWithMinMax( d2, payload.DeviceId );
         }
 
         return {
@@ -124,7 +183,6 @@ export class HarmonicsService
             },
         };
     }
-
     /* ===================== AGGREGATION ===================== */
 
     private async fetchHarmonicsData (
@@ -136,24 +194,30 @@ export class HarmonicsService
     {
         const collection = this.connection.collection( 'historical' );
 
-        if ( [ 'day', '1day' ].includes( resolution ) )
-        {
-            return collection
-                .aggregate( [
-                    { $addFields: { ts: { $dateFromString: { dateString: '$timestamp' } } } },
-                    { $match: { ts: { $gte: start, $lt: end } } },
-                    { $project: { timestamp: 1, ...this.roundFields( tags ) } },
-                    { $sort: { timestamp: 1 } },
-                ] )
-                .toArray();
-        }
-
+        // Don't handle day resolution here - we'll handle it in getHarmonicsFromPayload
+        // Always use aggregation for non-day resolutions
         const { unit, binSize } = this.getBucketConfig( resolution );
 
-        return collection
+        console.log( `\n=== FETCHING DATA ===` );
+        console.log( `Resolution: ${ resolution }` );
+        console.log( `Start: ${ start }` );
+        console.log( `End: ${ end }` );
+        console.log( `Tags count: ${ tags.length }` );
+
+        // For 15-minute resolution, we need to adjust the end time to include the next 6:00 bucket
+        let adjustedEnd = end;
+        if ( resolution === '15mins' || resolution === '30mins' )
+        {
+            // Add 1 MINUTE (60000 milliseconds) to include the exact end time bucket
+            adjustedEnd = new Date( end.getTime() + 60000 );
+            console.log( `Adjusted end time: ${ adjustedEnd }` );
+            console.log( `Adjustment: Added 60000ms (1 minute) to include end bucket` );
+        }
+
+        const data = await collection
             .aggregate( [
                 { $addFields: { ts: { $dateFromString: { dateString: '$timestamp' } } } },
-                { $match: { ts: { $gte: start, $lt: end } } },
+                { $match: { ts: { $gte: start, $lte: adjustedEnd } } },
                 {
                     $group: {
                         _id: {
@@ -166,17 +230,16 @@ export class HarmonicsService
                                 },
                             },
                         },
-                        ...this.avgFields( tags ),
+                        ...this.avgFieldsExcludingZero( tags ), // CHANGED: Use avgFieldsExcludingZero
                     },
                 },
                 {
                     $project: {
                         _id: 0,
-                        // IMPORTANT: Add timezone offset to the timestamp
                         timestamp: {
                             $dateToString: {
                                 date: '$_id.bucket',
-                                format: '%Y-%m-%dT%H:%M:%S%z', // Added %z for timezone offset
+                                format: '%Y-%m-%dT%H:%M:%S%z',
                                 timezone: this.TIMEZONE,
                             },
                         },
@@ -186,8 +249,53 @@ export class HarmonicsService
                 { $sort: { timestamp: 1 } },
             ] )
             .toArray();
-    }
 
+        // Console first and last document
+        if ( data.length > 0 )
+        {
+            console.log( `\n=== FETCH RESULTS (${ resolution.toUpperCase() }) ===` );
+            console.log( `Total documents fetched: ${ data.length }` );
+            console.log( `First document timestamp: ${ data[ 0 ].timestamp }` );
+            console.log( `Last document timestamp: ${ data[ data.length - 1 ].timestamp }` );
+
+            // Calculate expected count
+            const startMoment = moment( start );
+            const endMoment = moment( adjustedEnd );
+            const hoursDiff = endMoment.diff( startMoment, 'hours', true );
+            const expected15minIntervals = Math.ceil( hoursDiff * 4 ); // 4 intervals per hour
+            console.log( `Expected 15-min intervals: ${ expected15minIntervals }` );
+            console.log( `Difference: ${ expected15minIntervals - data.length } missing` );
+
+            // Show sample of first document
+            console.log( '\nFirst document (sample):' );
+            const firstDoc = data[ 0 ];
+            const sampleKeys = Object.keys( firstDoc ).slice( 0, 5 ); // Show first 5 keys
+            sampleKeys.forEach( key =>
+            {
+                console.log( `  ${ key }: ${ firstDoc[ key ] }` );
+            } );
+
+            // Also show what buckets we got
+            if ( data.length > 0 )
+            {
+                console.log( '\nFirst few timestamps:' );
+                data.slice( 0, 3 ).forEach( ( doc, i ) =>
+                {
+                    console.log( `  ${ i + 1 }. ${ doc.timestamp }` );
+                } );
+                console.log( '\nLast few timestamps:' );
+                data.slice( -3 ).forEach( ( doc, i ) =>
+                {
+                    console.log( `  ${ data.length - 2 + i }. ${ doc.timestamp }` );
+                } );
+            }
+        } else
+        {
+            console.log( 'No documents found for the specified period' );
+        }
+
+        return data;
+    }
     /* ===================== HELPERS ===================== */
 
     private getBucketConfig ( res: string ): { unit: any; binSize: number }
@@ -203,10 +311,32 @@ export class HarmonicsService
                 return { unit: 'hour', binSize: 1 };
             case 'day':
             case '1day':
-                return { unit: 'day', binSize: 1 };
+                // For day resolution, we'll fetch 15-minute data and group in memory
+                return { unit: 'minute', binSize: 15 };
             default:
                 return { unit: 'hour', binSize: 1 };
         }
+    }
+
+    private avgFieldsExcludingZero ( tags: string[] ) // NEW: Average excluding 0 values
+    {
+        return Object.fromEntries( tags.map( ( t ) => [
+            t, {
+                $avg: {
+                    $cond: {
+                        if: {
+                            $and: [
+                                { $ne: [ `$${ t }`, 0 ] },
+                                { $ne: [ `$${ t }`, null ] },
+                                { $ne: [ { $type: `$${ t }` }, "missing" ] }
+                            ]
+                        },
+                        then: `$${ t }`,
+                        else: null  // null values are ignored by $avg
+                    }
+                }
+            }
+        ] ) );
     }
 
     private avgFields ( tags: string[] )
@@ -229,20 +359,24 @@ export class HarmonicsService
 
             devices.forEach( ( dev ) =>
             {
+                // Exclude 0 values from voltage THD calculation
                 const v = [ 'V1', 'V2', 'V3' ]
                     .map( ( x ) => d[ `${ dev }_Harmonics_${ x }_THD` ] )
-                    .filter( ( v ) => typeof v === 'number' );
+                    .filter( ( v ) => typeof v === 'number' && v !== 0 && !isNaN( v ) );
 
+                // Exclude 0 values from current THD calculation
                 const i = [ 'I1', 'I2', 'I3' ]
                     .map( ( x ) => d[ `${ dev }_Harmonics_${ x }_THD` ] )
-                    .filter( ( v ) => typeof v === 'number' );
+                    .filter( ( v ) => typeof v === 'number' && v !== 0 && !isNaN( v ) );
 
-                out[ `${ dev }_Harmonics_V_THD` ] = v.length
+                // Calculate average only if we have valid non-zero values
+                out[ `${ dev }_Harmonics_V_THD` ] = v.length > 0
                     ? +( v.reduce( ( a, b ) => a + b, 0 ) / v.length ).toFixed( 2 )
-                    : 0;
-                out[ `${ dev }_Harmonics_I_THD` ] = i.length
+                    : 0; // If all values are 0 or invalid, return 0
+
+                out[ `${ dev }_Harmonics_I_THD` ] = i.length > 0
                     ? +( i.reduce( ( a, b ) => a + b, 0 ) / i.length ).toFixed( 2 )
-                    : 0;
+                    : 0; // If all values are 0 or invalid, return 0
             } );
 
             return out;
@@ -273,7 +407,7 @@ export class HarmonicsService
         } );
     }
 
-    /* ===================== HOUR MIN / MAX ===================== */
+    /* ===================== HOUR MIN / MAX - UPDATED TO EXCLUDE 0 ===================== */
 
     private groupByHourWithMinMax ( data: any[], devices: string[] ): any[]
     {
@@ -337,7 +471,8 @@ export class HarmonicsService
                 const vValue = row[ `${ dev }_Harmonics_V_THD` ];
                 const iValue = row[ `${ dev }_Harmonics_I_THD` ];
 
-                if ( typeof vValue === 'number' )
+                // Only add NON-ZERO voltage values
+                if ( typeof vValue === 'number' && vValue !== 0 && !isNaN( vValue ) )
                 {
                     deviceStats.vValues.push( {
                         value: vValue,
@@ -346,7 +481,8 @@ export class HarmonicsService
                     } );
                 }
 
-                if ( typeof iValue === 'number' )
+                // Only add NON-ZERO current values
+                if ( typeof iValue === 'number' && iValue !== 0 && !isNaN( iValue ) )
                 {
                     deviceStats.iValues.push( {
                         value: iValue,
@@ -380,14 +516,14 @@ export class HarmonicsService
                 const vKey = `${ dev }_Harmonics_V_THD`;
                 const iKey = `${ dev }_Harmonics_I_THD`;
 
-                // Process Voltage THD
+                // Process Voltage THD - EXCLUDING 0 VALUES
                 if ( stats.vValues.length > 0 )
                 {
-                    // Calculate average
+                    // Calculate average from NON-ZERO values only
                     const vAvg = stats.vValues.reduce( ( sum, item ) => sum + item.value, 0 ) / stats.vValues.length;
                     hourlySummary[ vKey ] = +vAvg.toFixed( 2 );
 
-                    // Find min and max WITHIN THIS HOUR
+                    // Find min and max FROM NON-ZERO VALUES WITHIN THIS HOUR
                     const vMin = stats.vValues.reduce( ( min, curr ) =>
                         curr.value < min.value ? curr : min
                     );
@@ -402,6 +538,7 @@ export class HarmonicsService
                 }
                 else
                 {
+                    // If all values were 0 or no valid data, set to 0
                     hourlySummary[ vKey ] = 0;
                     hourlySummary[ `${ vKey }_min` ] = 0;
                     hourlySummary[ `${ vKey }_max` ] = 0;
@@ -409,14 +546,14 @@ export class HarmonicsService
                     hourlySummary[ `${ vKey }_maxTime` ] = null;
                 }
 
-                // Process Current THD
+                // Process Current THD - EXCLUDING 0 VALUES
                 if ( stats.iValues.length > 0 )
                 {
-                    // Calculate average
+                    // Calculate average from NON-ZERO values only
                     const iAvg = stats.iValues.reduce( ( sum, item ) => sum + item.value, 0 ) / stats.iValues.length;
                     hourlySummary[ iKey ] = +iAvg.toFixed( 2 );
 
-                    // Find min and max WITHIN THIS HOUR
+                    // Find min and max FROM NON-ZERO VALUES WITHIN THIS HOUR
                     const iMin = stats.iValues.reduce( ( min, curr ) =>
                         curr.value < min.value ? curr : min
                     );
@@ -431,6 +568,7 @@ export class HarmonicsService
                 }
                 else
                 {
+                    // If all values were 0 or no valid data, set to 0
                     hourlySummary[ iKey ] = 0;
                     hourlySummary[ `${ iKey }_min` ] = 0;
                     hourlySummary[ `${ iKey }_max` ] = 0;
@@ -445,7 +583,7 @@ export class HarmonicsService
         return result;
     }
 
-    /* ===================== DAY MIN / MAX (6AM) ===================== */
+    /* ===================== DAY MIN / MAX (6AM) - UPDATED TO EXCLUDE 0 ===================== */
 
     private groupByDayWithMinMax ( data: any[], devices: string[] ): any[]
     {
@@ -459,7 +597,62 @@ export class HarmonicsService
             }>;
         }> = {};
 
-        data.forEach( ( row ) =>
+        console.log( `\n=== START DAY GROUPING ===` );
+        console.log( `Total intervals received: ${ data.length }` );
+
+        // Sort data by timestamp to ensure chronological order
+        const sortedData = [ ...data ].sort( ( a, b ) =>
+            moment( a.timestamp ).valueOf() - moment( b.timestamp ).valueOf()
+        );
+
+        if ( sortedData.length > 0 )
+        {
+            console.log( `\n=== FIRST 3 DOCUMENTS BEING PROCESSED ===` );
+            for ( let i = 0; i < Math.min( 3, sortedData.length ); i++ )
+            {
+                console.log( `\nDocument ${ i + 1 } (index ${ i }):` );
+                console.log( JSON.stringify( sortedData[ i ], null, 2 ) );
+
+                // Parse timestamp to show hour for debugging
+                const timestampStr = sortedData[ i ].timestamp;
+                let timestamp: moment.Moment;
+                if ( timestampStr.includes( '+' ) && timestampStr.length > 19 )
+                {
+                    timestamp = moment.parseZone( timestampStr );
+                } else
+                {
+                    timestamp = moment.tz( timestampStr, this.TIMEZONE );
+                }
+                console.log( `Hour: ${ timestamp.hour() }:${ timestamp.minute() }` );
+            }
+
+            console.log( `\n=== LAST 3 DOCUMENTS BEING PROCESSED ===` );
+            const lastIndex = sortedData.length - 1;
+            for ( let i = Math.max( 0, lastIndex - 2 ); i <= lastIndex; i++ )
+            {
+                console.log( `\nDocument ${ i + 1 } (index ${ i }):` );
+                console.log( JSON.stringify( sortedData[ i ], null, 2 ) );
+
+                // Parse timestamp to show hour for debugging
+                const timestampStr = sortedData[ i ].timestamp;
+                let timestamp: moment.Moment;
+                if ( timestampStr.includes( '+' ) && timestampStr.length > 19 )
+                {
+                    timestamp = moment.parseZone( timestampStr );
+                } else
+                {
+                    timestamp = moment.tz( timestampStr, this.TIMEZONE );
+                }
+                console.log( `Hour: ${ timestamp.hour() }:${ timestamp.minute() }` );
+            }
+
+            console.log( `\nFirst document in data:` );
+            console.log( JSON.stringify( sortedData[ 0 ], null, 2 ) );
+            console.log( `Last document in data:` );
+            console.log( JSON.stringify( sortedData[ sortedData.length - 1 ], null, 2 ) );
+        }
+
+        sortedData.forEach( ( row, index ) =>
         {
             // Parse timestamp with timezone
             const timestampStr = row.timestamp;
@@ -484,8 +677,12 @@ export class HarmonicsService
             const dayStart = moment.tz( `${ dayKey } 06:00:00`, this.TIMEZONE );
             const dayEnd = dayStart.clone().add( 24, 'hours' );
 
+            // Log first document for each day
             if ( !dayMap[ dayKey ] )
             {
+                console.log( `\nCreating new day group: ${ dayKey }` );
+                console.log( `Day range: ${ dayStart.format( 'YYYY-MM-DD HH:mm:ss' ) } to ${ dayEnd.format( 'YYYY-MM-DD HH:mm:ss' ) }` );
+
                 dayMap[ dayKey ] = {
                     dayStart,
                     dayEnd,
@@ -500,9 +697,20 @@ export class HarmonicsService
                         iData: []
                     };
                 } );
+
+                // Log the first document for this day
+                console.log( `First document for day ${ dayKey }:` );
+                console.log( JSON.stringify( row, null, 2 ) );
             }
 
             dayMap[ dayKey ].intervals.push( row );
+
+            // Log the last document when we add it
+            if ( index === sortedData.length - 1 )
+            {
+                console.log( `\nLast document in dataset belongs to day: ${ dayKey }` );
+                console.log( `Document: ${ JSON.stringify( row, null, 2 ) }` );
+            }
 
             devices.forEach( dev =>
             {
@@ -512,7 +720,8 @@ export class HarmonicsService
                 const vValue = row[ vKey ];
                 const iValue = row[ iKey ];
 
-                if ( typeof vValue === 'number' )
+                // Only add NON-ZERO voltage values
+                if ( typeof vValue === 'number' && vValue !== 0 && !isNaN( vValue ) )
                 {
                     dayMap[ dayKey ].deviceData[ dev ].vData.push( {
                         value: vValue,
@@ -520,7 +729,8 @@ export class HarmonicsService
                     } );
                 }
 
-                if ( typeof iValue === 'number' )
+                // Only add NON-ZERO current values
+                if ( typeof iValue === 'number' && iValue !== 0 && !isNaN( iValue ) )
                 {
                     dayMap[ dayKey ].deviceData[ dev ].iData.push( {
                         value: iValue,
@@ -530,7 +740,49 @@ export class HarmonicsService
             } );
         } );
 
-        const result = Object.keys( dayMap ).sort().map( dayKey =>
+        // Get sorted day keys
+        const sortedDayKeys = Object.keys( dayMap ).sort();
+
+        console.log( `\n=== DAY GROUPING SUMMARY ===` );
+        console.log( `Total day groups created: ${ sortedDayKeys.length }` );
+
+        // Log each day group's first and last document
+        sortedDayKeys.forEach( dayKey =>
+        {
+            const dayData = dayMap[ dayKey ];
+            console.log( `\nDay: ${ dayKey }` );
+            console.log( `Total intervals: ${ dayData.intervals.length }` );
+
+            if ( dayData.intervals.length > 0 )
+            {
+                console.log( `First 3 documents in this day:` );
+                for ( let i = 0; i < Math.min( 3, dayData.intervals.length ); i++ )
+                {
+                    console.log( `  ${ i + 1 }. ${ dayData.intervals[ i ].timestamp }` );
+                }
+
+                console.log( `Last 3 documents in this day:` );
+                const lastIdx = dayData.intervals.length - 1;
+                for ( let i = Math.max( 0, lastIdx - 2 ); i <= lastIdx; i++ )
+                {
+                    console.log( `  ${ i + 1 }. ${ dayData.intervals[ i ].timestamp }` );
+                }
+            }
+
+            // Count 06:00 timestamps in this day
+            const sixAmCount = dayData.intervals.filter( interval =>
+            {
+                const ts = interval.timestamp;
+                return ts.includes( 'T06:00:00' );
+            } ).length;
+
+            if ( sixAmCount > 0 )
+            {
+                console.log( `Contains ${ sixAmCount } 06:00:00 timestamp(s)` );
+            }
+        } );
+
+        const result = sortedDayKeys.map( dayKey =>
         {
             const { dayStart, dayEnd, intervals, deviceData } = dayMap[ dayKey ];
 
@@ -547,8 +799,8 @@ export class HarmonicsService
                 const vKey = `${ dev }_Harmonics_V_THD`;
                 const iKey = `${ dev }_Harmonics_I_THD`;
 
-                const vIntervals = deviceData[ dev ].vData;
-                const iIntervals = deviceData[ dev ].iData;
+                const vIntervals = deviceData[ dev ].vData; // Already filtered to exclude 0
+                const iIntervals = deviceData[ dev ].iData; // Already filtered to exclude 0
 
                 if ( vIntervals.length > 0 )
                 {
@@ -598,9 +850,24 @@ export class HarmonicsService
             return dailySummary;
         } );
 
+        // Log the final result first and last documents
+        console.log( `\n=== FINAL RESULT ===` );
+        console.log( `Total day groups in result: ${ result.length }` );
+
+        if ( result.length > 0 )
+        {
+            console.log( `First day group in result:` );
+            console.log( JSON.stringify( result[ 0 ], null, 2 ) );
+
+            if ( result.length > 1 )
+            {
+                console.log( `Last day group in result:` );
+                console.log( JSON.stringify( result[ result.length - 1 ], null, 2 ) );
+            }
+        }
+
         return result;
     }
-
     /* ===================== VALIDATION ===================== */
 
     private validatePayload ( payload: HarmonicsPayload ): void
