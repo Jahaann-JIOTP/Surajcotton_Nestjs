@@ -136,10 +136,15 @@ export class powercomparisonService
   }
 
   // 🚀 PERFORMANCE: Cache management
-  private getCacheKey ( startDate: string, endDate: string, label: string ): string
-  {
-    return `${ startDate }_${ endDate }_${ label }`;
-  }
+  private getCacheKey(
+  startDate: string,
+  endDate: string,
+  label: string,
+  startTime?: string,
+  endTime?: string
+): string {
+  return `${startDate}_${startTime ?? '06:00'}__${endDate}_${endTime ?? '06:00'}__${label}`;
+}
 
   private setCache ( key: string, data: EnergyResult[], metrics: PerformanceMetrics )
   {
@@ -289,20 +294,34 @@ export class powercomparisonService
       } );
     } else if ( groupBy === 'day' )
     {
-      // For daily, use date string grouping (matches original daily logic)
-      pipeline.push( {
+  // 🔑 Shift time so day starts at 06:00
+  pipeline.push({
+    $addFields: {
+      energyDate: {
+        $dateSubtract: {
+          startDate: "$date",
+          unit: "hour",
+          amount: 6
+        }
+      }
+    }
+  });
+
+  // 🔑 Now group by shifted day
+  pipeline.push({
         $group: {
           _id: {
-            $dateToString: {
-              format: "%Y-%m-%d",
-              date: "$date",
+        $dateTrunc: {
+          date: "$energyDate",
+          unit: "day",
               timezone: this.TIMEZONE
             }
           },
           ...this.tagProjections
         }
-      } );
-    } else if ( groupBy === 'month' )
+  });
+}
+ else if ( groupBy === 'month' )
     {
       // For monthly, use month grouping
       pipeline.push( {
@@ -324,8 +343,10 @@ export class powercomparisonService
     return pipeline;
   }
 
+
   // 🚀 PERFORMANCE: Optimized calculation with early validation
   private calculateEnergyTotals ( entry: any )
+  
   {
     const totals: any = {};
 
@@ -372,7 +393,12 @@ export class powercomparisonService
   }
 
   // 🚀 CLEAN PERFORMANCE: Optimized batch processing with 2 BATCHES
-  private async fetchBatchUnaccountedEnergy ( dates: string[], timeframe: 'hourly' | 'daily' | 'monthly' = 'hourly' ): Promise<Map<string, number>>
+ private async fetchBatchUnaccountedEnergy(
+  dates: string[],
+  timeframe: 'hourly' | 'daily' | 'monthly' = 'hourly',
+  startTime?: string,
+  endTime?: string
+): Promise<Map<string, number>>
   {
     const results = new Map<string, number>();
     if ( dates.length === 0 ) return results;
@@ -421,8 +447,8 @@ export class powercomparisonService
             payload = {
               startDate: date.split( ' ' )[ 0 ], // Extract date part
               endDate: moment( date.split( ' ' )[ 0 ] ).add( 1, 'day' ).format( "YYYY-MM-DD" ),
-              startTime: "06:00",
-              endTime: "06:00",
+              startTime: startTime ?? "06:00",
+              endTime: endTime ?? "06:00",
             };
           }
 
@@ -513,12 +539,18 @@ export class powercomparisonService
   }
 
   // 🚀 MAIN METHOD WITH EXACT SAME DATE/TIME LOGIC AS ORIGINAL
-  async getPowerData ( startDate: string, endDate: string, label: string = 'hourly' ): Promise<EnergyResult[]>
+  async getPowerData(
+  startDate: string,
+  endDate: string,
+  label: string = 'hourly',
+  startTime?: string,   // "HH:mm"
+  endTime?: string      // "HH:mm"
+): Promise<EnergyResult[]>
   {
     const monitor = this.startPerformanceMonitoring();
 
     // 🚀 PERFORMANCE: Check cache first
-    const cacheKey = this.getCacheKey( startDate, endDate, label );
+   const cacheKey = this.getCacheKey(startDate, endDate, label, startTime, endTime);
     const cached = this.getCache( cacheKey );
 
     if ( cached )
@@ -535,14 +567,30 @@ export class powercomparisonService
     try
     {
       // 🚀 EXACT SAME DATE/TIME LOGIC AS ORIGINAL WORKING CODE
-      const startDateTime = moment.tz( startDate, "YYYY-MM-DD", "Asia/Karachi" )
-        .hour( 6 ).minute( 0 ).second( 0 ).millisecond( 0 )
-        .toDate();
+     const startDateTime = moment
+  .tz(
+    `${startDate} ${startTime ?? '06:00'}`,
+    'YYYY-MM-DD HH:mm',
+    this.TIMEZONE
+  )
+  .second(0)
+  .millisecond(0)
+  .toDate();
 
-      const endDateTime = moment.tz( endDate, "YYYY-MM-DD", "Asia/Karachi" )
-        .add( 1, "day" )
-        .hour( 6 ).minute( 59 ).second( 59 ).millisecond( 999 )
-        .toDate();
+const endDateTime = moment
+  .tz(
+    `${endDate} ${endTime ?? '06:00'}`,
+    'YYYY-MM-DD HH:mm',
+    this.TIMEZONE
+  )
+  .second(0)
+  .millisecond(0)
+  .toDate();
+
+// ✅ VALIDATION
+if (endDateTime <= startDateTime) {
+  throw new Error("End datetime must be after start datetime");
+}
 
       console.log( `\n📊 DATABASE QUERY` );
       console.log( `   Time range: ${ startDateTime } to ${ endDateTime }` );
@@ -568,6 +616,7 @@ export class powercomparisonService
       const collection = this.conModel.collection;
       const pipeline = this.createAggregationPipeline( startDateTime, endDateTime, groupBy );
       const data = await collection.aggregate( pipeline ).toArray();
+      console.log("📦 DB RECORD COUNT:", data.length);
       const [ dbSeconds, dbNanoseconds ] = process.hrtime( dbQueryStart );
       monitor.dbQueryTime = dbSeconds * 1000 + dbNanoseconds / 1e6;
 
@@ -600,7 +649,14 @@ export class powercomparisonService
       console.log( `   Fetching unaccounted energy for ${ allDates.length } time periods` );
       console.log( `   Using ${ this.OPTIMAL_CONCURRENT_BATCHES } batches of ${ this.OPTIMAL_BATCH_SIZE }` );
 
-      const unaccountedEnergyMap = await this.fetchBatchUnaccountedEnergy( allDates, label as any );
+      let unaccountedEnergyMap = new Map<string, number>();
+
+// ❌ Hourly ke liye API call band
+if (label !== 'hourly') {
+  unaccountedEnergyMap =
+    await this.fetchBatchUnaccountedEnergy(allDates, label as any, startTime,
+    endTime);
+}
 
       const [ externalSeconds, externalNanoseconds ] = process.hrtime( externalApiStart );
       monitor.externalApiTime = externalSeconds * 1000 + externalNanoseconds / 1e6;
@@ -622,15 +678,29 @@ export class powercomparisonService
         } else if ( groupBy === 'day' )
         {
           formattedDate = moment( entry._id ).tz( this.TIMEZONE ).format( "YYYY-MM-DD" );
-          dateKey = moment( entry._id ).tz( this.TIMEZONE ).format( "YYYY-MM-DD" );
+          dateKey = moment(entry._id)
+  .tz(this.TIMEZONE)
+  .add(6, 'hours')   // 🔑 align with energy window
+  .format("YYYY-MM-DD");
         } else
         {
           formattedDate = moment( entry._id ).tz( this.TIMEZONE ).format( "YYYY-MM" );
           dateKey = moment( entry._id ).tz( this.TIMEZONE ).format( "YYYY-MM-DD" );
         }
+        // 👇 YAHAN
+  console.log("🔍 ENTRY ID:", entry._id);
+  console.log("FIRST/LAST SAMPLE:", {
+    first: entry.first_U22_PLC_Del_ActiveEnergy,
+    last: entry.last_U22_PLC_Del_ActiveEnergy,
+    diff: entry.last_U22_PLC_Del_ActiveEnergy - entry.first_U22_PLC_Del_ActiveEnergy
+  });
+
 
         const totals = this.calculateEnergyTotals( entry );
-        const unaccountable_energy = unaccountedEnergyMap.get( dateKey ) || 0;
+        const unaccountable_energy =
+  label === 'hourly'
+    ? 0
+    : (unaccountedEnergyMap.get(dateKey) || 0);
         const losses = this.calculateLosses( totals );
         const totalConsumption = totals.unit4 + totals.unit5 + totals.aux;
         const totalGeneration = totals.ht + totals.lt + totals.wapda + totals.solar;
