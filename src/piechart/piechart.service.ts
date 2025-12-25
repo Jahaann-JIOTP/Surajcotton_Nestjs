@@ -3,7 +3,6 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PieChart } from './schemas/pie-chart.schema';
-import * as moment from 'moment-timezone';
 
 @Injectable()
 export class PieChartService {
@@ -14,42 +13,30 @@ export class PieChartService {
 
   async fetchData(startTimestamp: number, endTimestamp: number) {
     try {
-      // -----------------------------
-      // 6 AM boundaries (Asia/Karachi)
-      // -----------------------------
-      const startOfDay = moment
-        .unix(startTimestamp)
-        .tz('Asia/Karachi')
-        .startOf('day')
-        .add(6, 'hours'); // ✅ always 6:00 AM
-
-      let endOfDay: moment.Moment;
-
-      if (
-        moment.unix(startTimestamp).tz('Asia/Karachi').format('YYYY-MM-DD') ===
-        moment.unix(endTimestamp).tz('Asia/Karachi').format('YYYY-MM-DD')
-      ) {
-        // 👉 Same date → next day 06:00:59.999
-        endOfDay = startOfDay.clone().add(1, 'day').hour(6).minute(0).second(59).millisecond(999);
-      } else {
-        // 👉 Multiple dates → endDate ke din ka 06:00:59.999
-        endOfDay = moment
-          .unix(endTimestamp)
-          .tz('Asia/Karachi')
-          .startOf('day')
-          .add(6, 'hours')
-          .second(59)
-          .millisecond(999);
+      // ----------------------------------
+      // Safety check
+      // ----------------------------------
+      if (endTimestamp <= startTimestamp) {
+        return [
+          {
+            category: 'No Data',
+            total: 0,
+            color: '#cccccc',
+            subData: [],
+          },
+        ];
       }
 
-      const startUnix = startOfDay.unix();
-      const endUnix = endOfDay.unix();
-
-      // -----------------------------
-      // Query DB
-      // -----------------------------
+      // ----------------------------------
+      // Query DB (USE TIMESTAMPS AS-IS)
+      // ----------------------------------
       const data = await this.pieChartModel
-        .find({ UNIXtimestamp: { $gte: startUnix, $lte: endUnix } })
+        .find({
+          UNIXtimestamp: {
+            $gte: startTimestamp,
+            $lte: endTimestamp,
+          },
+        })
         .select(
           'UNIXtimestamp ' +
           'U19_PLC_Del_ActiveEnergy ' +
@@ -61,13 +48,13 @@ export class PieChartService {
           'U27_PLC_Del_ActiveEnergy ' +
           'U22_PLC_Del_ActiveEnergy ' +
           'U26_PLC_Del_ActiveEnergy ' +
-          'U28_PLC_Del_ActiveEnergy' // ✅ Added new solar meter
+          'U28_PLC_Del_ActiveEnergy'
         )
         .sort({ UNIXtimestamp: 1 })
         .lean()
         .exec();
 
-      if (data.length === 0) {
+      if (!data.length) {
         return [
           {
             category: 'No Data',
@@ -78,95 +65,88 @@ export class PieChartService {
         ];
       }
 
-      // -----------------------------
-      // Helper functions
-      // -----------------------------
-      const ABS_LIM = 1e10;
-      const TINY_LIM = 1e-5;
-      const MAX_DIFF = 1e6;
-
+      // ----------------------------------
+      // Helpers
+      // ----------------------------------
       const clean = (n: unknown): number => {
         const v = typeof n === 'string' ? parseFloat(n) : (n as number);
-        if (!Number.isFinite(v) || Number.isNaN(v)) return 0;
-        return v;
+        return Number.isFinite(v) ? v : 0;
       };
 
-      const applyDiffRules = (diff: number): number => {
-        const s = diff.toString();
-        if (
-          s.includes('e+') ||
-          s.includes('e-') ||
-          Math.abs(diff) > ABS_LIM ||
-          (Math.abs(diff) < TINY_LIM && diff !== 0)
-        ) {
-          return 0;
-        }
-        if (Math.abs(diff) > MAX_DIFF) return 0;
-        return diff;
-      };
-
-      const getConsumption = (arr: number[], key: string): number => {
+      const getConsumption = (arr: number[]) => {
         if (arr.length < 2) return 0;
-        const first = clean(arr[0]);
-        const last = clean(arr[arr.length - 1]);
-        let diff = last - first;
-        diff = applyDiffRules(diff);
-        return +diff.toFixed(2);
+        return +(arr[arr.length - 1] - arr[0]).toFixed(2);
       };
 
-      // -----------------------------
-      // Groups
-      // -----------------------------
-      const LTGenerationKeys = ['U19_PLC_Del_ActiveEnergy', 'U11_GW01_Del_ActiveEnergy'];
+      const buildArr = (tag: string) =>
+        data.map((d: any) => clean(d[tag])).filter((v) => v !== 0);
 
-      const SolarGenerationKeys = [
+      const buildGroup = (keys: string[]) => {
+        const subData = keys.map((k) => ({
+          name: k,
+          value: getConsumption(buildArr(k)),
+        }));
+        const total = +subData.reduce((s, x) => s + x.value, 0).toFixed(2);
+        return { subData, total };
+      };
+
+      // ----------------------------------
+      // Groups
+      // ----------------------------------
+      const LT = buildGroup([
+        'U19_PLC_Del_ActiveEnergy',
+        'U11_GW01_Del_ActiveEnergy',
+      ]);
+
+      const Solar = buildGroup([
         'U6_GW02_Del_ActiveEnergy',
         'U17_GW03_Del_ActiveEnergy',
         'U24_GW01_Del_ActiveEnergy',
-        'U28_PLC_Del_ActiveEnergy', // ✅ Added here
-      ];
+        'U28_PLC_Del_ActiveEnergy',
+      ]);
 
-      const WapdaImportKeys = ['U23_GW01_Del_ActiveEnergy', 'U27_PLC_Del_ActiveEnergy'];
-      const HTGenerationKeys = ['U22_PLC_Del_ActiveEnergy', 'U26_PLC_Del_ActiveEnergy'];
+      const Wapda = buildGroup([
+        'U23_GW01_Del_ActiveEnergy',
+        'U27_PLC_Del_ActiveEnergy',
+      ]);
 
-      const buildConsumptionArray = (tag: string) =>
-        data
-          .map((doc) => (doc as any)[tag])
-          .filter((v) => typeof v === 'number' || typeof v === 'string')
-          .map((v) => clean(v));
+      const HT = buildGroup([
+        'U22_PLC_Del_ActiveEnergy',
+        'U26_PLC_Del_ActiveEnergy',
+      ]);
 
-      const mapSubData = (keys: string[]) => {
-        const subData = keys.map((key) => {
-          const arr = buildConsumptionArray(key);
-          if (!arr.length) {
-            return { name: key, value: 0 };
-          }
-          const consumption = getConsumption(arr, key);
-          return { name: key, value: +consumption.toFixed(2) };
-        });
-
-        const rawSum = subData.reduce((sum, item) => sum + item.value, 0);
-        const groupSum = +applyDiffRules(rawSum).toFixed(2);
-        return { subData, groupSum };
-      };
-
-      // -----------------------------
-      // Final build
-      // -----------------------------
-      const { subData: ltSubData, groupSum: ltTotal } = mapSubData(LTGenerationKeys);
-      const { subData: solarSubData, groupSum: solarTotal } = mapSubData(SolarGenerationKeys);
-      const { subData: wapdaSubData, groupSum: wapdaTotal } = mapSubData(WapdaImportKeys);
-      const { subData: htSubData, groupSum: htTotal } = mapSubData(HTGenerationKeys);
-
+      // ----------------------------------
+      // Final response
+      // ----------------------------------
       return [
-        { category: 'LT Generation', total: ltTotal, color: '#2980b9', subData: ltSubData },
-        { category: 'Solar Generation', total: solarTotal, color: '#e67f22', subData: solarSubData },
-        { category: 'Wapda Import', total: wapdaTotal, color: '#27ae60', subData: wapdaSubData },
-        { category: 'HT Generation', total: htTotal, color: '#8e44ad', subData: htSubData },
+        {
+          category: 'LT Generation',
+          total: LT.total,
+          color: '#2980b9',
+          subData: LT.subData,
+        },
+        {
+          category: 'Solar Generation',
+          total: Solar.total,
+          color: '#e67f22',
+          subData: Solar.subData,
+        },
+        {
+          category: 'Wapda Import',
+          total: Wapda.total,
+          color: '#27ae60',
+          subData: Wapda.subData,
+        },
+        {
+          category: 'HT Generation',
+          total: HT.total,
+          color: '#8e44ad',
+          subData: HT.subData,
+        },
       ];
     } catch (error: any) {
-      console.error('❌ Error while fetching data from MongoDB:', error?.message || error);
-      throw new Error('Error while fetching data from MongoDB: ' + (error?.message || error));
+      console.error('❌ PieChart error:', error?.message || error);
+      throw error;
     }
   }
 }

@@ -2,6 +2,7 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { PieChartService } from './piechart.service';
 import { PieChartDto } from './dto/pie-chart.dto';
 import { JwtAuthGuard } from 'src/auth/jwt.authguard';
+import * as moment from 'moment-timezone';
 
 @Controller('pie-chart')
 export class PieChartController {
@@ -10,26 +11,61 @@ export class PieChartController {
   @UseGuards(JwtAuthGuard)
   @Get('chart-data')
   async getChartData(@Query() pieChartDto: PieChartDto) {
-    let startTimestamp: number;
-    let endTimestamp: number;
+    const TZ = 'Asia/Karachi';
 
-    const { start_date, end_date } = pieChartDto;
+    const {
+      start_date,
+      end_date,
+      start_time,
+      end_time,
+    } = pieChartDto;
 
-    if (start_date && end_date) {
-      // Convert start_date and end_date to Unix timestamps in UTC (no timezone offset)
-      startTimestamp = new Date(start_date + 'T00:00:00Z').getTime() / 1000; // Convert milliseconds to seconds
-      endTimestamp = new Date(end_date + 'T23:59:59Z').getTime() / 1000; // Convert milliseconds to seconds
-
-      // Log the actual start and end dates (human-readable format)
-      // console.log('Start Date:', start_date);
-      // console.log('End Date:', end_date);
-    } else {
-      throw new Error('Start date and end date must be provided.');
+    if (!start_date || !end_date || !start_time || !end_time) {
+      throw new Error('start_date, end_date, start_time and end_time are required.');
     }
 
-    // console.log('Start Timestamp (seconds):', startTimestamp);
-    // console.log('End Timestamp (seconds):', endTimestamp);
+    // ----------------------------------
+    // Build moments from payload
+    // ----------------------------------
+    const startMoment = moment.tz(
+      `${start_date} ${start_time}`,
+      'YYYY-MM-DD HH:mm',
+      TZ,
+    );
 
-    return await this.pieChartService.fetchData(startTimestamp, endTimestamp);
+    const endMoment = moment.tz(
+      `${end_date} ${end_time}`,
+      'YYYY-MM-DD HH:mm',
+      TZ,
+    );
+
+    // ----------------------------------
+    // Rule: same datetime → NO DATA
+    // ----------------------------------
+    if (startMoment.isSame(endMoment)) {
+      return [
+        {
+          category: 'No Data',
+          total: 0,
+          color: '#cccccc',
+          subData: [],
+        },
+      ];
+    }
+
+    // ----------------------------------
+    // Convert to UNIX (seconds)
+    // +1 minute buffer at end
+    // ----------------------------------
+    const startTimestamp = startMoment.unix();
+    const endTimestamp = endMoment.add(1, 'minute').unix();
+
+    // ----------------------------------
+    // Call service
+    // ----------------------------------
+    return await this.pieChartService.fetchData(
+      startTimestamp,
+      endTimestamp,
+    );
   }
 }
