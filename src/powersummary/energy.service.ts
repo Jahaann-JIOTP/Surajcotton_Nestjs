@@ -2,12 +2,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import * as moment from 'moment-timezone';
+
 import { Energy, EnergyDocument } from './schemas/energy.schema';
 import { Unit4LT1Service } from '../unit4_lt1/unit4_lt1.service';
 import { Unit4LT2Service } from '../unit4_lt2/unit4_lt2.service';
 import { Unit5LT3Service } from '../unit5_lt3/unit5_lt3.service';
 import { Unit5LT4Service } from '../unit5_lt4/unit5_lt4.service';
-import * as moment from 'moment-timezone';
 
 const TZ = 'Asia/Karachi';
 
@@ -15,7 +16,6 @@ const TZ = 'Asia/Karachi';
 const GROUP_KEYS = {
   Wapda1: ['U23_GW01_Del_ActiveEnergy'],
   Wapda2: ['U27_PLC_Del_ActiveEnergy'],
-
   Niigata: ['U22_PLC_Del_ActiveEnergy'],
   JMS: ['U26_PLC_Del_ActiveEnergy'],
 
@@ -44,19 +44,18 @@ const GROUP_KEYS = {
   Trafo3outgoing: ['U13_GW02_Del_ActiveEnergy'],
   Trafo4outgoing: ['U16_GW03_Del_ActiveEnergy'],
 
-  // Required internally for HT_Transmission_Losses
   mainincomingunit5: ['U21_GW03_Del_ActiveEnergy'],
   PH_IC: ['U22_GW01_Del_ActiveEnergy'],
   hfoaux: ['U25_PLC_Del_ActiveEnergy'],
 };
 
 /* ===================== HELPERS ===================== */
-const sumGroup = (data: Record<string, number>, keys: string[]) =>
-  keys.reduce((s, k) => s + (data[k] || 0), 0);
+const sumGroup = (src: Record<string, number>, keys: string[]) =>
+  keys.reduce((s, k) => s + (src[k] || 0), 0);
 
-const safeDiff = (first: any, last: any): number => {
-  const diff = Number(last || 0) - Number(first || 0);
-  return !isFinite(diff) || diff < 0 || Math.abs(diff) > 1e10 ? 0 : diff;
+const safeDiff = (a: any, b: any) => {
+  const v = Number(b || 0) - Number(a || 0);
+  return !isFinite(v) || v < 0 || Math.abs(v) > 1e10 ? 0 : v;
 };
 
 const percent = (loss: number, total: number) =>
@@ -65,8 +64,8 @@ const percent = (loss: number, total: number) =>
 const fmt = (v: number) => v.toFixed(2);
 
 const getUnaccountedFromSankey = (raw: any): number => {
-  const data = Array.isArray(raw) ? raw : raw?.sankeyData || [];
-  return data.find((n: any) => n.to === 'Unaccounted Energy')?.value || 0;
+  const d = Array.isArray(raw) ? raw : raw?.sankeyData || [];
+  return d.find((n: any) => n.to === 'Unaccounted Energy')?.value || 0;
 };
 
 @Injectable()
@@ -80,76 +79,76 @@ export class EnergyService {
     private readonly unit5LT4: Unit5LT4Service,
   ) {}
 
-  async getConsumption(start: string, end: string) {
+  async getConsumption(
+    start: string,
+    end: string,
+    startTime: string,
+    endTime: string,
+  ) {
     /* ===================== TIME WINDOW ===================== */
-    const startMoment = moment.tz(`${start} 06:00:00`, TZ);
+    const startMoment = moment.tz(`${start} ${startTime}`, TZ);
+    const endMoment = moment
+      .tz(`${end} ${endTime}`, TZ)
+      .endOf('minute');
 
-      const endMoment =
-        start === end
-        ? startMoment.clone().add(1, 'day').endOf('minute')
-        : moment.tz(`${end} 06:00:00`, TZ).endOf('minute');
-
-      const matchStage = {
-        timestamp: {
-          $gte: startMoment.format(),
-        $lte: endMoment.clone().add(2, 'minutes').format(), // safety buffer
-        },
-      };
+    const matchStage = {
+      timestamp: {
+        $gte: startMoment.format(),
+        $lte: endMoment.clone().add(2, 'minutes').format(),
+      },
+    };
 
     /* ===================== AGGREGATION ===================== */
     const requiredKeys = [...new Set(Object.values(GROUP_KEYS).flat())];
 
-    const projectStage = requiredKeys.reduce(
-      (acc, k) => ({ ...acc, [k]: 1 }),
-      { timestamp: 1 },
+    const projectStage = Object.fromEntries(
+      requiredKeys.map((k) => [k, 1]),
     );
 
-    const groupStage = requiredKeys.reduce(
-      (acc, k) => ({
-        ...acc,
-        [`${k}_first`]: { $first: `$${k}` },
-        [`${k}_last`]: { $last: `$${k}` },
-      }),
-      { _id: null },
+    const groupStage = Object.fromEntries(
+      requiredKeys.flatMap((k) => [
+        [`${k}_first`, { $first: `$${k}` }],
+        [`${k}_last`, { $last: `$${k}` }],
+      ]),
     );
 
     const [doc] = await this.energyModel.aggregate([
-        { $match: matchStage },
-        { $sort: { timestamp: 1 } },
-      { $project: projectStage },
-        { $group: groupStage },
-      ]);
+      { $match: matchStage },
+      { $sort: { timestamp: 1 } },
+      { $project: { ...projectStage, timestamp: 1 } },
+      { $group: { _id: null, ...groupStage } },
+    ]);
 
     if (!doc) {
-        return {
+      return {
         total_consumption: Object.fromEntries(
           Object.keys(GROUP_KEYS).map((k) => [k, '0.00']),
         ),
-        };
-      }
+      };
+    }
 
-    /* ===================== DIFF CALC ===================== */
-      const consumption: Record<string, number> = {};
+    /* ===================== DIFF ===================== */
+    const consumption: Record<string, number> = {};
     for (const k of requiredKeys) {
       consumption[k] = safeDiff(doc[`${k}_first`], doc[`${k}_last`]);
     }
 
-    /* ===================== ENERGY CALCS ===================== */
-      const Wapda1 = sumGroup(consumption, GROUP_KEYS.Wapda1);
-      const Wapda2 = sumGroup(consumption, GROUP_KEYS.Wapda2);
-      const Niigata = sumGroup(consumption, GROUP_KEYS.Niigata);
-      const JMS = sumGroup(consumption, GROUP_KEYS.JMS);
+    /* ===================== CALCULATIONS ===================== */
+    const Wapda1 = sumGroup(consumption, GROUP_KEYS.Wapda1);
+    const Wapda2 = sumGroup(consumption, GROUP_KEYS.Wapda2);
+    const Niigata = sumGroup(consumption, GROUP_KEYS.Niigata);
+    const JMS = sumGroup(consumption, GROUP_KEYS.JMS);
 
-      const Solar1 = sumGroup(consumption, GROUP_KEYS.Solar1);
-      const Solar2 = sumGroup(consumption, GROUP_KEYS.Solar2);
-      const solarunit4 = sumGroup(consumption, GROUP_KEYS.solarunit4);
-      const solar52 = sumGroup(consumption, GROUP_KEYS.solar52);
+    const Solar1 = sumGroup(consumption, GROUP_KEYS.Solar1);
+    const Solar2 = sumGroup(consumption, GROUP_KEYS.Solar2);
+    const solarunit4 = sumGroup(consumption, GROUP_KEYS.solarunit4);
+    const solar52 = sumGroup(consumption, GROUP_KEYS.solar52);
 
     const DieselandGasGenset = sumGroup(
       consumption,
       GROUP_KEYS.DieselandGasGenset,
     );
-      const Wapdaexport = sumGroup(consumption, GROUP_KEYS.Wapdaexport);
+    const Wapdaexport = sumGroup(consumption, GROUP_KEYS.Wapdaexport);
 
     const T1In = sumGroup(consumption, GROUP_KEYS.Trafo1Incoming);
     const T2In = sumGroup(consumption, GROUP_KEYS.Trafo2Incoming);
@@ -182,31 +181,31 @@ export class EnergyService {
       ) - sumGroup(consumption, GROUP_KEYS.hfoaux);
 
     /* ===================== SANKEY ===================== */
-        const payload = {
-          startDate: start,
-          endDate: endMoment.format('YYYY-MM-DD'),
-          startTime: '06:00',
-          endTime: '06:00',
-        };
+    const payload = {
+      startDate: start,
+      endDate: endMoment.format('YYYY-MM-DD'),
+      startTime: '06:00',
+      endTime: '06:00',
+    };
 
     const sankeyResults = await Promise.allSettled([
-          this.unit4LT1.getSankeyData(payload),
-          this.unit4LT2.getSankeyData(payload),
-          this.unit5LT3.getSankeyData(payload),
-          this.unit5LT4.getSankeyData(payload),
-        ]);
+      this.unit4LT1.getSankeyData(payload),
+      this.unit4LT2.getSankeyData(payload),
+      this.unit5LT3.getSankeyData(payload),
+      this.unit5LT4.getSankeyData(payload),
+    ]);
 
     const unaccoutable_energy = sankeyResults.reduce(
-      (sum, r) =>
+      (s, r) =>
         r.status === 'fulfilled'
-          ? sum + getUnaccountedFromSankey(r.value)
-          : sum,
+          ? s + getUnaccountedFromSankey(r.value)
+          : s,
       0,
     );
 
     /* ===================== RESPONSE ===================== */
-      return {
-        total_consumption: {
+    return {
+      total_consumption: {
         Wapda1: fmt(Wapda1),
         Wapda2: fmt(Wapda2),
         Niigata: fmt(Niigata),
@@ -216,6 +215,16 @@ export class EnergyService {
         T1andT2outgoing: fmt(T12Out),
         T1andT2losses: fmt(T12Loss),
         T1T2unit4percentage: fmt(percent(T12Loss, T12In)),
+
+        T3incoming: fmt(T3In),
+        T3outgoing: fmt(T3Out),
+        T3losses: fmt(T3In - T3Out),
+        T3percentage: fmt(percent(T3In - T3Out, T3In)),
+
+        T4incoming: fmt(T4In),
+        T4outgoing: fmt(T4Out),
+        T4losses: fmt(T4In - T4Out),
+        T4percentage: fmt(percent(T4In - T4Out, T34In)),
 
         T3andT4incoming: fmt(T34In),
         T3andT4outgoing: fmt(T34Out),
@@ -231,14 +240,13 @@ export class EnergyService {
         Wapdaexport: fmt(Wapdaexport),
 
         unaccoutable_energy: fmt(unaccoutable_energy),
-
         TrasformerLosses: fmt(TransformerLosses),
         TotalTrasformepercentage: fmt(
           percent(TransformerLosses, T12In + T34In),
         ),
 
         HT_Transmissioin_Losses: fmt(HTLoss),
-        },
-      };
+      },
+    };
   }
 }

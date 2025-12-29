@@ -9,4 +9,12 @@ export class EnergyQueryDto {
   @IsString()
   @IsNotEmpty()
   end_date: string;
+
+  @IsString()
+  @IsNotEmpty()
+  startTime: string;
+
+  @IsString()
+  @IsNotEmpty()
+  endTime: string;
 }
