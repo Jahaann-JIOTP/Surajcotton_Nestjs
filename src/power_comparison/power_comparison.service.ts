@@ -7,7 +7,6 @@ import { Unit4LT1Service } from "../unit4_lt1/unit4_lt1.service";
 import { Unit4LT2Service } from "../unit4_lt2/unit4_lt2.service";
 import { Unit5LT3Service } from "../unit5_lt3/unit5_lt3.service";
 import { Unit5LT4Service } from "../unit5_lt4/unit5_lt4.service";
-
 // -------------------- Interfaces --------------------
 interface PerformanceMetrics {
   dbQueryTime: number;
@@ -315,8 +314,8 @@ export class powercomparisonService {
   ) {
     const pipeline: any[] = [
       { $addFields: { date: { $toDate: "$timestamp" } } },
-      { $match: { date: { $gte: startDateTime, $lte: endDateTime } } },
-      { $sort: { date: 1 } }, // required for $first/$last correctness
+      { $match: { date: { $gte: startDateTime, $lt: endDateTime } } },
+      { $sort: { date: 1 } },
     ];
 
     if (groupBy === "hour") {
@@ -329,24 +328,32 @@ export class powercomparisonService {
         },
       });
     } else if (groupBy === "day") {
-      // shift day boundary (06:00)
-      pipeline.push({
-        $addFields: {
-          energyDate: {
-            $dateSubtract: { startDate: "$date", unit: "hour", amount: 6 },
-          },
-        },
-      });
 
-      pipeline.push({
-        $group: {
-          _id: {
-            $dateTrunc: { date: "$energyDate", unit: "day", timezone: this.TIMEZONE },
-          },
-          ...this.tagProjections,
+      pipeline.push(
+        // Convert timestamp
+        { $addFields: { date: { $toDate: "$timestamp" } } },
+    
+        // STRICT window filter
+        {
+          $match: {
+            date: {
+              $gte: startDateTime,
+              $lt: endDateTime
+            }
+          }
         },
-      });
-    } else {
+    
+        // ONE business-day bucket
+        {
+          $group: {
+            _id: startDateTime, // <-- force single bucket
+            ...this.tagProjections
+          }
+        }
+      );
+    }
+    
+    else {
       pipeline.push({
         $group: {
           _id: {
@@ -534,7 +541,7 @@ if (label === "hourly") {
   } else {
     // 🔑 hourly range = full date span
     endMoment = moment
-      .tz(`${endDate} ${startTime ?? "06:00"}`, "YYYY-MM-DD HH:mm", this.TIMEZONE)
+      .tz(`${endDate} ${startTime ?? "06:02"}`, "YYYY-MM-DD HH:mm", this.TIMEZONE)
       .add(1, "day");
   }
 }
@@ -542,7 +549,7 @@ if (label === "hourly") {
 else if (label === "daily") {
   // 🔑 frontend-driven daily window
   endMoment = moment.tz(
-    `${endDate} ${endTime ?? "06:00"}`,
+    `${endDate} ${endTime ?? "06:02"}`,
     "YYYY-MM-DD HH:mm",
     this.TIMEZONE
   );
@@ -550,7 +557,7 @@ else if (label === "daily") {
 else {
   // monthly
   endMoment = moment.tz(
-    `${endDate} ${endTime ?? "06:00"}`,
+    `${endDate} ${endTime ?? "06:02"}`,
     "YYYY-MM-DD HH:mm",
     this.TIMEZONE
   );
@@ -568,8 +575,10 @@ if (!endMoment.isAfter(startMoment)) {
 
 
       const startDateTime = startMoment.toDate();
-      const endDateTime = endMoment.toDate();
+      console.log(startDateTime);
 
+      const endDateTime = endMoment.clone().add(1, 'minute').toDate();
+      console.log(endDateTime);
       // Group config
       let groupBy: "hour" | "day" | "month" = "hour";
 
@@ -584,13 +593,12 @@ if (!endMoment.isAfter(startMoment)) {
       const pipeline = this.createAggregationPipeline(startDateTime, endDateTime, groupBy);
 
       // allowDiskUse helps when range is big
-      const data = await collection.aggregate(pipeline, { allowDiskUse: true }).toArray();
-
+      const data = await collection.aggregate(pipeline, { allowDiskUse: true }).toArray()
       const [dbSeconds, dbNanoseconds] = process.hrtime(dbQueryStart);
       monitor.dbQueryTime = dbSeconds * 1000 + dbNanoseconds / 1e6;
 
       if (this.DEBUG) {
-        this.logger.log(`DB returned ${data.length} records in ${monitor.dbQueryTime.toFixed(0)}ms`);
+        this.logger.log(`DB returned ${data} records in ${monitor.dbQueryTime.toFixed(0)}ms`);
       }
 
       if (!data.length) return [];
