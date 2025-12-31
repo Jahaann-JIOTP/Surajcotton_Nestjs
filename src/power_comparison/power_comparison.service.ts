@@ -446,22 +446,27 @@ export class powercomparisonService {
   }
 
   private async fetchUnaccountedForPayload(payload: any): Promise<number> {
-    const apiPromise = Promise.allSettled([
-      this.unit4LT1Service.getSankeyData(payload),
-      this.unit4LT2Service.getSankeyData(payload),
-      this.Unit5LT3Service.getSankeyData(payload),
-      this.Unit5LT4Service.getSankeyData(payload),
-    ]).then((results) => {
+    try {
+      const results = await Promise.allSettled([
+        this.unit4LT1Service.getSankeyData(payload),
+        this.unit4LT2Service.getSankeyData(payload),
+        this.Unit5LT3Service.getSankeyData(payload),
+        this.Unit5LT4Service.getSankeyData(payload),
+      ]);
+      
       let total = 0;
       for (const r of results) {
         if (r.status === "fulfilled") {
           total += this.extractUnaccounted(r.value);
         }
       }
+      
+      console.log(`🔍 fetchUnaccountedForPayload returning: ${total}`);
       return total;
-    });
-
-    return this.withTimeout(apiPromise, this.EXTERNAL_API_TIMEOUT_MS, 0);
+    } catch (error) {
+      console.error(`🔍 Error in fetchUnaccountedForPayload:`, error);
+      return 0;
+    }
   }
 
   /**
@@ -484,14 +489,16 @@ export class powercomparisonService {
         const release = await sem.acquire();
         try {
           const payload = this.buildPayload(timeframe, dateKey, startTime, endTime);
+          // console.log(`🔍 Fetching unaccounted for payload:`, payload);
           const val = await this.fetchUnaccountedForPayload(payload);
+          // console.log(`🔍 Result for dateKey "${dateKey}": ${val}`);
           results.set(dateKey, val);
         } finally {
           release();
         }
       })
     );
-
+    // console.log(`🔍 Final unaccountedEnergyMap:`, Array.from(results.entries()));
     return results;
   }
 
@@ -520,65 +527,58 @@ export class powercomparisonService {
     }
 
     try {
-      const isHourly = label === "hourly";
-      const isDaily = label === "daily";
-
       const startMoment = moment
-  .tz(`${startDate} ${startTime ?? "06:00"}`, "YYYY-MM-DD HH:mm", this.TIMEZONE)
-  .second(0)
-  .millisecond(0);
+        .tz(`${startDate} ${startTime ?? "06:00"}`, "YYYY-MM-DD HH:mm", this.TIMEZONE)
+        .second(0)
+        .millisecond(0);
 
-let endMoment: moment.Moment;
+      let endMoment: moment.Moment;
 
-if (label === "hourly") {
-  if (endTime) {
-    // frontend-defined hourly range
-    endMoment = moment.tz(
-      `${endDate} ${endTime}`,
-      "YYYY-MM-DD HH:mm",
-      this.TIMEZONE
-    );
-  } else {
-    // 🔑 hourly range = full date span
-    endMoment = moment
-      .tz(`${endDate} ${startTime ?? "06:02"}`, "YYYY-MM-DD HH:mm", this.TIMEZONE)
-      .add(1, "day");
-  }
-}
+      if (label === "hourly") {
+        if (endTime) {
+          // frontend-defined hourly range
+          endMoment = moment.tz(
+            `${endDate} ${endTime}`,
+            "YYYY-MM-DD HH:mm",
+            this.TIMEZONE
+          );
+        } else {
+          // 🔑 hourly range = full date span
+          endMoment = moment
+            .tz(`${endDate} ${startTime ?? "06:02"}`, "YYYY-MM-DD HH:mm", this.TIMEZONE)
+            .add(1, "day");
+        }
+      } else if (label === "daily") {
+        // 🔑 frontend-driven daily window
+        endMoment = moment.tz(
+          `${endDate} ${endTime ?? "06:02"}`,
+          "YYYY-MM-DD HH:mm",
+          this.TIMEZONE
+        );
+      } else {
+        // monthly
+        endMoment = moment.tz(
+          `${endDate} ${endTime ?? "06:02"}`,
+          "YYYY-MM-DD HH:mm",
+          this.TIMEZONE
+        );
+      }
 
-else if (label === "daily") {
-  // 🔑 frontend-driven daily window
-  endMoment = moment.tz(
-    `${endDate} ${endTime ?? "06:02"}`,
-    "YYYY-MM-DD HH:mm",
-    this.TIMEZONE
-  );
-}
-else {
-  // monthly
-  endMoment = moment.tz(
-    `${endDate} ${endTime ?? "06:02"}`,
-    "YYYY-MM-DD HH:mm",
-    this.TIMEZONE
-  );
-}
+      endMoment = endMoment.second(0).millisecond(0);
 
-endMoment = endMoment.second(0).millisecond(0);
-
-// Safety
-if (!endMoment.isAfter(startMoment)) {
-  if (label === "hourly") endMoment = startMoment.clone().add(1, "hour");
-  else if (label === "daily") endMoment = startMoment.clone().add(1, "day");
-  else endMoment = startMoment.clone().add(1, "month");
-}
-
-
+      // Safety
+      if (!endMoment.isAfter(startMoment)) {
+        if (label === "hourly") endMoment = startMoment.clone().add(1, "hour");
+        else if (label === "daily") endMoment = startMoment.clone().add(1, "day");
+        else endMoment = startMoment.clone().add(1, "month");
+      }
 
       const startDateTime = startMoment.toDate();
-      console.log(startDateTime);
+      // console.log('🔍 Start DateTime:', startDateTime);
 
       const endDateTime = endMoment.clone().add(1, 'minute').toDate();
-      console.log(endDateTime);
+      // console.log('🔍 End DateTime:', endDateTime);
+      
       // Group config
       let groupBy: "hour" | "day" | "month" = "hour";
 
@@ -594,11 +594,13 @@ if (!endMoment.isAfter(startMoment)) {
 
       // allowDiskUse helps when range is big
       const data = await collection.aggregate(pipeline, { allowDiskUse: true }).toArray()
+      // console.log('🔍 DB Data returned:', data)
+      
       const [dbSeconds, dbNanoseconds] = process.hrtime(dbQueryStart);
       monitor.dbQueryTime = dbSeconds * 1000 + dbNanoseconds / 1e6;
 
       if (this.DEBUG) {
-        this.logger.log(`DB returned ${data} records in ${monitor.dbQueryTime.toFixed(0)}ms`);
+        this.logger.log(`DB returned ${data.length} records in ${monitor.dbQueryTime.toFixed(0)}ms`);
       }
 
       if (!data.length) return [];
@@ -608,16 +610,15 @@ if (!endMoment.isAfter(startMoment)) {
       // External API (Skip hourly as per your logic)
       const externalApiStart = process.hrtime();
 
-      // Build keys exactly as you will later lookup
-      // For groupBy=hour: key => "YYYY-MM-DD HH:mm:ss"
-      // For groupBy=day:  key => "YYYY-MM-DD"
-      // For month: we typically do not call unaccounted here in your logic (but if you want, you can)
+      // Create dateKeys for external API calls
       const dateKeys: string[] = data.map((entry: any) => {
         const m = moment(entry._id).tz(this.TIMEZONE);
         if (groupBy === "hour") return m.format("YYYY-MM-DD HH:mm:ss");
         if (groupBy === "day") return m.format("YYYY-MM-DD");
         return m.format("YYYY-MM-DD"); // month fallback
       });
+
+      // console.log('🔍 DateKeys for external API:', dateKeys);
 
       let unaccountedEnergyMap = new Map<string, number>();
       if (label !== "hourly") {
@@ -628,30 +629,29 @@ if (!endMoment.isAfter(startMoment)) {
           endTime
         );
       }
-
+      
+      // console.log('🔍 Unaccounted Energy Map:', Array.from(unaccountedEnergyMap.entries()));
+      
       const [extSeconds, extNanoseconds] = process.hrtime(externalApiStart);
       monitor.externalApiTime = extSeconds * 1000 + extNanoseconds / 1e6;
 
-      // Processing
+      // Processing - Use array index approach to avoid key matching issues
       const processingStart = process.hrtime();
       const results: EnergyResult[] = [];
 
-      for (const entry of data) {
+      for (let i = 0; i < data.length; i++) {
+        const entry = data[i];
+        const dateKey = dateKeys[i]; // Get the corresponding dateKey
+        
         const m = moment(entry._id).tz(this.TIMEZONE);
 
         let formattedDate = "";
-        let lookupKey = "";
-
         if (groupBy === "hour") {
           formattedDate = m.format("YYYY-MM-DD HH:mm");
-          lookupKey = m.format("YYYY-MM-DD HH:mm:ss");
         } else if (groupBy === "day") {
           formattedDate = m.format("YYYY-MM-DD");
-          // your alignment logic: +6 hours
-          lookupKey = m.clone().add(6, "hours").format("YYYY-MM-DD");
         } else {
           formattedDate = m.format("YYYY-MM");
-          lookupKey = m.format("YYYY-MM-DD");
         }
 
         const totals = this.calculateEnergyTotals(entry);
@@ -664,8 +664,11 @@ if (!endMoment.isAfter(startMoment)) {
         const efficiency =
           totalGeneration > 0 ? this.round2((totalConsumption / totalGeneration) * 100) : 0;
 
-        const unaccountable_energy =
-          label === "hourly" ? 0 : this.round2(unaccountedEnergyMap.get(lookupKey) ?? 0);
+        // Use the dateKey to get the unaccounted value - this ensures perfect matching
+        const unaccountedValue = label === "hourly" ? 0 : (unaccountedEnergyMap.get(dateKey) ?? 0);
+        const unaccountable_energy = label === "hourly" ? 0 : this.round2(unaccountedValue);
+
+        // console.log(`🔍 Processing entry ${i}: dateKey="${dateKey}", unaccountedValue=${unaccountedValue}, unaccountable_energy=${unaccountable_energy}`);
 
         results.push({
           date: formattedDate,
