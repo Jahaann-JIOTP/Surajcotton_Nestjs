@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, OnApplicationShutdown } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
+import { MongooseModule, InjectConnection } from '@nestjs/mongoose';
+import { Connection } from 'mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
@@ -50,6 +51,14 @@ import { TLTrendsModule } from './tltrends/trends.module';
     ScheduleModule.forRoot(),
     MongooseModule.forRoot(process.env.surajcotton_URI!, {
       connectionName: 'surajcotton',
+      maxPoolSize: 20,
+      minPoolSize: 5,
+      maxIdleTimeMS: 300000,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      autoIndex: false, 
+      retryWrites: true,
+      w: 'majority',
     }),
     UsersModule,
     AuthModule,
@@ -91,4 +100,14 @@ import { TLTrendsModule } from './tltrends/trends.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements OnApplicationShutdown {
+  constructor(
+    @InjectConnection('surajcotton') private readonly connection: Connection,
+  ) {}
+
+  async onApplicationShutdown(signal?: string) {
+    console.log(`🔴 Received shutdown signal: ${signal}`);
+    await this.connection.close();
+    console.log('✅ MongoDB connections closed gracefully');
+  }
+}
