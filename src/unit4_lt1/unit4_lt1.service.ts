@@ -23,7 +23,7 @@ const meterMap: Record<string, string> = {
   U15_PLC: 'Simplex 1-6',
   U17_PLC: 'Ring A/C (Supply & Return Fans)',
   U18_PLC: 'Ring A/C (Bypass)',
-  U20_PLC: 'Compressor (119 kW)',
+  U20_PLC: 'Compressor (119 kW) Bypass',
   U2_PLC: 'TO U5LT1 (Lighting Internal Unit 5)',
   U16_PLC: 'TO U5LT1 (Compressor 303 kW)',
 };

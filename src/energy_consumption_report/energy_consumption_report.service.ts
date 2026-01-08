@@ -11,6 +11,7 @@ import { EnergySpindleService } from 'src/energy_spindle/energy_spindle.service'
 
 
 import * as moment from 'moment-timezone';
+import { Console } from 'console';
 
 export interface SummaryByDept {
   date: string;
@@ -344,7 +345,7 @@ export class EnergyconsumptionreportService {
     // ------------------------------------------------
     const departmentInfo = {
       "Blow Room": { u4mcs: 2, u5mcs: 2, u4Lpd: 151, u5Lpd: 166},
-      "Card +Breaker": { u4mcs: 16, u5mcs: 15, u4Lpd: 292.4, u5Lpd: 313.6 },
+      "Card +Breaker": { u4mcs: 16, u5mcs: 15, u4Lpd: 284.0, u5Lpd: 313.6 },
       "Comber + Lap Former": { u4mcs: 12, u5mcs: 17, u4Lpd: 84, u5Lpd: 196.9 },
       "Drawing Finsher+Breaker": { u4mcs: 10, u5mcs: 8, u4Lpd: 126, u5Lpd: 119.2 },
       "Simplex": { u4mcs: 6, u5mcs: 11, u4Lpd: 109, u5Lpd: 209.2 },
@@ -353,7 +354,7 @@ export class EnergyconsumptionreportService {
       "Winding": { u4mcs: 9, u5mcs: 18, u4Lpd: 377.1, u5Lpd: 471.06 },
       "B/Card + Comber Filter": { u4mcs: 2, u5mcs: 3, u4Lpd: 203.2, u5Lpd: 274 },
       "Back Process A/C": { u4mcs: 2, u5mcs: 2, u4Lpd: 142.2, u5Lpd: 239.1 },
-      "Ring A/C": { u4mcs: 28, u5mcs: 37, u4Lpd: 333, u5Lpd: 476 },
+      "Ring A/C": { u4mcs: 4, u5mcs: 2, u4Lpd: 333, u5Lpd: 476 },
       "Winding A/C": { u4mcs: 1, u5mcs: 1, u4Lpd: 98, u5Lpd: 108 },
       "Air Compressor": { u4mcs: 3, u5mcs: 3, u4Lpd: 132, u5Lpd: 303 },
       "Deep Well Turbine": { u4mcs: 1, u5mcs: 1, u4Lpd: 22, u5Lpd: 23},
@@ -362,11 +363,11 @@ export class EnergyconsumptionreportService {
       "Residential Colony": { u4mcs: 1, u5mcs: 1, u4Lpd: 60, u5Lpd: 0 },
       "Conditioning Machine ": { u4mcs: 1, u5mcs: 1, u4Lpd: 80, u5Lpd: 80 },
       "Lab + Offices": { u4mcs: 2, u5mcs: 0, u4Lpd: 8, u5Lpd: 0 },
-      "HFO Plant Aux(2nd Source)": { u4mcs: 10, u5mcs: 0, u4Lpd: 203, u5Lpd: 0 },
-      "Gas Plant Aux(2nd Source)": { u4mcs: 16, u5mcs: 0, u4Lpd: 130, u5Lpd: 0 },
+      "HFO Plant Aux(2nd Source)": { u4mcs: 1, u5mcs: 0, u4Lpd: 203, u5Lpd: 0 },
+      "Gas Plant Aux(2nd Source)": { u4mcs: 1, u5mcs: 0, u4Lpd: 130, u5Lpd: 0 },
       // "Water Chiller": { u4mcs: 0, u5mcs: 0, u4Lpd: 0, u5Lpd: 0 },
       "HFO + JMS Auxiliary": { u4mcs: 1, u5mcs: 0, u4Lpd: 250, u5Lpd: 0 },
-      "Spare/PF panels": { u4mcs: 0, u5mcs: 30, u4Lpd: 0, u5Lpd: 1200 },
+      "PF Panels": { u4mcs: 0, u5mcs: 1, u4Lpd: 0, u5Lpd: 1200 },
     };
 
     const deptProcessKeyMap: Record<string, string> = {
@@ -393,7 +394,7 @@ export class EnergyconsumptionreportService {
       "Gas Plant Aux(2nd Source)": "Gas Plant Aux(2nd Source)",
       // "Water Chiller": "Water Chiller",
       "HFO + JMS Auxiliary": "HFO + JMS Auxiliary",
-      "Spare/PF panels": "Spare",
+      "PF Panels": "Spare",
     };
 
     const summaryByDept = Object.entries(departmentInfo).map(([name, info]) => {
@@ -696,18 +697,18 @@ const dayEndISO = current.clone().add(24, "hours").add(15, "minutes").format();
     continue;
   }
   // ✅ Console timestamps + sample values
-// console.log("🕓 Window:", current.format("YYYY-MM-DD"));
-// console.log("  Start ISO:", dayStartISO);
-// console.log("  End ISO:", dayEndISO);
-// console.log("  First Doc Time:", firstDetailDoc.timestamp);
-// console.log("  Last Doc Time:", lastDetailDoc.timestamp);
-// // example: print one or two key values to verify readings
-// const testKey = `${U4_LT1_Meters[0]}_${suffix}`; // e.g. U1_PLC_Del_ActiveEnergy
-// console.log(
-//   `  ➜ First[${testKey}] =`, firstDetailDoc[testKey],
-//   "| Last =", lastDetailDoc[testKey],
-//   "| Δ =", (lastDetailDoc[testKey] - firstDetailDoc[testKey]).toFixed(2)
-// );
+console.log("🕓 Window:", current.format("YYYY-MM-DD"));
+console.log("  Start ISO:", dayStartISO);
+console.log("  End ISO:", dayEndISO);
+console.log("  First Doc Time:", firstDetailDoc.timestamp);
+console.log("  Last Doc Time:", lastDetailDoc.timestamp);
+// example: print one or two key values to verify readings
+const testKey = `${U4_LT1_Meters[0]}_${suffix}`; // e.g. U1_PLC_Del_ActiveEnergy
+console.log(
+  `  ➜ First[${testKey}] =`, firstDetailDoc[testKey],
+  "| Last =", lastDetailDoc[testKey],
+  "| Δ =", (lastDetailDoc[testKey] - firstDetailDoc[testKey]).toFixed(2)
+);
 
   const record: any = { date: current.format("YYYY-MM-DD") };
 
@@ -942,6 +943,11 @@ for (const [id, name] of Object.entries(HTMeters)) {
   const firstVal = this.sanitizeValue(firstDoc[key]);
   const lastVal = this.sanitizeValue(lastDoc[key]);
   const diff = lastVal >= firstVal ? +(lastVal - firstVal).toFixed(2) : 0;
+  console.log(`  ➜ ${name}: ${diff.toFixed(2)} kWh`);
+  console.log(`     | First[${key}] =`, firstVal,
+  "| Last =", lastVal,
+  "| Δ =", (lastVal - firstVal).toFixed(2)
+);
   HTside[name] = diff;
   totalHTIncoming += diff;
 }

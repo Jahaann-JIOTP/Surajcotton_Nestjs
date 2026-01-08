@@ -194,9 +194,9 @@ export class Unit4LT2Service {
       { from: "Solar 52.17 kW", to: "TotalLT2", value: Solar52 },
       { from: "From U5LT1 (Comber+Card)", to: "TotalLT2", value: PDB12CD12_sum },
       ...plcLegs,
-      { from: "TotalLT2", to: "PDB08->To U5LT1", value: PDB08_U4 },
+      { from: "TotalLT2", to: "PDB-08 Comber+Lab Former->To U5LT1", value: PDB08_U4 },
       { from: "TotalLT2", to: "CardPDB1->To U5LT1", value: CardPDB1_U4 },
-      { from: "TotalLT2", to: "PDB10->To U5LT2", value: ToU5LT2_sum },
+      { from: "TotalLT2", to: "PDB-10 Winding 10-18->To U5LT2", value: ToU5LT2_sum },
       { from: "TotalLT2", to: "Unaccounted Energy", value: unaccountedEnergy },
     ];
 
