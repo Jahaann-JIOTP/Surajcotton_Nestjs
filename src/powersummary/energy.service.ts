@@ -247,6 +247,7 @@ export class EnergyService {
 
         HT_Transmissioin_Losses: fmt(HTLoss),
       },
+      
     };
   }
 }

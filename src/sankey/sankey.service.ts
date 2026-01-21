@@ -85,8 +85,16 @@ export class sankeyService {
     const generationFields = Object.values(generationMap).flat();
     const consumptionFields = Object.values(consumptionMap).flat();
     const meterFields = Array.from(
-      new Set([...generationFields, ...consumptionFields, ...transformerIncomingTags]),
-    );
+  new Set([
+    ...generationFields,
+    ...consumptionFields,
+    ...transformerIncomingTags,
+
+    // ✅ REQUIRED FOR HT LOSS
+    'U21_GW03_Del_ActiveEnergy', // mainIncomingUnit5
+    'U25_PLC_Del_ActiveEnergy', // HFO
+  ]),
+);
 
     // ---------------- Aggregation pipeline ----------------
     const projection: any = {};
@@ -150,9 +158,17 @@ export class sankeyService {
     const Niigata = consumptionTotals['U22_PLC_Del_ActiveEnergy'] || 0;
     const JMS = consumptionTotals['U26_PLC_Del_ActiveEnergy'] || 0;
     const PH_IC = consumptionTotals['U22_GW01_Del_ActiveEnergy'] || 0;
+  const mainIncomingUnit5 =
+  consumptionTotals['U21_GW03_Del_ActiveEnergy'] || 0;
 
-    const HT_Transmission_Losses =
-      (Wapda2 + Niigata + JMS) - (Trafo3Incoming + Trafo4Incoming + PH_IC);
+const hfoaux= consumptionTotals['U25_PLC_Del_ActiveEnergy'] || 0;
+
+  const HT_Transmission_Losses = Math.max(
+  0,
+  (Wapda2 + Niigata + JMS) -
+  (mainIncomingUnit5 + PH_IC) -
+  (hfoaux)
+);
 
 
     const losses=TransformerLosses + HT_Transmission_Losses;
@@ -413,6 +429,8 @@ async getLossesSankey(payload: { startDate: string; endDate: string; startTime: 
     'U22_PLC_Del_ActiveEnergy',  // Niigata
     'U26_PLC_Del_ActiveEnergy',  // JMS
     'U22_GW01_Del_ActiveEnergy', // PH_IC
+    'U21_GW03_Del_ActiveEnergy', // mainincoming
+    'U25_PLC_Del_ActiveEnergy', // hfo
   ];
 
   const meterFields = Array.from(new Set([...transformerIncomingTags, ...transformerOutgoingTags]));
@@ -471,9 +489,17 @@ async getLossesSankey(payload: { startDate: string; endDate: string; startTime: 
   const Niigata = totals['U22_PLC_Del_ActiveEnergy'] || 0;
   const JMS = totals['U26_PLC_Del_ActiveEnergy'] || 0;
   const PH_IC = totals['U22_GW01_Del_ActiveEnergy'] || 0;
+  const mainIncomingUnit5 =
+  totals['U21_GW03_Del_ActiveEnergy'] || 0;
 
-  const HT_Transmission_Losses =
-    (Wapda2 + Niigata + JMS) - (Trafo3Incoming + Trafo4Incoming + PH_IC);
+const hfoaux= totals['U25_PLC_Del_ActiveEnergy'] || 0;
+
+  const HT_Transmission_Losses = Math.max(
+  0,
+  (Wapda2 + Niigata + JMS) -
+  (mainIncomingUnit5 + PH_IC) -
+  (hfoaux)
+);
 
   const losses = TransformerLosses + HT_Transmission_Losses;
    // ---------------- Compute Unaccounted Energy from LT1 and LT2 ----------------
