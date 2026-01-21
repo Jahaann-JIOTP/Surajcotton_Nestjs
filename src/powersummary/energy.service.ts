@@ -224,7 +224,7 @@ export class EnergyService {
         T4incoming: fmt(T4In),
         T4outgoing: fmt(T4Out),
         T4losses: fmt(T4In - T4Out),
-        T4percentage: fmt(percent(T4In - T4Out, T34In)),
+        T4percentage: fmt(percent(T4In - T4Out, T4In)),
 
         T3andT4incoming: fmt(T34In),
         T3andT4outgoing: fmt(T34Out),
