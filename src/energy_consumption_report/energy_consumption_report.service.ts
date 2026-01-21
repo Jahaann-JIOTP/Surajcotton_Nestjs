@@ -306,7 +306,20 @@ export class EnergyconsumptionreportService {
         // LT1 SUM
         for (const id of LT1Mapping[unit] || []) {
           const key = `${id}_${suffix}`;
-          const diff = this.sanitizeValue(lastDayDoc[key] - firstDayDoc[key]);
+
+          // const diff = this.sanitizeValue(lastDayDoc[key] - firstDayDoc[key]);
+           const startVal = this.sanitizeValue(firstDayDoc[key]);
+  const endVal   = this.sanitizeValue(lastDayDoc[key]);
+  const diff     = endVal - startVal;
+
+  // 🔍 DEBUG FOR U13_GW02
+  if (id === 'U13_GW02') {
+    console.log("🔎 LT1 CHECK → U13_GW02");
+    console.log("  Date:", m.format('YYYY-MM-DD'));
+    console.log("  Start:", startVal);
+    console.log("  End:", endVal);
+    console.log("  Diff:", diff.toFixed(2));
+  }
           lt1Total += diff > 0 ? diff : 0;
         }
 

@@ -4,6 +4,7 @@ import { Model, PipelineStage } from 'mongoose';
 import * as moment from 'moment-timezone';
 import { Unit5LT3 } from './schemas/unit5_LT3.schema';
 import { MeterService } from 'src/meter/meter.service';
+import { Console } from 'console';
 
 const TZ = 'Asia/Karachi';
 
@@ -108,6 +109,8 @@ export class Unit5LT3Service {
     const PDB07_sum = this.safeRound(legs.PDB07_U4 + legs.PDB07_U5);
     const PDB08_sum = this.safeRound(legs.PDB08_U5 + legs.PDB08_U4);
     const CardPDB1_sum = this.safeRound(legs.CardPDB1_U5 + legs.CardPDB1_U4);
+    // console.log(CardPDB1_sum);
+    
     const U4_LT2_sum = this.safeRound(legs.CardPDB1_U4 + legs.PDB08_U4);
 
     /** ---------------- MONGO METER KEYS ---------------- */
@@ -188,9 +191,12 @@ export class Unit5LT3Service {
       const key = `${m}_Del_ActiveEnergy`;
       let val = consumptionTotals[key] ?? 0;
 
-      if (overrideByMeter[m]) val = overrideByMeter[m];
+       if (overrideByMeter[m] !== undefined) {
+    val = overrideByMeter[m];
+  }
 
       totalConsumption += val;
+      console.log(totalConsumption)
     }
     totalConsumption += u16;
 
