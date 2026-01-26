@@ -9,7 +9,7 @@ import { EnergyconsumptionreportService } from './energy_consumption_report.serv
 export class EnergyconsumptionreportController {
   constructor(private readonly energyCostService:  EnergyconsumptionreportService) {}
 
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Post()
   async getCostData(@Body() dto: GetEnergyCostDto) {
     return this.energyCostService.getConsumptionData(dto);

@@ -17,7 +17,7 @@ export async function getTrends({
   model,
   timezone = 'Asia/Karachi',
 }: TrendOptions) {
-  const startISO = `${startDate}T06:00:00.000+05:00`;
+  const startISO = `${startDate}T06:00:00+05:00`;
   const nextDay = moment(endDate).add(1, 'day').format('YYYY-MM-DD');
   const endISO = `${nextDay}T06:00:59.999+05:00`;
 

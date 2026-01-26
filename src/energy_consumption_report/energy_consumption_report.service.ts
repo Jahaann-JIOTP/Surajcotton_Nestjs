@@ -133,11 +133,11 @@ export class EnergyconsumptionreportService {
     // ------------------------------------------------
     const startISO = moment.tz(`${start_date} ${start_time}`, 'YYYY-MM-DD HH:mm', TZ)
       .startOf('minute')
-      .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+      .format('YYYY-MM-DDTHH:mm:ssZ');
 
     const endISO = moment.tz(`${end_date} ${end_time}`, 'YYYY-MM-DD HH:mm', TZ)
       .endOf('minute')
-      .format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+      .format('YYYY-MM-DDTHH:mm:ssZ');
 
     // ------------------------------------------------
     // 🔍 Fetch First/Last Docs
@@ -149,43 +149,11 @@ export class EnergyconsumptionreportService {
     ]);
 
     const firstDoc = docs?.first;
+    console.log("first Doc",firstDoc.timestamp);
     const lastDoc = docs?.last;
+    console.log("last Doc",lastDoc.timestamp);
     if (!firstDoc || !lastDoc)
       return { date: start_date, note: 'No data found for this range' };
-    // 🧾 Console log: Unit 5 meter readings (first vs last)
-// console.log("\n===== 🔍 UNIT 5 METERS — FIRST vs LAST READINGS =====");
-
-// const suffixToUse = suffix; // e.g. Del_ActiveEnergy
-// for (const process of Object.keys(processMappings)) {
-//   const meters = processMappings[process]?.Unit_5;
-//   if (!meters || !meters.length) continue;
-
-//   console.log(`\n📘 Process: ${process}`);
-//   for (const meterId of meters) {
-//     const key = `${meterId}_${suffixToUse}`;
-//     const firstVal = this.sanitizeValue(firstDoc[key]);
-//     const lastVal = this.sanitizeValue(lastDoc[key]);
-//     const diff = lastVal >= firstVal ? (lastVal - firstVal).toFixed(2) : 0;
-
-//     console.log(
-//       `   🔹 ${meterId}: first = ${firstVal.toFixed(2)} | last = ${lastVal.toFixed(2)} | Δ = ${diff}`
-//     );
-//   }
-// }
-// console.log("====================================================\n");
-// // 🧾 Log Field Meter contributions that feed into UNIT-5 consumption
-// console.log("\n===== ⚙️ UNIT-5 FIELD METER CONTRIBUTIONS TO CONSUMPTION =====");
-// console.table([
-//   { Source: "PDB08_Total (→ U14_GW02)",   Value: PDB08_Total },
-//   { Source: "CardPDB1_sum (→ U17_GW02)",  Value: CardPDB1_sum },
-//   { Source: "PDB07_sum (→ U18_GW02)",     Value: PDB07_sum },
-//   { Source: "PDB10_sum (→ U10_GW03)",     Value: PDB10_sum },
-// ]);
-// console.log("=============================================================\n");
-
-    // ------------------------------------------------
-    // ⚙️ Calculate per-process consumption with PDB adjustments
-    // ------------------------------------------------
     const processMaps: Record<string, Record<string, number>> = {};
     for (const processName of Object.keys(processMappings)) {
       processMaps[processName] = { Unit_4: 0, Unit_5: 0 };
@@ -293,7 +261,9 @@ export class EnergyconsumptionreportService {
       ]);
 
       const firstDayDoc = dayDocs?.first;
+      console.log(`first day doc`,firstDayDoc.timestamp)
       const lastDayDoc = dayDocs?.last;
+      console.log('last day doc',lastDayDoc.timestamp)
       if (!firstDayDoc || !lastDayDoc) continue;
 
       const dayRecord: any = { date: m.format('YYYY-MM-DD') };
@@ -485,44 +455,6 @@ export class EnergyconsumptionreportService {
       return dept;
       
     });
-    // 🧾 Console log — Final Unit-5 Department-wise Consumption + Meter IDs
-// console.log("\n===== ⚙️ FINAL UNIT-5 DEPARTMENT-WISE CONSUMPTION (with METER IDs) =====");
-
-// summaryByDept.forEach((dept: any) => {
-//   const name = dept.name || "Unknown";
-//   const processKey = Object.keys(processMappings).find(
-//     key => key === deptProcessKeyMap[name]
-//   );
-//   const meterIds = processKey ? processMappings[processKey]?.Unit_5 || [] : [];
-//   const consumption = dept.u5Consumption || 0;
-//   const avg = dept.u5AvgConsumption || 0;
-
-//   if (consumption > 0) {
-//     console.log(
-//       `🏭 ${name.padEnd(28)} | Consumption = ${consumption.toFixed(2)} kWh | Avg = ${avg.toFixed(2)} kWh/h`
-//     );
-//     console.log(`   ⚙️ Meters: ${meterIds.join(", ") || "—"}`);
-//   }
-// });
-
-// const totalU5 = summaryByDept.reduce(
-//   (sum, d: any) => sum + (d.u5Consumption || 0),
-//   0
-// );
-
-// console.log("--------------------------------------------------------");
-// console.log(`🔹 TOTAL Unit-5 Consumption = ${totalU5.toFixed(2)} kWh`);
-// console.log("========================================================\n");
-
-    // ------------------------------------------------
-    // 🧾 Consumption Detail (LT1/LT2 breakdown)
-    // ------------------------------------------------
-   // ------------------------------------------------
-// 🧾 Consumption Detail (LT1/LT2 breakdown) — fixed for 6AM→6AM daily windows
-// ------------------------------------------------
-// ------------------------------------------------
-// 🧾 Consumption Detail (LT1/LT2 breakdown) — strict 6:00 AM → 6:00 AM
-// ------------------------------------------------
 const consumptionDetail: {
   date: string;
   Unit_4_LT1?: number;
@@ -551,7 +483,6 @@ const U5_LT2_Meters = [
   "U10_GW03","U11_GW03","U12_GW03","U13_GW03","U14_GW03","U15_GW03","U18_GW03"
 ];
 
-// 🔧 Adjust consumption corrections
 const getAdjustedValue = (meterId: string, raw: number, unitKey: string): number => {
   let consumption = raw;
   if (unitKey === "Unit_4" && meterId === "U12_PLC")
@@ -566,8 +497,7 @@ const getAdjustedValue = (meterId: string, raw: number, unitKey: string): number
   if (meterId === "U10_GW03") consumption = PDB10_sum;
   return this.sanitizeValue(consumption);
 };
-// ✅ Handle same-date custom time range (e.g., 07:00–15:00)
-// const sameDate = moment(start_date).isSame(end_date, 'day');
+
 const hasCustomTime =
   start_time && end_time && !(start_time === '06:00' && end_time === '06:00');
 
@@ -633,16 +563,10 @@ if (firstDetailDoc && lastDetailDoc) {
   // };
 }
 
-
-// ✅ Correct timezone interpretation — treat "06:00" as local time in Asia/Karachi
-// ✅ Set timezone string explicitly
-// const TZ = 'Asia/Karachi';
-
-// ✅ Start at 6:00 local time, no UTC shift
 let current = moment(`${start_date} 06:00:00`).tz(TZ);
 const endLimit = moment(`${end_date} 06:00:00`).tz(TZ);
 
-// Loop while next 6 AM window ≤ endLimit
+
 while (current.clone().add(24, "hours").isSameOrBefore(endLimit)) {
  const dayStartISO = current.clone().format();
 const dayEndISO = current.clone().add(24, "hours").add(15, "minutes").format();
@@ -753,18 +677,7 @@ console.log(
   current.add(1, "day"); // next 6 AM window
 }
 
-//  else {
-//       consumptionDetail.push({ date: start_date });
-//     }
-
-    // ------------------------------------------------
-    // 🔢 Aggregate total consumption per unit from summaryByDept
-   // 🏷 Aggregate all-day dailyConsumption like summaryByDept
-// ------------------------------------------------
-
-// 🧮 Field Meter Totals per unit
 const ToU5LT2_sum = +(Number(fmCons?.U4_U23_GW03_Del_ActiveEnergy ?? 0).toFixed(2));
-// 🧮 Include U16_PLC and U2_PLC in Unit_4 transferred-to-OU calculation
 const U16_PLC = this.sanitizeValue(lastDoc?.U16_PLC_Del_ActiveEnergy - firstDoc?.U16_PLC_Del_ActiveEnergy);
 const U2_PLC = this.sanitizeValue(lastDoc?.U2_PLC_Del_ActiveEnergy - firstDoc?.U2_PLC_Del_ActiveEnergy);
 const U22_GW02 = this.sanitizeValue(lastDoc?.U22_GW02_Del_ActiveEnergy - firstDoc?.U22_GW02_Del_ActiveEnergy);
@@ -797,18 +710,6 @@ for (const record of dailyConsumption) {
   Unit_4_I_C_OU= Number(record['Unit_4_Total_I/C OU'] || 0);
   Unit_5_Total_I_C_G += Number(record['Unit_5_Total_I/C G'] || 0);
   Unit_5_I_C_OU= Number(record['Unit_5_I/C OU'] || 0);
-//   console.log(Unit_4_I_C_OU);
-//   // console.log(Unit_5_I_C_OU);
-//   console.log("🔍 UNIT 4 I_C_OU Breakdown", {
-//   // PDB07_U4,
-//   // CardPDB1_U4,
-//   // PDB08_U4,
-//   // PDB10_U4,
-//   // U16_PLC,
-//   // U2_PLC,
-//   Total_I_C_OU: Unit_4_I_C_OU
-// });
-
 }
  Unit_5_I_C_OU += U16_PLC + U2_PLC;
 Unit_4_I_C_OU += U22_GW02;
@@ -816,7 +717,6 @@ Unit_4_Total_I_C_G = +Unit_4_Total_I_C_G.toFixed(2);
 Unit_5_Total_I_C_G = +Unit_5_Total_I_C_G.toFixed(2);
 Unit_4_I_C_OU = +Unit_4_I_C_OU.toFixed(2);
 Unit_5_I_C_OU = +Unit_5_I_C_OU.toFixed(2);
-//  console.log(Unit_4_I_C_OU);
 
 // ------------------------------------------------
 // 🧮 Compute Unaccounted Energy for each Unit
@@ -857,45 +757,7 @@ if (area === 'ALL' || area === 'Unit_5') {
     Unaccounted_Energy: Unit_5_Unaccounted_Energy,
   });
 }
-// ------------------------------------------------
-// 🧾 Console log: Department-wise individual meter consumptions
-// ------------------------------------------------
-// console.log("\n===== Department-wise Individual Meter Consumption =====");
 
-// for (const [deptName, unitsMap] of Object.entries(processMappings)) {
-//   console.log(`\n📍 Department: ${deptName}`);
-//   for (const unitKey of ['Unit_4', 'Unit_5']) {
-//     const meters = unitsMap[unitKey];
-//     if (!meters) continue;
-
-//     console.log(`  ${unitKey}:`);
-//     for (const meterId of meters) {
-//       const key = `${meterId}_${suffix}`;
-//       const startVal = this.sanitizeValue(firstDoc[key]);
-//       const endVal = this.sanitizeValue(lastDoc[key]);
-//       let diff = endVal >= startVal ? this.sanitizeValue(endVal - startVal) : 0;
-
-//       // Apply same adjustments as used in your logic
-//       if (unitKey === "Unit_4" && meterId === "U12_PLC")
-//         diff = Math.max(0, +(diff - PDB07_U4).toFixed(2));
-//       if (meterId === "U5_GW01") diff = PDB1CD1_Total;
-//       if (meterId === "U9_GW01") diff = PDB2CD2_Total;
-//       if (meterId === "U15_GW01") diff = Math.max(0, +(diff - PDB10_U4).toFixed(2));
-//       if (meterId === "U14_GW02") diff = PDB08_Total;
-//       if (meterId === "U17_GW02") diff = CardPDB1_sum;
-//       if (meterId === "U18_GW02") diff = PDB07_sum;
-//       if (meterId === "U10_GW03") diff = PDB10_sum;
-
-//       console.log(`     🔹 ${meterId}: ${diff.toFixed(2)} kWh`);
-//     }
-//   }
-// }
-    // ------------------------------------------------
-    // ✅ Final Return
-    // ------------------------------------------------
-    // ------------------------------------------------
-// 🧾 Utilization Summary (Unit 4 & Unit 5)
-// ------------------------------------------------
 const utilization: any[] = [];
 
 let totalConnectedLoad_U4 = 0;

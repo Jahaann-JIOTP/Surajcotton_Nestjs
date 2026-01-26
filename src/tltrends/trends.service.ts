@@ -8,10 +8,9 @@ import * as moment from 'moment-timezone';
 
 
 @Injectable()
-export class TLTrendsService
-{
-  constructor (
-    @InjectModel( CSNew.name, 'surajcotton' )
+export class TLTrendsService {
+  constructor(
+    @InjectModel(CSNew.name, 'surajcotton')
     private readonly csNewModel: Model<CSNew>,
   ) { }
 
@@ -20,7 +19,7 @@ export class TLTrendsService
   //   endDate: string,
   // )
   // {
-  //   const startISO = `${ startDate }T06:00:00.000+05:00`;
+  //   const startISO = `${ startDate }T06:00:00+05:00`;
   //   const nextDay = moment( endDate ).add( 1, 'day' ).format( 'YYYY-MM-DD' );
   //   const endISO = `${ nextDay }T06:00:59.999+05:00`;
 
@@ -104,14 +103,13 @@ export class TLTrendsService
   //   return processedData;
   // }
 
-  async getU4CombineTrendData (
+  async getU4CombineTrendData(
     startDate: string,
     endDate: string,
-  )
-  {
-    const startISO = `${ startDate }T06:00:00.000+05:00`;
-    const nextDay = moment( endDate ).add( 1, 'day' ).format( 'YYYY-MM-DD' );
-    const endISO = `${ nextDay }T06:00:59.999+05:00`;
+  ) {
+    const startISO = `${startDate}T06:00:00+05:00`;
+    const nextDay = moment(endDate).add(1, 'day').format('YYYY-MM-DD');
+    const endISO = `${nextDay}T06:00:59.999+05:00`;
 
     const projection = {
       timestamp: true,
@@ -131,14 +129,13 @@ export class TLTrendsService
         { timestamp: { $gte: startISO, $lte: endISO } },
         projection
       )
-      .sort( { timestamp: 1 } ) // IMPORTANT: Sort by timestamp
+      .sort({ timestamp: 1 }) // IMPORTANT: Sort by timestamp
       .lean();
 
     // Cast to any to bypass TypeScript checks
     const typedData = rawData as any[];
 
-    const processedData = typedData.map( ( document, index ) =>
-    {
+    const processedData = typedData.map((document, index) => {
       // Get current values
       const currentTrafo1Incoming = document.U23_GW01_Del_ActiveEnergy || 0;
       const currentTrafo2Incoming = document.U22_GW01_Del_ActiveEnergy || 0;
@@ -151,9 +148,8 @@ export class TLTrendsService
       let previousTrafo1Outgoing = currentTrafo1Outgoing;
       let previousTrafo2Outgoing = currentTrafo2Outgoing;
 
-      if ( index > 0 )
-      {
-        const prevDoc = typedData[ index - 1 ];
+      if (index > 0) {
+        const prevDoc = typedData[index - 1];
         previousTrafo1Incoming = prevDoc.U23_GW01_Del_ActiveEnergy || 0;
         previousTrafo2Incoming = prevDoc.U22_GW01_Del_ActiveEnergy || 0;
         previousTrafo1Outgoing = prevDoc.U21_PLC_Del_ActiveEnergy || 0;
@@ -161,10 +157,10 @@ export class TLTrendsService
       }
 
       // Calculate consumption (difference between current and previous)
-      const Trafo1IncomingConsumption = Math.max( 0, currentTrafo1Incoming - previousTrafo1Incoming );
-      const Trafo2IncomingConsumption = Math.max( 0, currentTrafo2Incoming - previousTrafo2Incoming );
-      const Trafo1OutgoingConsumption = Math.max( 0, currentTrafo1Outgoing - previousTrafo1Outgoing );
-      const Trafo2OutgoingConsumption = Math.max( 0, currentTrafo2Outgoing - previousTrafo2Outgoing );
+      const Trafo1IncomingConsumption = Math.max(0, currentTrafo1Incoming - previousTrafo1Incoming);
+      const Trafo2IncomingConsumption = Math.max(0, currentTrafo2Incoming - previousTrafo2Incoming);
+      const Trafo1OutgoingConsumption = Math.max(0, currentTrafo1Outgoing - previousTrafo1Outgoing);
+      const Trafo2OutgoingConsumption = Math.max(0, currentTrafo2Outgoing - previousTrafo2Outgoing);
 
       // Calculate total incoming and outgoing consumption for this interval
       const Unit4CombineIncomingConsumption = Trafo1IncomingConsumption + Trafo2IncomingConsumption;
@@ -175,9 +171,8 @@ export class TLTrendsService
 
       // Calculate percentage (handle division by zero)
       let Unit4CombineNetLossesPercentage = 0;
-      if ( Unit4CombineIncomingConsumption > 0 )
-      {
-        Unit4CombineNetLossesPercentage = ( Unit4CombineNetLosses / Unit4CombineIncomingConsumption ) * 100;
+      if (Unit4CombineIncomingConsumption > 0) {
+        Unit4CombineNetLossesPercentage = (Unit4CombineNetLosses / Unit4CombineIncomingConsumption) * 100;
       }
 
       return {
@@ -207,18 +202,17 @@ export class TLTrendsService
         Unit4CombineNetLosses,
         Unit4CombineNetLossesPercentage,
       };
-    } );
+    });
 
     return processedData;
   }
-  async getU5T3TrendData (
+  async getU5T3TrendData(
     startDate: string,
     endDate: string,
-  )
-  {
-    const startISO = `${ startDate }T06:00:00.000+05:00`;
-    const nextDay = moment( endDate ).add( 1, 'day' ).format( 'YYYY-MM-DD' );
-    const endISO = `${ nextDay }T06:00:59.999+05:00`;
+  ) {
+    const startISO = `${startDate}T06:00:00+05:00`;
+    const nextDay = moment(endDate).add(1, 'day').format('YYYY-MM-DD');
+    const endISO = `${nextDay}T06:00:59.999+05:00`;
 
     const projection = {
       timestamp: true,
@@ -238,14 +232,13 @@ export class TLTrendsService
         { timestamp: { $gte: startISO, $lte: endISO } },
         projection
       )
-      .sort( { timestamp: 1 } ) // IMPORTANT: Sort by timestamp
+      .sort({ timestamp: 1 }) // IMPORTANT: Sort by timestamp
       .lean();
 
     // Cast to any to bypass TypeScript checks
     const typedData = rawData as any[];
 
-    const processedData = typedData.map( ( document, index ) =>
-    {
+    const processedData = typedData.map((document, index) => {
       // Get current values
       const currentTrafo3Incoming = document.U20_GW03_Del_ActiveEnergy || 0;
       const currentTrafo3Outgoing = document.U13_GW02_Del_ActiveEnergy || 0;
@@ -254,25 +247,23 @@ export class TLTrendsService
       let previousTrafo3Incoming = currentTrafo3Incoming;
       let previousTrafo3Outgoing = currentTrafo3Outgoing;
 
-      if ( index > 0 )
-      {
-        const prevDoc = typedData[ index - 1 ];
+      if (index > 0) {
+        const prevDoc = typedData[index - 1];
         previousTrafo3Incoming = prevDoc.U20_GW03_Del_ActiveEnergy || 0;
         previousTrafo3Outgoing = prevDoc.U13_GW02_Del_ActiveEnergy || 0;
       }
 
       // Calculate consumption (difference between current and previous)
-      const Trafo3IncomingConsumption = Math.max( 0, currentTrafo3Incoming - previousTrafo3Incoming );
-      const Trafo3OutgoingConsumption = Math.max( 0, currentTrafo3Outgoing - previousTrafo3Outgoing );
+      const Trafo3IncomingConsumption = Math.max(0, currentTrafo3Incoming - previousTrafo3Incoming);
+      const Trafo3OutgoingConsumption = Math.max(0, currentTrafo3Outgoing - previousTrafo3Outgoing);
 
       //Unit 5 Trafo 3 calculations
       const Unit5Trafo3NetLosses = Trafo3IncomingConsumption - Trafo3OutgoingConsumption;
 
       // Calculate percentage (handle division by zero)
       let Unit5Trafo3NetLossesPercentage = 0;
-      if ( Trafo3IncomingConsumption > 0 )
-      {
-        Unit5Trafo3NetLossesPercentage = ( Unit5Trafo3NetLosses / Trafo3IncomingConsumption ) * 100;
+      if (Trafo3IncomingConsumption > 0) {
+        Unit5Trafo3NetLossesPercentage = (Unit5Trafo3NetLosses / Trafo3IncomingConsumption) * 100;
       }
 
       return {
@@ -294,18 +285,17 @@ export class TLTrendsService
         Unit5Trafo3NetLosses,
         Unit5Trafo3NetLossesPercentage,
       };
-    } );
+    });
 
     return processedData;
   }
-  async getU5T4TrendData (
+  async getU5T4TrendData(
     startDate: string,
     endDate: string,
-  )
-  {
-    const startISO = `${ startDate }T06:00:00.000+05:00`;
-    const nextDay = moment( endDate ).add( 1, 'day' ).format( 'YYYY-MM-DD' );
-    const endISO = `${ nextDay }T06:00:59.999+05:00`;
+  ) {
+    const startISO = `${startDate}T06:00:00+05:00`;
+    const nextDay = moment(endDate).add(1, 'day').format('YYYY-MM-DD');
+    const endISO = `${nextDay}T06:00:59.999+05:00`;
 
     const projection = {
       timestamp: true,
@@ -325,14 +315,13 @@ export class TLTrendsService
         { timestamp: { $gte: startISO, $lte: endISO } },
         projection
       )
-      .sort( { timestamp: 1 } ) // IMPORTANT: Sort by timestamp
+      .sort({ timestamp: 1 }) // IMPORTANT: Sort by timestamp
       .lean();
 
     // Cast to any to bypass TypeScript checks
     const typedData = rawData as any[];
 
-    const processedData = typedData.map( ( document, index ) =>
-    {
+    const processedData = typedData.map((document, index) => {
       // Get current values
       const currentTrafo4Incoming = document.U19_GW03_Del_ActiveEnergy || 0;
       const currentTrafo4Outgoing = document.U16_GW03_Del_ActiveEnergy || 0;
@@ -341,25 +330,23 @@ export class TLTrendsService
       let previousTrafo4Incoming = currentTrafo4Incoming;
       let previousTrafo4Outgoing = currentTrafo4Outgoing;
 
-      if ( index > 0 )
-      {
-        const prevDoc = typedData[ index - 1 ];
+      if (index > 0) {
+        const prevDoc = typedData[index - 1];
         previousTrafo4Incoming = prevDoc.U19_GW03_Del_ActiveEnergy || 0;
         previousTrafo4Outgoing = prevDoc.U16_GW03_Del_ActiveEnergy || 0;
       }
 
       // Calculate consumption (difference between current and previous)
-      const Trafo4IncomingConsumption = Math.max( 0, currentTrafo4Incoming - previousTrafo4Incoming );
-      const Trafo4OutgoingConsumption = Math.max( 0, currentTrafo4Outgoing - previousTrafo4Outgoing );
+      const Trafo4IncomingConsumption = Math.max(0, currentTrafo4Incoming - previousTrafo4Incoming);
+      const Trafo4OutgoingConsumption = Math.max(0, currentTrafo4Outgoing - previousTrafo4Outgoing);
 
       // Unit 5 Trafo 4 calculations
       const Unit5Trafo4NetLosses = Trafo4IncomingConsumption - Trafo4OutgoingConsumption;
 
       // Calculate percentage (handle division by zero)
       let Unit5Trafo4NetLossesPercentage = 0;
-      if ( Trafo4IncomingConsumption > 0 )
-      {
-        Unit5Trafo4NetLossesPercentage = ( Unit5Trafo4NetLosses / Trafo4IncomingConsumption ) * 100;
+      if (Trafo4IncomingConsumption > 0) {
+        Unit5Trafo4NetLossesPercentage = (Unit5Trafo4NetLosses / Trafo4IncomingConsumption) * 100;
       }
 
       return {
@@ -381,18 +368,17 @@ export class TLTrendsService
         Unit5Trafo4NetLosses,
         Unit5Trafo4NetLossesPercentage,
       };
-    } );
+    });
 
     return processedData;
   }
-  async getU5CombineTrendData (
+  async getU5CombineTrendData(
     startDate: string,
     endDate: string,
-  )
-  {
-    const startISO = `${ startDate }T06:00:00.000+05:00`;
-    const nextDay = moment( endDate ).add( 1, 'day' ).format( 'YYYY-MM-DD' );
-    const endISO = `${ nextDay }T06:00:59.999+05:00`;
+  ) {
+    const startISO = `${startDate}T06:00:00+05:00`;
+    const nextDay = moment(endDate).add(1, 'day').format('YYYY-MM-DD');
+    const endISO = `${nextDay}T06:00:59.999+05:00`;
 
     const projection = {
       timestamp: true,
@@ -412,14 +398,13 @@ export class TLTrendsService
         { timestamp: { $gte: startISO, $lte: endISO } },
         projection
       )
-      .sort( { timestamp: 1 } ) // IMPORTANT: Sort by timestamp
+      .sort({ timestamp: 1 }) // IMPORTANT: Sort by timestamp
       .lean();
 
     // Cast to any to bypass TypeScript checks
     const typedData = rawData as any[];
 
-    const processedData = typedData.map( ( document, index ) =>
-    {
+    const processedData = typedData.map((document, index) => {
       // Get current values
       const currentTrafo3Incoming = document.U20_GW03_Del_ActiveEnergy || 0;
       const currentTrafo4Incoming = document.U19_GW03_Del_ActiveEnergy || 0;
@@ -432,9 +417,8 @@ export class TLTrendsService
       let previousTrafo3Outgoing = currentTrafo3Outgoing;
       let previousTrafo4Outgoing = currentTrafo4Outgoing;
 
-      if ( index > 0 )
-      {
-        const prevDoc = typedData[ index - 1 ];
+      if (index > 0) {
+        const prevDoc = typedData[index - 1];
         previousTrafo3Incoming = prevDoc.U20_GW03_Del_ActiveEnergy || 0;
         previousTrafo4Incoming = prevDoc.U19_GW03_Del_ActiveEnergy || 0;
         previousTrafo3Outgoing = prevDoc.U13_GW02_Del_ActiveEnergy || 0;
@@ -442,10 +426,10 @@ export class TLTrendsService
       }
 
       // Calculate consumption (difference between current and previous)
-      const Trafo3IncomingConsumption = Math.max( 0, currentTrafo3Incoming - previousTrafo3Incoming );
-      const Trafo4IncomingConsumption = Math.max( 0, currentTrafo4Incoming - previousTrafo4Incoming );
-      const Trafo3OutgoingConsumption = Math.max( 0, currentTrafo3Outgoing - previousTrafo3Outgoing );
-      const Trafo4OutgoingConsumption = Math.max( 0, currentTrafo4Outgoing - previousTrafo4Outgoing );
+      const Trafo3IncomingConsumption = Math.max(0, currentTrafo3Incoming - previousTrafo3Incoming);
+      const Trafo4IncomingConsumption = Math.max(0, currentTrafo4Incoming - previousTrafo4Incoming);
+      const Trafo3OutgoingConsumption = Math.max(0, currentTrafo3Outgoing - previousTrafo3Outgoing);
+      const Trafo4OutgoingConsumption = Math.max(0, currentTrafo4Outgoing - previousTrafo4Outgoing);
 
       // Unit 5 Combine calculations (using consumption values)
       const Unit5CombineIncomingConsumption = Trafo3IncomingConsumption + Trafo4IncomingConsumption;
@@ -454,9 +438,8 @@ export class TLTrendsService
 
       // Calculate percentage (handle division by zero)
       let Unit5CombineNetLossesPercentage = 0;
-      if ( Unit5CombineIncomingConsumption > 0 )
-      {
-        Unit5CombineNetLossesPercentage = ( Unit5CombineNetLosses / Unit5CombineIncomingConsumption ) * 100;
+      if (Unit5CombineIncomingConsumption > 0) {
+        Unit5CombineNetLossesPercentage = (Unit5CombineNetLosses / Unit5CombineIncomingConsumption) * 100;
       }
 
       return {
@@ -486,7 +469,7 @@ export class TLTrendsService
         Unit5CombineNetLosses,
         Unit5CombineNetLossesPercentage,
       };
-    } );
+    });
     return processedData;
   }
 }

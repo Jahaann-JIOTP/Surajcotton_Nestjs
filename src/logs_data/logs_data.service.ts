@@ -8,7 +8,7 @@ import * as moment from "moment-timezone";
 export class LogsDataService {
   constructor(
     @InjectConnection("surajcotton") private readonly connection: Connection
-  ) {}
+  ) { }
 
   private readonly tagGroups = {
     voltage: ["Voltage_AB", "Voltage_BC", "Voltage_CA", "Voltage_Avg"],
@@ -27,7 +27,7 @@ export class LogsDataService {
    * Example: /logs_data?type=active_power&meters=U_5,U_7&start_date=2025-08-01&end_date=2025-08-02&page=1&pageSize=2000
    */
   async fetchLogs(query: LogsQueryDto & { page?: number; pageSize?: number }) {
-   const { type, meters, start_date, end_date } = query;
+    const { type, meters, start_date, end_date } = query;
 
 
     const baseTags = (this.tagGroups as any)[type] as string[] | undefined;
@@ -48,17 +48,17 @@ export class LogsDataService {
     const collection = db.collection("historical");
 
     // Same timestamp style you used (+05:00), so no schema change needed
-// Start: given start_date ka 6 AM
- const startISO = `${start_date}T06:00:00.000+05:00`;
-const nextDay = moment(end_date).add(1, 'day').format('YYYY-MM-DD');
-const endISO = `${nextDay}T06:00:59.999+05:00`;
+    // Start: given start_date ka 6 AM
+    const startISO = `${start_date}T06:00:00+05:00`;
+    const nextDay = moment(end_date).add(1, 'day').format('YYYY-MM-DD');
+    const endISO = `${nextDay}T06:00:59+05:00`;
 
-  
+
 
 
 
     const dbQuery = {
-      timestamp: { $gte: startISO , $lte: endISO },
+      timestamp: { $gte: startISO, $lte: endISO },
     };
 
     // ------- PROJECTION: only fetch needed fields -------
@@ -82,7 +82,7 @@ const endISO = `${nextDay}T06:00:59.999+05:00`;
       .skip(skip)
       .limit(pageSize)
       .batchSize(1000);
-      // .hint({ timestamp: 1 });
+    // .hint({ timestamp: 1 });
 
     const docs = await cursor.toArray();
 
@@ -90,7 +90,7 @@ const endISO = `${nextDay}T06:00:59.999+05:00`;
     const results: any[] = [];
     for (const item of docs) {
       const timeStr = item.timestamp
-        ? moment(item.timestamp).tz("Asia/Karachi").format("YYYY-MM-DDTHH:mm:ss.SSSZ")
+        ? moment(item.timestamp).tz("Asia/Karachi").format("YYYY-MM-DDTHH:mm:ssZ")
         : null;
 
       for (const meterId of meterIds) {

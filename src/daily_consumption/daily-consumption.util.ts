@@ -48,22 +48,22 @@ export async function calculateConsumptionCore(
 
   if (startTime && endTime) {
     startISO = `${startDate}T${startTime}:00.000+05:00`;
-    endISO   = `${endDate}T${endTime}:00.000+05:00`;
+    endISO = `${endDate}T${endTime}:00.000+05:00`;
 
     if (moment(endISO).isSameOrBefore(moment(startISO))) {
       endISO = moment(endISO).add(1, 'day').toISOString();
     }
   } else {
-    startISO = `${startDate}T06:00:00.000+05:00`;
+    startISO = `${startDate}T06:00:00+05:00`;
     const nextDay = moment(endDate).add(1, 'day').format('YYYY-MM-DD');
     endISO = `${nextDay}T06:00:59.999+05:00`;
   }
   // --- Calculate total hours using the SAME start and end used in MongoDB query ---
-const totalHours = Math.max(
-  moment(endISO).diff(moment(startISO), 'milliseconds') / 3600000,
-  0
-);
- 
+  const totalHours = Math.max(
+    moment(endISO).diff(moment(startISO), 'milliseconds') / 3600000,
+    0
+  );
+
 
 
 
@@ -85,7 +85,7 @@ const totalHours = Math.max(
         $expr: {
           $and: [
             { $gte: [{ $dateFromString: { dateString: '$timestamp' } }, { $dateFromString: { dateString: startISO } }] },
-            { $lt:  [{ $dateFromString: { dateString: '$timestamp' } }, { $dateFromString: { dateString: endISO } }] },
+            { $lt: [{ $dateFromString: { dateString: '$timestamp' } }, { $dateFromString: { dateString: endISO } }] },
           ],
         },
       },
@@ -98,21 +98,21 @@ const totalHours = Math.max(
 
     // Align slots
     const energyDocs = alignSlots(rawDocs, energy, expectedSlots);
-    const powerDocs  = alignSlots(rawDocs, power, expectedSlots);
-    const pfDocs     = alignSlots(rawDocs, powerFactor, expectedSlots);
-    const voltDocs   = alignSlots(rawDocs, voltage, expectedSlots);
+    const powerDocs = alignSlots(rawDocs, power, expectedSlots);
+    const pfDocs = alignSlots(rawDocs, powerFactor, expectedSlots);
+    const voltDocs = alignSlots(rawDocs, voltage, expectedSlots);
 
-    
+
 
     // console.log(`   [Aligned] slots = ${energyDocs.length}`);
 
     // Energy consumption
     const firstDoc = energyDocs.find(d => d[energy] !== null);
-    const lastDoc  = [...energyDocs].reverse().find(d => d[energy] !== null);
+    const lastDoc = [...energyDocs].reverse().find(d => d[energy] !== null);
 
     let consumption = 0;
     if (firstDoc && lastDoc) {
-     consumption = sanitizeValue(parseFloat(((lastDoc[energy] || 0) - (firstDoc[energy] || 0)).toFixed(2)));
+      consumption = sanitizeValue(parseFloat(((lastDoc[energy] || 0) - (firstDoc[energy] || 0)).toFixed(2)));
 
       // console.log(`   [Energy] First=${firstDoc[energy]} (${firstDoc.timestamp})`);
       // console.log(`   [Energy] Last =${lastDoc[energy]} (${lastDoc.timestamp})`);
@@ -123,17 +123,17 @@ const totalHours = Math.max(
 
     // Avg Power
     const powerVals = powerDocs.map(d => d[power]).filter(v => v !== null);
-   const avgPower = sanitizeValue(powerVals.length ? parseFloat((powerVals.reduce((a,b)=>a+b,0)/powerVals.length).toFixed(2)) : 0);
+    const avgPower = sanitizeValue(powerVals.length ? parseFloat((powerVals.reduce((a, b) => a + b, 0) / powerVals.length).toFixed(2)) : 0);
     // console.log(`   [Power] Count=${powerVals.length}, Avg=${avgPower}`);
 
     // Avg PF
     const pfVals = pfDocs.map(d => d[powerFactor]).filter(v => v !== null);
-   const avgPF = sanitizeValue(pfVals.length ? parseFloat((pfVals.reduce((a,b)=>a+b,0)/pfVals.length).toFixed(2)) : 0);
+    const avgPF = sanitizeValue(pfVals.length ? parseFloat((pfVals.reduce((a, b) => a + b, 0) / pfVals.length).toFixed(2)) : 0);
     // console.log(`   [PF]    Count=${pfVals.length}, Avg=${avgPF}`);
 
     // Avg Voltage
     const voltVals = voltDocs.map(d => d[voltage]).filter(v => v !== null);
-   const avgVolt = sanitizeValue(voltVals.length ? parseFloat((voltVals.reduce((a,b)=>a+b,0)/voltVals.length).toFixed(2)) : 0);
+    const avgVolt = sanitizeValue(voltVals.length ? parseFloat((voltVals.reduce((a, b) => a + b, 0) / voltVals.length).toFixed(2)) : 0);
     // console.log(`   [Volt]  Count=${voltVals.length}, Avg=${avgVolt}`);
 
     // Push result
@@ -156,5 +156,5 @@ const totalHours = Math.max(
     // console.log('✅ Final Result:', result);
   }
 
-  return { startISO, endISO,totalHours, meters };
+  return { startISO, endISO, totalHours, meters };
 }

@@ -90,11 +90,11 @@ export class EnergyService {
     const endMoment = moment
       .tz(`${end} ${endTime}`, TZ)
       .endOf('minute');
-
+console.log(startMoment.format(), endMoment.format());
     const matchStage = {
       timestamp: {
         $gte: startMoment.format(),
-        $lte: endMoment.clone().add(2, 'minutes').format(),
+        $lte: endMoment.add(2, 'minutes').format(),
       },
     };
 
@@ -183,18 +183,18 @@ export class EnergyService {
     /* ===================== SANKEY ===================== */
     const payload = {
       startDate: start,
-      endDate: endMoment.format('YYYY-MM-DD'),
-      startTime: '06:00',
-      endTime: '06:00',
+      endDate: end,
+      startTime: startTime,
+      endTime: endTime,
     };
-
+console.log(payload);
     const sankeyResults = await Promise.allSettled([
       this.unit4LT1.getSankeyData(payload),
       this.unit4LT2.getSankeyData(payload),
       this.unit5LT3.getSankeyData(payload),
       this.unit5LT4.getSankeyData(payload),
     ]);
-
+   console.log(sankeyResults);
     const unaccoutable_energy = sankeyResults.reduce(
       (s, r) =>
         r.status === 'fulfilled'
@@ -202,7 +202,7 @@ export class EnergyService {
           : s,
       0,
     );
-
+console.log(unaccoutable_energy);
     /* ===================== RESPONSE ===================== */
     return {
       total_consumption: {

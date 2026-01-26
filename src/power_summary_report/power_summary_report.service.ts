@@ -69,8 +69,8 @@ export class PowerSummaryReportService {
       // console.log(start, "else condition")
     }
 
-    const startISO = start.format('YYYY-MM-DDTHH:mm:ss.SSSZ');
-    const endISO = end.format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+    const startISO = start.format('YYYY-MM-DDTHH:mm:ssZ');
+    const endISO = end.format('YYYY-MM-DDTHH:mm:ssZ');
     // console.log(startISO, "start")
     // console.log(endISO, "end")
 

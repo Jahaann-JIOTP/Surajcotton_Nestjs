@@ -12,7 +12,7 @@ export class TrendsService {
   constructor(
     @InjectModel(CSNew.name, 'surajcotton')
     private readonly csNewModel: Model<CSNew>,
-  ) {}
+  ) { }
 
   // 🔹 Area-to-meters mapping
   private readonly METER_MAPPING: Record<string, Record<string, string[]> | string[]> = {
@@ -26,7 +26,7 @@ export class TrendsService {
         'U1_GW01', 'U2_GW01', 'U3_GW01', 'U4_GW01', 'U5_GW01', 'U6_GW01', 'U7_GW01',
         'U8_GW01', 'U9_GW01', 'U10_GW01', 'U11_GW01', 'U12_GW01', 'U13_GW01', 'U14_GW01',
         'U15_GW01', 'U16_GW01', 'U17_GW01', 'U18_GW01', 'U19_GW01', 'U20_GW01', 'U21_GW01',
-        'U22_GW01', 'U23_GW01','U24_GW01','U28_PLC',
+        'U22_GW01', 'U23_GW01', 'U24_GW01', 'U28_PLC',
       ],
     },
     'Unit 5': {
@@ -62,72 +62,72 @@ export class TrendsService {
     return { unit: areaStr };
   }
 
- async getTrendData(
-  startDate: string,
-  endDate: string,
-  meterIdsStr: string,
-  suffixesStr: string,
-  area: string,
-  timezone = 'Asia/Karachi',
-) {
-  const startISO = `${startDate}T06:00:00.000+05:00`;
+  async getTrendData(
+    startDate: string,
+    endDate: string,
+    meterIdsStr: string,
+    suffixesStr: string,
+    area: string,
+    timezone = 'Asia/Karachi',
+  ) {
+    const startISO = `${startDate}T06:00:00+05:00`;
 
-const nextDay = moment(endDate).add(1, 'day').format('YYYY-MM-DD');
+    const nextDay = moment(endDate).add(1, 'day').format('YYYY-MM-DD');
 
-// 👇 end ko thoda extend kar diya (59.999)
-const endISO = `${nextDay}T06:00:59.999+05:00`;
+    // 👇 end ko thoda extend kar diya (59.999)
+    const endISO = `${nextDay}T06:00:59.999+05:00`;
 
-  const { unit, lt } = this.parseArea(area);
+    const { unit, lt } = this.parseArea(area);
 
-  // 🔹 Determine allowed meters
-  let allowedMeterIds: string[] = [];
-  const mapping = this.METER_MAPPING[unit];
-  if (Array.isArray(mapping)) {
-    allowedMeterIds = mapping;
-  } else if (lt && mapping) {
-    allowedMeterIds = mapping[lt] || [];
-  }
-
-  const meterIds = meterIdsStr.split(',').map(m => m.trim());
-  const suffixes = suffixesStr.split(',').map(s => s.trim());
-
-  const projection: any = { timestamp: 1 };
-  meterIds.forEach(meterId => {
-    if (allowedMeterIds.includes(meterId)) {
-      suffixes.forEach(suffix => {
-        projection[`${meterId}_${suffix}`] = 1;
-      });
+    // 🔹 Determine allowed meters
+    let allowedMeterIds: string[] = [];
+    const mapping = this.METER_MAPPING[unit];
+    if (Array.isArray(mapping)) {
+      allowedMeterIds = mapping;
+    } else if (lt && mapping) {
+      allowedMeterIds = mapping[lt] || [];
     }
-  });
 
-  const rawData = await this.csNewModel.find(
-    { timestamp: { $gte: startISO, $lte: endISO } },
-    projection,
-  ).lean();
+    const meterIds = meterIdsStr.split(',').map(m => m.trim());
+    const suffixes = suffixesStr.split(',').map(s => s.trim());
 
-  const formatted = rawData.map(doc => {
-    const flat: any = { timestamp: doc.timestamp };
+    const projection: any = { timestamp: 1 };
     meterIds.forEach(meterId => {
       if (allowedMeterIds.includes(meterId)) {
         suffixes.forEach(suffix => {
-          const key = `${meterId}_${suffix}`;
-          if (doc[key] !== undefined) {
-            let value = doc[key];
-            // scientific notation check
-            if (value.toString().includes('e')) value = 0;
-            // round to 2 decimal places
-            flat[key] = Math.round(value * 100) / 100;
-          } else {
-            flat[key] = 0;
-          }
+          projection[`${meterId}_${suffix}`] = 1;
         });
       }
     });
-    return flat;
-  });
 
-  formatted.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-  return formatted;
-}
+    const rawData = await this.csNewModel.find(
+      { timestamp: { $gte: startISO, $lte: endISO } },
+      projection,
+    ).lean();
+
+    const formatted = rawData.map(doc => {
+      const flat: any = { timestamp: doc.timestamp };
+      meterIds.forEach(meterId => {
+        if (allowedMeterIds.includes(meterId)) {
+          suffixes.forEach(suffix => {
+            const key = `${meterId}_${suffix}`;
+            if (doc[key] !== undefined) {
+              let value = doc[key];
+              // scientific notation check
+              if (value.toString().includes('e')) value = 0;
+              // round to 2 decimal places
+              flat[key] = Math.round(value * 100) / 100;
+            } else {
+              flat[key] = 0;
+            }
+          });
+        }
+      });
+      return flat;
+    });
+
+    formatted.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+    return formatted;
+  }
 
 }

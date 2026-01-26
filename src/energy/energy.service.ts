@@ -202,7 +202,7 @@ export class EnergyService {
     private readonly unit4LT2Service: Unit4LT2Service,
     private readonly unit5LT3Service: Unit5LT3Service,
     private readonly unit5LT4Service: Unit5LT4Service,
-  ) {}
+  ) { }
 
   async getConsumption(start: string, end: string) {
     // ---------- Time Window: 06:00 to next day 06:00 ----------
@@ -228,8 +228,8 @@ export class EnergyService {
         .millisecond(999);
     }
 
-     const startStr = startMoment.format('YYYY-MM-DDTHH:mm:ss.SSSZ');
-    const endStr = endMoment.format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+    const startStr = startMoment.format('YYYY-MM-DDTHH:mm:ssZ');
+    const endStr = endMoment.format('YYYY-MM-DDTHH:mm:ssZ');
 
     const matchStage = {
       timestamp: {
@@ -312,7 +312,7 @@ export class EnergyService {
 
     const doc = aggResult[0];
     // console.log(doc)
-    
+
 
     // ---------- Build Consumption = last - first (with sanity checks) ----------
     const consumption: Record<string, number> = {};
@@ -405,8 +405,8 @@ export class EnergyService {
     const TotalTrasformepercentage =
       T1andT2incoming + Trafo3Incoming + Trafo4Incoming !== 0
         ? (TrasformerLosses /
-            (T1andT2incoming + Trafo3Incoming + Trafo4Incoming)) *
-          100
+          (T1andT2incoming + Trafo3Incoming + Trafo4Incoming)) *
+        100
         : 0;
 
     const HT_Transmission_Losses1 = Math.max(
@@ -489,7 +489,7 @@ export class EnergyService {
         T1andT2outgoing: f(T1andT2outgoing),
         Trafo1outgoing: f(Trafo1outgoing),
         Trafo2outgoing: f(Trafo2outgoing),
-        
+
         T1andT2losses: f(T1andT2losses),
         T1T2unit4percentage: f(T1T2percentage),
 
