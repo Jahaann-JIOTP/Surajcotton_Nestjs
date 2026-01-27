@@ -302,85 +302,85 @@ const timestampNow = new Date(utcNow.getTime() + 5 * 60 * 60 * 1000)
   }
 }
 
-// @Cron('0 */3 * * * *') 
-// async storeEvery15Minutes() {
-//   try {
-//  // 🔹 Get all unprocessed 5-min docs in order
-//     const pendingDocs = await this.meter5MinModel
-//       .find({ isProcessed: false })
-//       .sort({ timestamp: 1 })
-//       .lean();
+@Cron('0 */3 * * * *') 
+async storeEvery15Minutes() {
+  try {
+ // 🔹 Get all unprocessed 5-min docs in order
+    const pendingDocs = await this.meter5MinModel
+      .find({ isProcessed: false })
+      .sort({ timestamp: 1 })
+      .lean();
 
 
-//     if (pendingDocs.length === 0) {
-//       console.log("❌ No 5-minute record found in 5min_historical");
-//       return;
-//     }
+    if (pendingDocs.length === 0) {
+      console.log("❌ No 5-minute record found in 5min_historical");
+      return;
+    }
   
-//      //🔸Get current areas from toggles as fallback when there's no process/raw doc
-//     const toggles = await this.toggleModel.find().lean();
-//     const areaMap: Record<string, string> = {};
-//     for (const t of toggles) {
-//       areaMap[`${t.meterId}_Del_ActiveEnergy`] = t.area; // same key shape as raw
-//     }
-//     let lastInsertedDoc: any = null;  // optional, just to return something at the end
+     //🔸Get current areas from toggles as fallback when there's no process/raw doc
+    const toggles = await this.toggleModel.find().lean();
+    const areaMap: Record<string, string> = {};
+    for (const t of toggles) {
+      areaMap[`${t.meterId}_Del_ActiveEnergy`] = t.area; // same key shape as raw
+    }
+    let lastInsertedDoc: any = null;  // optional, just to return something at the end
 
-//     // 🔁 Process each pending 5-min doc one by one
-//     for (const latest5MinDoc of pendingDocs) {
-//     const fieldTimestamp = (latest5MinDoc as any).timestamp;
-//     // This matches EXACTLY the same as apiData from Node-RED
-//     const apiData = latest5MinDoc;
+    // 🔁 Process each pending 5-min doc one by one
+    for (const latest5MinDoc of pendingDocs) {
+    const fieldTimestamp = (latest5MinDoc as any).timestamp;
+    // This matches EXACTLY the same as apiData from Node-RED
+    const apiData = latest5MinDoc;
 
-//     // console.log("API DATA ££££££££££££££££££",apiData);
+    // console.log("API DATA ££££££££££££££££££",apiData);
 
-//     // 3️⃣ Check last doc
-//     const lastDoc = await this.fieldMeterRawDataModel.findOne().sort({ timestamp: -1 });
+    // 3️⃣ Check last doc
+    const lastDoc = await this.fieldMeterRawDataModel.findOne().sort({ timestamp: -1 });
 
-//     const realTimeValuesObj: Record<string, { area: string; value: number }> = {};
-//     for (const meterId of Object.keys(this.METER_UNIT_MAP)) {
-//       const shortId = meterId.replace('_Del_ActiveEnergy', '');
-//       const apiValue = apiData[meterId] ?? apiData[shortId] ?? 0;
+    const realTimeValuesObj: Record<string, { area: string; value: number }> = {};
+    for (const meterId of Object.keys(this.METER_UNIT_MAP)) {
+      const shortId = meterId.replace('_Del_ActiveEnergy', '');
+      const apiValue = apiData[meterId] ?? apiData[shortId] ?? 0;
 
-//       realTimeValuesObj[meterId] = {
-//         area: (lastDoc as any)?.[meterId]?.area || areaMap[meterId] || 'unit4',
-//         value: Math.round(apiValue * 100) / 100,
-//       };
-//     }
+      realTimeValuesObj[meterId] = {
+        area: (lastDoc as any)?.[meterId]?.area || areaMap[meterId] || 'unit4',
+        value: Math.round(apiValue * 100) / 100,
+      };
+    }
 
-//     // 4️⃣ Insert with upsert (only one cron doc per minute)
-//       const newDoc = await this.fieldMeterRawDataModel.findOneAndUpdate(
-//         { timestamp: fieldTimestamp, source: 'cron' },
-//         {
-//           $setOnInsert: {
-//             timestamp: fieldTimestamp,   // 🟢 PLC timestamp preserved
-//             insertedAt: new Date(),      // 🟢 System insertion time
-//             source: 'cron'
-//           },
-//           $set: {
-//             ...realTimeValuesObj         // 🟢 SAME structure as before
-//           }
-//         },
-//         { upsert: true, new: true }
-//       );
+    // 4️⃣ Insert with upsert (only one cron doc per minute)
+      const newDoc = await this.fieldMeterRawDataModel.findOneAndUpdate(
+        { timestamp: fieldTimestamp, source: 'cron' },
+        {
+          $setOnInsert: {
+            timestamp: fieldTimestamp,   // 🟢 PLC timestamp preserved
+            insertedAt: new Date(),      // 🟢 System insertion time
+            source: 'cron'
+          },
+          $set: {
+            ...realTimeValuesObj         // 🟢 SAME structure as before
+          }
+        },
+        { upsert: true, new: true }
+      );
 
 
-//     console.log(`✅ Cron insert complete for ${fieldTimestamp}`);
-//     lastInsertedDoc = newDoc;
-//     // After storing the real-time data, now call the calculateConsumption function
-//     await this.calculateConsumption(String(newDoc._id)); // Calling calculateConsumption after storing data
+    console.log(`✅ Cron insert complete for ${fieldTimestamp}`);
+    lastInsertedDoc = newDoc;
+    // After storing the real-time data, now call the calculateConsumption function
+    await this.calculateConsumption(String(newDoc._id)); // Calling calculateConsumption after storing data
 
-//           // 🔹 Mark this 5min doc as processed
-//       await this.meter5MinModel.updateOne(
-//         { _id: latest5MinDoc._id },
-//         { $set: { isProcessed: true } },
-//       );
-//     }
-//     return lastInsertedDoc;
+          // 🔹 Mark this 5min doc as processed
+      await this.meter5MinModel.updateOne(
+        { _id: latest5MinDoc._id },
+        { $set: { isProcessed: true } },
+      );
+    }
+    return lastInsertedDoc;
 
-//   } catch (err) {
-//     console.error('❌ Cron error:', err.message);
-//   }
-// }
+  } catch (err) {
+    console.error('❌ Cron error:', err.message);
+  }
+}
 
 async calculateConsumption(rawId?: string) {
   const meterKeys = [
